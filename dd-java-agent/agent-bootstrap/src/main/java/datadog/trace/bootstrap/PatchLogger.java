@@ -1,3 +1,6 @@
+/**
+ * Modification by SignalFx to implement isLoggable stub
+ */
 package datadog.trace.bootstrap;
 
 import java.util.ResourceBundle;
@@ -116,4 +119,6 @@ public class PatchLogger {
   public void throwing(String sourceClass, String sourceMethod, Throwable thrown) {}
 
   public void setLevel(Level newLevel) throws SecurityException {}
+
+  public boolean isLoggable(Level level) { return false; }
 }

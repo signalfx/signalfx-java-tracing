@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.integration;
 
 import static datadog.trace.agent.integration.MongoClientInstrumentationTest.MONGO_DB_NAME;
@@ -8,8 +9,8 @@ import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoDatabase;
-import datadog.opentracing.DDSpan;
-import datadog.opentracing.DDTracer;
+import io.opentracing.mock.MockSpan;
+import datadog.trace.agent.test.utils.TestTracer;
 import datadog.trace.agent.test.IntegrationTestUtils;
 import datadog.trace.common.writer.ListWriter;
 import io.opentracing.tag.Tags;
@@ -23,7 +24,7 @@ import org.junit.Test;
 public class MongoAsyncClientInstrumentationTest {
   private static MongoClient client;
   private static final ListWriter writer = new ListWriter();
-  private static final DDTracer tracer = new DDTracer(writer);
+  private static final TestTracer tracer = new TestTracer(writer);
 
   @BeforeClass
   public static void setup() throws Exception {
@@ -101,7 +102,7 @@ public class MongoAsyncClientInstrumentationTest {
 
     final String createCollectionQuery =
         "{ \"create\" : \"asyncCollection\", \"autoIndexId\" : \"?\", \"capped\" : \"?\" }";
-    final DDSpan trace0 = writer.get(0).get(0);
+    final MockSpan trace0 = writer.get(0).get(0);
     Assert.assertEquals("mongo.query", trace0.getOperationName());
     Assert.assertEquals(createCollectionQuery, trace0.getResourceName());
     Assert.assertEquals("mongodb", trace0.getType());

@@ -1,10 +1,11 @@
+// Modified by SignalFx
 package datadog.trace.agent.integration;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import datadog.opentracing.DDSpan;
-import datadog.opentracing.DDTracer;
+import io.opentracing.Span;
+import datadog.trace.agent.test.utils.TestTracer;
 import datadog.trace.agent.test.IntegrationTestUtils;
 import datadog.trace.common.writer.ListWriter;
 import de.flapdoodle.embed.mongo.MongodExecutable;

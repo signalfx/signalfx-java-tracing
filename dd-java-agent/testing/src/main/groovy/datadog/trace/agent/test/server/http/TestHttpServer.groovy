@@ -1,10 +1,11 @@
+// Modified by SignalFx
 package datadog.trace.agent.test.server.http
 
-import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.asserts.ListWriterAssert
 import io.opentracing.SpanContext
 import io.opentracing.Tracer
+import io.opentracing.mock.MockSpan
 import io.opentracing.propagation.Format
 import io.opentracing.util.GlobalTracer
 import org.eclipse.jetty.http.HttpMethods
@@ -93,7 +94,7 @@ class TestHttpServer implements AutoCloseable {
     clone(handlers)
   }
 
-  static distributedRequestTrace(ListWriterAssert traces, int index, DDSpan parentSpan = null) {
+  static distributedRequestTrace(ListWriterAssert traces, int index, MockSpan parentSpan = null) {
     traces.trace(index, 1) {
       span(0) {
         operationName "test-http-server"

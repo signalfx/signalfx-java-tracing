@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.mongo;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -7,8 +8,8 @@ import com.mongodb.connection.ClusterId;
 import com.mongodb.connection.ConnectionDescription;
 import com.mongodb.connection.ServerId;
 import com.mongodb.event.CommandStartedEvent;
-import datadog.opentracing.DDSpan;
-import datadog.opentracing.DDTracer;
+import io.opentracing.Span;
+import datadog.trace.agent.test.utils.TestTracer;
 import datadog.trace.api.DDSpanTypes;
 import io.opentracing.tag.Tags;
 import java.util.Arrays;

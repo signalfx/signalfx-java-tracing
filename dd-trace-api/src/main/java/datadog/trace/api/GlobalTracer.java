@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.api;
 
 import datadog.trace.api.interceptor.TraceInterceptor;
@@ -13,13 +14,13 @@ public class GlobalTracer {
   private static final Tracer NO_OP =
       new Tracer() {
         @Override
-        public String getTraceId() {
-          return "0";
+        public long getTraceId() {
+          return 0;
         }
 
         @Override
-        public String getSpanId() {
-          return "0";
+        public long getSpanId() {
+          return 0;
         }
 
         @Override

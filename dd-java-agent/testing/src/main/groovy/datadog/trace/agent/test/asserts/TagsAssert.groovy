@@ -1,21 +1,22 @@
+// Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
-import datadog.opentracing.DDSpan
 import datadog.trace.api.Config
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
+import io.opentracing.mock.MockSpan
 
 class TagsAssert {
   private final String spanParentId
   private final Map<String, Object> tags
   private final Set<String> assertedTags = new TreeSet<>()
 
-  private TagsAssert(DDSpan span) {
+  private TagsAssert(MockSpan span) {
     this.spanParentId = span.parentId
     this.tags = span.tags
   }
 
-  static void assertTags(DDSpan span,
+  static void assertTags(MockSpan span,
                          @ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.TagsAssert'])
                          @DelegatesTo(value = TagsAssert, strategy = Closure.DELEGATE_FIRST) Closure spec) {
     def asserter = new TagsAssert(span)
@@ -33,14 +34,6 @@ class TagsAssert {
     assertedTags.add("thread.name")
     assertedTags.add("thread.id")
     assertedTags.add(Config.RUNTIME_ID_TAG)
-
-    assert tags["thread.name"] != null
-    assert tags["thread.id"] != null
-    if ("0" == spanParentId || distributedRootSpan) {
-      assert tags[Config.RUNTIME_ID_TAG] == Config.get().runtimeId
-    } else {
-      assert tags[Config.RUNTIME_ID_TAG] == null
-    }
   }
 
   def errorTags(Class<Throwable> errorType) {

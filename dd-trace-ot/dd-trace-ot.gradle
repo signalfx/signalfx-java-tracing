@@ -1,3 +1,4 @@
+// Modified by SignalFx
 plugins {
   id "me.champeau.gradle.jmh" version "0.4.4"
 }
@@ -27,6 +28,7 @@ dependencies {
 
   compile project(':dd-trace-api')
   compile deps.opentracing
+  compile deps.opentracingMock
   compile group: 'io.opentracing.contrib', name: 'opentracing-tracerresolver', version: '0.1.0'
 
   compile deps.jackson

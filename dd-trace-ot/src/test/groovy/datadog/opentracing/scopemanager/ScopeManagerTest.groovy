@@ -1,25 +1,21 @@
+// Modified by SignalFx
 package datadog.opentracing.scopemanager
 
-import datadog.opentracing.DDSpan
-import datadog.opentracing.DDSpanContext
-import datadog.opentracing.DDTracer
-import datadog.trace.agent.test.TestUtils
+import datadog.trace.agent.test.utils.TestTracer
 import datadog.trace.common.writer.ListWriter
 import io.opentracing.Scope
 import io.opentracing.Span
+import io.opentracing.mock.MockSpan
 import io.opentracing.noop.NoopSpan
 import spock.lang.Specification
 import spock.lang.Subject
-import spock.lang.Timeout
 
-import java.lang.ref.WeakReference
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 class ScopeManagerTest extends Specification {
   def writer = new ListWriter()
-  def tracer = new DDTracer(writer)
+  def tracer = new TestTracer(writer)
 
   @Subject
   def scopeManager = tracer.scopeManager()
@@ -28,13 +24,13 @@ class ScopeManagerTest extends Specification {
     scopeManager.tlsScope.remove()
   }
 
-  def "non-ddspan activation results in a simple scope"() {
+  def "non-ddspan activation results in a continuable scope"() {
     when:
     def scope = scopeManager.activate(NoopSpan.INSTANCE, true)
 
     then:
     scopeManager.active() == scope
-    scope instanceof SimpleScope
+    scope instanceof ContinuableScope
 
     when:
     scope.close()
@@ -83,8 +79,7 @@ class ScopeManagerTest extends Specification {
 
     expect:
     scopeManager.active() == childScope
-    childScope.span().context().parentId == parentScope.span().context().spanId
-    childScope.span().context().trace == parentScope.span().context().trace
+    childScope.span().parentId() == parentScope.span().context().spanId()
 
     when:
     childScope.close()
@@ -152,9 +147,6 @@ class ScopeManagerTest extends Specification {
     continuation.activate()
     if (forceGC) {
       continuation = null // Continuation references also hold up traces.
-      TestUtils.awaitGC() // The goal here is to make sure that continuation DOES NOT get GCed
-      while (((DDSpanContext) scope.span().context()).trace.clean()) {
-      }
     }
     if (autoClose) {
       if (continuation != null) {
@@ -181,49 +173,6 @@ class ScopeManagerTest extends Specification {
     false     | true
   }
 
-  @Timeout(value = 60, unit = TimeUnit.SECONDS)
-  def "hard reference on continuation prevents trace from reporting"() {
-    setup:
-    def builder = tracer.buildSpan("test")
-    def scope = (ContinuableScope) builder.startActive(false)
-    def span = scope.span()
-    def traceCount = ((DDSpan) span).context().tracer.traceCount
-    scope.setAsyncPropagation(true)
-    def continuation = scope.capture()
-    scope.close()
-    span.finish()
-
-    expect:
-    scopeManager.active() == null
-    spanFinished(span)
-    writer == []
-
-    when:
-    if (forceGC) {
-      def continuationRef = new WeakReference<>(continuation)
-      continuation = null // Continuation references also hold up traces.
-      TestUtils.awaitGC(continuationRef)
-      while (traceCount.get() == 0) {
-        // wait until trace count increments or timeout expires
-      }
-    }
-    if (autoClose) {
-      if (continuation != null) {
-        continuation.close()
-      }
-    }
-
-    then:
-    forceGC ? true : writer == [[span]]
-    traceCount.get() == 1
-
-    where:
-    autoClose | forceGC
-    true      | true
-    true      | false
-    false     | true
-  }
-
   def "continuation restores trace"() {
     setup:
     def parentScope = tracer.buildSpan("parent").startActive(true)
@@ -236,20 +185,17 @@ class ScopeManagerTest extends Specification {
     childScope.close()
 
     expect:
-    parentSpan.context().trace == childSpan.context().trace
     scopeManager.active() == parentScope
     !spanFinished(childSpan)
     !spanFinished(parentSpan)
 
     when:
     parentScope.close()
-    // parent span is finished, but trace is not reported
 
     then:
     scopeManager.active() == null
     !spanFinished(childSpan)
     spanFinished(parentSpan)
-    writer == []
 
     when:
     def newScope = continuation.activate()
@@ -263,7 +209,6 @@ class ScopeManagerTest extends Specification {
     newScope.span() == childSpan
     !spanFinished(childSpan)
     spanFinished(parentSpan)
-    writer == []
 
     when:
     newScope.close()
@@ -293,7 +238,6 @@ class ScopeManagerTest extends Specification {
     newScope != scope
     scopeManager.active() == newScope
     spanFinished(span)
-    writer == []
 
     when:
     def childScope = tracer.buildSpan("child").startActive(true)
@@ -304,8 +248,7 @@ class ScopeManagerTest extends Specification {
     then:
     scopeManager.active() == null
     spanFinished(childSpan)
-    childSpan.context().parentId == span.context().spanId
-    writer == [[childSpan, span]]
+    childSpan.parentId() == span.context().spanId()
   }
 
   def "context takes control (#active)"() {
@@ -408,7 +351,7 @@ class ScopeManagerTest extends Specification {
   }
 
   boolean spanFinished(Span span) {
-    return ((DDSpan) span).isFinished()
+    return tracer.finishedSpans().contains(span)
   }
 
   class AtomicReferenceScope extends AtomicReference<Span> implements ScopeContext, Scope {

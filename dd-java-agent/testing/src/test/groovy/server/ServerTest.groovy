@@ -1,6 +1,7 @@
+// Modified by SignalFx
 package server
 
-import datadog.opentracing.DDTracer
+import datadog.trace.agent.test.utils.TestTracer
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.ListWriterAssert
 import datadog.trace.agent.test.utils.OkHttpUtils
@@ -301,7 +302,7 @@ class ServerTest extends AgentTestRunner {
       }
     }
     def writer = new ListWriter()
-    server.tracer = new DDTracer(writer)
+    server.tracer = new TestTracer(writer)
 
     when:
     def request = new Request.Builder()

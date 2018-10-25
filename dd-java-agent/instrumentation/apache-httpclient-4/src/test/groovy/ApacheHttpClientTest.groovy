@@ -1,4 +1,5 @@
-import datadog.opentracing.DDSpan
+// Modified by SignalFx
+import io.opentracing.mock.MockSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.api.DDSpanTypes

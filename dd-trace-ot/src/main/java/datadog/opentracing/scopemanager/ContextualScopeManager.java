@@ -1,6 +1,6 @@
+// Modified by SignalFx
 package datadog.opentracing.scopemanager;
 
-import datadog.opentracing.DDSpan;
 import io.opentracing.Scope;
 import io.opentracing.ScopeManager;
 import io.opentracing.Span;
@@ -18,11 +18,7 @@ public class ContextualScopeManager implements ScopeManager {
         return context.activate(span, finishOnClose);
       }
     }
-    if (span instanceof DDSpan) {
-      return new ContinuableScope(this, (DDSpan) span, finishOnClose);
-    } else {
-      return new SimpleScope(this, span, finishOnClose);
-    }
+    return new ContinuableScope(this, span, finishOnClose);
   }
 
   @Override

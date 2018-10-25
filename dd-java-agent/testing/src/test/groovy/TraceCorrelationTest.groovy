@@ -1,4 +1,5 @@
-import datadog.opentracing.DDSpan
+// Modified by SignalFx
+import io.opentracing.mock.MockSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.CorrelationIdentifier
 import io.opentracing.Scope
@@ -9,17 +10,17 @@ class TraceCorrelationTest extends AgentTestRunner {
   def "access trace correlation only under trace"() {
     when:
     Scope scope = GlobalTracer.get().buildSpan("myspan").startActive(true)
-    DDSpan span = (DDSpan) scope.span()
+    MockSpan span = scope.span()
 
     then:
-    CorrelationIdentifier.traceId == span.traceId
-    CorrelationIdentifier.spanId == span.spanId
+    CorrelationIdentifier.traceId == span.context().traceId()
+    CorrelationIdentifier.spanId == span.context().spanId()
 
     when:
     scope.close()
 
     then:
-    CorrelationIdentifier.traceId == "0"
-    CorrelationIdentifier.spanId == "0"
+    CorrelationIdentifier.traceId == 0
+    CorrelationIdentifier.spanId == 0
   }
 }

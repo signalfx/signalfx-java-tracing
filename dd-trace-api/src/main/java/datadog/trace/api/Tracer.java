@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.api;
 
 import datadog.trace.api.interceptor.TraceInterceptor;
@@ -6,12 +7,12 @@ import datadog.trace.api.interceptor.TraceInterceptor;
 public interface Tracer {
 
   /** Get the trace id of the active trace. Returns 0 if there is no active trace. */
-  String getTraceId();
+  long getTraceId();
 
   /**
    * Get the span id of the active span of the active trace. Returns 0 if there is no active trace.
    */
-  String getSpanId();
+  long getSpanId();
 
   /**
    * Add a new interceptor to the tracer. Interceptors with duplicate priority to existing ones are

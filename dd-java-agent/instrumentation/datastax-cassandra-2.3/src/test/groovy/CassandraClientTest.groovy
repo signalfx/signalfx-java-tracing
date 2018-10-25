@@ -1,6 +1,7 @@
+// Modified by SignalFx
 import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.Session
-import datadog.opentracing.DDSpan
+import io.opentracing.mock.MockSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags

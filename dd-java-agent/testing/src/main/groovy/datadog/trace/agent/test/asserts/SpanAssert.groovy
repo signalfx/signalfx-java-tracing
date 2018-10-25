@@ -1,19 +1,20 @@
+// Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
-import datadog.opentracing.DDSpan
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
+import io.opentracing.mock.MockSpan
 
 import static TagsAssert.assertTags
 
 class SpanAssert {
-  private final DDSpan span
+  private final MockSpan span
 
   private SpanAssert(span) {
     this.span = span
   }
 
-  static void assertSpan(DDSpan span,
+  static void assertSpan(MockSpan span,
                          @ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.SpanAssert'])
                          @DelegatesTo(value = SpanAssert, strategy = Closure.DELEGATE_FIRST) Closure spec) {
     def asserter = new SpanAssert(span)
@@ -55,24 +56,24 @@ class SpanAssert {
   }
 
   def parent() {
-    assert span.parentId == "0"
+    assert span.parentId == 0
   }
 
-  def parentId(String parentId) {
+  def parentId(long parentId) {
     assert span.parentId == parentId
   }
 
-  def traceId(String traceId) {
+  def traceId(long traceId) {
     assert span.traceId == traceId
   }
 
-  def childOf(DDSpan parent) {
-    assert span.parentId == parent.spanId
-    assert span.traceId == parent.traceId
+  def childOf(MockSpan parent) {
+    assert span.parentId() == parent.context().spanId()
+    assert span.context().traceId() == parent.context().traceId()
   }
 
   def errored(boolean errored) {
-    assert span.isError() == errored
+    assert span.tags().containsKey("error") == errored
   }
 
   void tags(@ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.TagsAssert'])

@@ -1,14 +1,16 @@
+// Modified by SignalFx
 package datadog.opentracing.scopemanager;
 
-import datadog.opentracing.DDSpan;
-import datadog.opentracing.DDSpanContext;
-import datadog.opentracing.PendingTrace;
+import io.opentracing.Span;
+import io.opentracing.SpanContext;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
+
 import java.io.Closeable;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -18,7 +20,7 @@ public class ContinuableScope implements Scope, TraceScope {
   /**
    * Span contained by this scope. Async scopes will hold a reference to the parent scope's span.
    */
-  private final DDSpan spanUnderScope;
+  private final Span spanUnderScope;
   /** If true, finish the span when openCount hits 0. */
   private final boolean finishOnClose;
   /** Count of open scope and continuations */
@@ -32,7 +34,7 @@ public class ContinuableScope implements Scope, TraceScope {
 
   ContinuableScope(
       final ContextualScopeManager scopeManager,
-      final DDSpan spanUnderScope,
+      final Span spanUnderScope,
       final boolean finishOnClose) {
     this(scopeManager, new AtomicInteger(1), null, spanUnderScope, finishOnClose);
   }
@@ -41,7 +43,7 @@ public class ContinuableScope implements Scope, TraceScope {
       final ContextualScopeManager scopeManager,
       final AtomicInteger openCount,
       final Continuation continuation,
-      final DDSpan spanUnderScope,
+      final Span spanUnderScope,
       final boolean finishOnClose) {
     this.scopeManager = scopeManager;
     this.openCount = openCount;
@@ -54,10 +56,6 @@ public class ContinuableScope implements Scope, TraceScope {
 
   @Override
   public void close() {
-    if (null != continuation) {
-      spanUnderScope.context().getTrace().cancelContinuation(continuation);
-    }
-
     if (openCount.decrementAndGet() == 0 && finishOnClose) {
       spanUnderScope.finish();
     }
@@ -68,7 +66,7 @@ public class ContinuableScope implements Scope, TraceScope {
   }
 
   @Override
-  public DDSpan span() {
+  public Span span() {
     return spanUnderScope;
   }
 
@@ -105,13 +103,10 @@ public class ContinuableScope implements Scope, TraceScope {
     public WeakReference<Continuation> ref;
 
     private final AtomicBoolean used = new AtomicBoolean(false);
-    private final PendingTrace trace;
 
     private Continuation() {
       openCount.incrementAndGet();
-      final DDSpanContext context = (DDSpanContext) spanUnderScope.context();
-      trace = context.getTrace();
-      trace.registerContinuation(this);
+      final SpanContext context = spanUnderScope.context();
     }
 
     @Override
@@ -129,7 +124,6 @@ public class ContinuableScope implements Scope, TraceScope {
     @Override
     public void close() {
       if (used.compareAndSet(false, true)) {
-        trace.cancelContinuation(this);
         ContinuableScope.this.close();
       } else {
         log.debug("Failed to close continuation {}. Already used.", this);

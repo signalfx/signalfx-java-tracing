@@ -1,14 +1,13 @@
+// Modified by SignalFx
 package datadog.trace.agent.test;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.common.collect.Sets;
-import datadog.opentracing.DDSpan;
-import datadog.opentracing.DDTracer;
 import datadog.trace.agent.test.asserts.ListWriterAssert;
+import datadog.trace.agent.test.utils.TestTracer;
 import datadog.trace.agent.tooling.AgentInstaller;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.GlobalTracer;
 import datadog.trace.common.writer.ListWriter;
 import datadog.trace.common.writer.Writer;
 import groovy.lang.Closure;
@@ -16,11 +15,14 @@ import groovy.lang.DelegatesTo;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.SimpleType;
 import io.opentracing.Tracer;
+import io.opentracing.mock.MockSpan;
+import io.opentracing.util.GlobalTracer;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -83,14 +85,16 @@ public abstract class AgentTestRunner extends Specification {
     TEST_WRITER =
         new ListWriter() {
           @Override
-          public boolean add(final List<DDSpan> trace) {
+          public boolean add(final List<MockSpan> trace) {
             final boolean result = super.add(trace);
             return result;
           }
         };
-    TEST_TRACER = new DDTracer(TEST_WRITER);
+    TEST_TRACER = new TestTracer(TEST_WRITER);
     TestUtils.registerOrReplaceGlobalTracer((Tracer) TEST_TRACER);
-    GlobalTracer.registerIfAbsent((datadog.trace.api.Tracer) TEST_TRACER);
+    GlobalTracer.register((Tracer) TEST_TRACER);
+    datadog.trace.api.GlobalTracer.registerIfAbsent(
+      (datadog.trace.api.Tracer) TEST_TRACER);
   }
 
   protected static Tracer getTestTracer() {

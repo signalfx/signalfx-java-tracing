@@ -22,7 +22,6 @@ import java.lang.instrument.Instrumentation;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.bytebuddy.agent.ByteBuddyAgent;
@@ -93,8 +92,7 @@ public abstract class AgentTestRunner extends Specification {
     TEST_TRACER = new TestTracer(TEST_WRITER);
     TestUtils.registerOrReplaceGlobalTracer((Tracer) TEST_TRACER);
     GlobalTracer.register((Tracer) TEST_TRACER);
-    datadog.trace.api.GlobalTracer.registerIfAbsent(
-      (datadog.trace.api.Tracer) TEST_TRACER);
+    datadog.trace.api.GlobalTracer.registerIfAbsent((datadog.trace.api.Tracer) TEST_TRACER);
   }
 
   protected static Tracer getTestTracer() {

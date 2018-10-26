@@ -4,9 +4,8 @@ package datadog.trace.agent.integration;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import io.opentracing.Span;
-import datadog.trace.agent.test.utils.TestTracer;
 import datadog.trace.agent.test.IntegrationTestUtils;
+import datadog.trace.agent.test.utils.TestTracer;
 import datadog.trace.common.writer.ListWriter;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
@@ -33,7 +32,7 @@ public class MongoClientInstrumentationTest {
 
   private static MongoClient client;
   private static final ListWriter writer = new ListWriter();
-  private static final DDTracer tracer = new DDTracer(writer);
+  private static final TestTracer tracer = new TestTracer(writer);
 
   public static void startLocalMongo() throws Exception {
     final MongodStarter starter = MongodStarter.getDefaultInstance();

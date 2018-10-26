@@ -1,16 +1,14 @@
 // Modified by SignalFx
 package datadog.opentracing.scopemanager;
 
-import io.opentracing.Span;
-import io.opentracing.SpanContext;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
-
+import io.opentracing.Span;
+import io.opentracing.SpanContext;
 import java.io.Closeable;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

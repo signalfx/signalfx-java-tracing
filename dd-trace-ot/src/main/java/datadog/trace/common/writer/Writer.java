@@ -1,9 +1,8 @@
 // Modified by SignalFx
 package datadog.trace.common.writer;
 
-import java.util.List;
-
 import io.opentracing.Span;
+import java.util.List;
 
 /** A writer is responsible to send collected spans to some place */
 public interface Writer<T extends Span> {

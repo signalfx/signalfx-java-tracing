@@ -8,10 +8,8 @@ import com.mongodb.connection.ClusterId;
 import com.mongodb.connection.ConnectionDescription;
 import com.mongodb.connection.ServerId;
 import com.mongodb.event.CommandStartedEvent;
-import io.opentracing.Span;
+import datadog.trace.agent.test.utils.TestSpan;
 import datadog.trace.agent.test.utils.TestTracer;
-import datadog.trace.api.DDSpanTypes;
-import io.opentracing.tag.Tags;
 import java.util.Arrays;
 import java.util.List;
 import org.bson.BsonArray;
@@ -30,13 +28,12 @@ public class MongoClientInstrumentationTest {
     final CommandStartedEvent cmd =
         new CommandStartedEvent(1, makeConnection(), "databasename", "query", new BsonDocument());
 
-    final DDSpan span = new DDTracer().buildSpan("foo").start();
-    DDTracingCommandListener.decorate(span, cmd);
+    final TestSpan span = new TestSpan(new TestTracer().buildSpan("foo").start());
+    DDTracingCommandListener.decorate(span.span, cmd);
 
-    assertThat(span.context().getSpanType()).isEqualTo("mongodb");
-    assertThat(span.context().getResourceName())
-        .isEqualTo(span.context().getTags().get("db.statement"));
-    assertThat(span.getSpanType()).isEqualTo(DDSpanTypes.MONGO);
+    assertThat(span.getComponent()).isEqualTo("mongodb");
+    assertThat(span.getDBStatement()).isNotEmpty();
+    assertThat(span.getDBType()).isEqualTo("mongodb");
   }
 
   @Test
@@ -53,12 +50,11 @@ public class MongoClientInstrumentationTest {
       final CommandStartedEvent cmd =
           new CommandStartedEvent(1, makeConnection(), "databasename", "query", query);
 
-      final DDSpan span = new DDTracer().buildSpan("foo").start();
-      DDTracingCommandListener.decorate(span, cmd);
+      final TestSpan span = new TestSpan(new TestTracer().buildSpan("foo").start());
+      DDTracingCommandListener.decorate(span.span, cmd);
 
-      assertThat(span.getSpanType()).isEqualTo(DDSpanTypes.MONGO);
-      assertThat(span.getTags().get(Tags.DB_STATEMENT.getKey()))
-          .isEqualTo(query.toString().replaceAll("secret", "?"));
+      assertThat(span.getComponent()).isEqualTo("mongodb");
+      assertThat(span.getDBStatement()).isEqualTo(query.toString().replaceAll("secret", "?"));
     }
   }
 }

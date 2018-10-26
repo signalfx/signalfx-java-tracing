@@ -2,10 +2,9 @@
 package datadog.opentracing.scopemanager
 
 import datadog.trace.agent.test.utils.TestTracer
-import datadog.trace.common.writer.ListWriter
+import datadog.trace.agent.test.utils.ListWriter
 import io.opentracing.Scope
 import io.opentracing.Span
-import io.opentracing.mock.MockSpan
 import io.opentracing.noop.NoopSpan
 import spock.lang.Specification
 import spock.lang.Subject

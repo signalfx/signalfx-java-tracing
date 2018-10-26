@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
-import datadog.trace.common.writer.ListWriter
+import datadog.trace.agent.test.utils.ListWriter
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 import io.opentracing.mock.MockSpan

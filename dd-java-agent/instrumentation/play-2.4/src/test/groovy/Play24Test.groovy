@@ -1,5 +1,5 @@
 // Modified by SignalFx
-import io.opentracing.mock.MockSpan
+import datadog.trace.agent.test.utils.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
@@ -38,8 +38,8 @@ class Play24Test extends AgentTestRunner {
       .build()
     def response = client.newCall(request).execute()
     TEST_WRITER.waitForTraces(1)
-    DDSpan[] playTrace = TEST_WRITER.get(0)
-    DDSpan root = playTrace[0]
+    TestSpan[] playTrace = TEST_WRITER.get(0)
+    TestSpan root = playTrace[0]
 
     expect:
     testServer != null
@@ -72,8 +72,8 @@ class Play24Test extends AgentTestRunner {
       .build()
     def response = client.newCall(request).execute()
     TEST_WRITER.waitForTraces(1)
-    DDSpan[] playTrace = TEST_WRITER.get(0)
-    DDSpan root = playTrace[0]
+    TestSpan[] playTrace = TEST_WRITER.get(0)
+    TestSpan root = playTrace[0]
 
     expect:
     testServer != null
@@ -99,8 +99,8 @@ class Play24Test extends AgentTestRunner {
       .build()
     def response = client.newCall(request).execute()
     TEST_WRITER.waitForTraces(1)
-    DDSpan[] playTrace = TEST_WRITER.get(0)
-    DDSpan root = playTrace[0]
+    TestSpan[] playTrace = TEST_WRITER.get(0)
+    TestSpan root = playTrace[0]
 
     expect:
     testServer != null
@@ -129,8 +129,8 @@ class Play24Test extends AgentTestRunner {
       .build()
     def response = client.newCall(request).execute()
     TEST_WRITER.waitForTraces(1)
-    DDSpan[] playTrace = TEST_WRITER.get(0)
-    DDSpan root = playTrace[0]
+    TestSpan[] playTrace = TEST_WRITER.get(0)
+    TestSpan root = playTrace[0]
 
     expect:
     testServer != null

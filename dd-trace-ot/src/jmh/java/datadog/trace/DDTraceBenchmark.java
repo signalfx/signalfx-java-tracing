@@ -2,7 +2,7 @@
 package datadog.trace;
 
 import datadog.trace.agent.test.utils.TestTracer;
-import datadog.trace.common.writer.ListWriter;
+import datadog.trace.agent.test.utils.ListWriter;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import org.openjdk.jmh.annotations.Benchmark;

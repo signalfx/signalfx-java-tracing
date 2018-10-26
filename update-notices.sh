@@ -22,13 +22,27 @@ EOH
 }
 
 
-for f in $(git diff --cached --name-status | awk '$1 != "D" { print $2 }'); do
+for f in $(git diff --cached --name-status | awk '$1 == "M" { print $2 }'); do
   if git ls-tree --name-only -r datadog/master | grep $f > /dev/null 2>&1; then
     if ! head -n10 $f | grep 'Modified by SignalFx' > /dev/null 2>&1; then
       if [[ "$CHECK_ONLY" == "no" ]]; then
         add_notice $f
       else
         echo $f
+        bad_files=1
+      fi
+    fi
+  fi
+done
+
+for diff in $(git diff --cached --name-status | awk '$1 ~ "^R" { printf "%s,%s ",$2,$3 }'); do
+  IFS=, read orig new <<< "$diff"
+  if git ls-tree --name-only -r datadog/master | grep $orig > /dev/null 2>&1; then
+    if ! head -n10 $new | grep 'Modified by SignalFx' > /dev/null 2>&1; then
+      if [[ "$CHECK_ONLY" == "no" ]]; then
+        add_notice $new
+      else
+        echo $new
         bad_files=1
       fi
     fi

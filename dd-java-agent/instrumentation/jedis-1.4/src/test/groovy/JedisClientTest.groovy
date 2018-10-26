@@ -1,5 +1,5 @@
 // Modified by SignalFx
-import io.opentracing.mock.MockSpan
+import datadog.trace.agent.test.utils.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
@@ -45,7 +45,7 @@ class JedisClientTest extends AgentTestRunner {
     TEST_WRITER.size() == 1
     def trace = TEST_WRITER.firstTrace()
     trace.size() == 1
-    final DDSpan setTrace = trace.get(0)
+    final TestSpan setTrace = trace.get(0)
     setTrace.getServiceName() == JedisInstrumentation.SERVICE_NAME
     setTrace.getOperationName() == "redis.query"
     setTrace.getResourceName() == "SET"
@@ -65,7 +65,7 @@ class JedisClientTest extends AgentTestRunner {
     TEST_WRITER.size() == 2
     def trace = TEST_WRITER.get(1)
     trace.size() == 1
-    final DDSpan getSpan = trace.get(0)
+    final TestSpan getSpan = trace.get(0)
     getSpan.getServiceName() == JedisInstrumentation.SERVICE_NAME
     getSpan.getOperationName() == "redis.query"
     getSpan.getResourceName() == "GET"
@@ -85,7 +85,7 @@ class JedisClientTest extends AgentTestRunner {
     TEST_WRITER.size() == 2
     def trace = TEST_WRITER.get(1)
     trace.size() == 1
-    final DDSpan randomKeySpan = trace.get(0)
+    final TestSpan randomKeySpan = trace.get(0)
     randomKeySpan.getServiceName() == JedisInstrumentation.SERVICE_NAME
     randomKeySpan.getOperationName() == "redis.query"
     randomKeySpan.getResourceName() == "RANDOMKEY"

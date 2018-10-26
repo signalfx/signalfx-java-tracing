@@ -5,8 +5,9 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import datadog.trace.agent.test.IntegrationTestUtils;
+import datadog.trace.agent.test.utils.TestSpan;
 import datadog.trace.agent.test.utils.TestTracer;
-import datadog.trace.common.writer.ListWriter;
+import datadog.trace.agent.test.utils.ListWriter;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -98,11 +99,11 @@ public class MongoClientInstrumentationTest {
 
     final String createCollectionQuery =
         "{ \"create\" : \"testCollection\", \"autoIndexId\" : \"?\", \"capped\" : \"?\" }";
-    final DDSpan trace0 = writer.get(0).get(0);
-    Assert.assertEquals("mongo.query", trace0.getOperationName());
-    Assert.assertEquals(createCollectionQuery, trace0.getResourceName());
-    Assert.assertEquals("mongodb", trace0.getType());
-    Assert.assertEquals("mongo", trace0.getServiceName());
+    final TestSpan trace0 = writer.get(0).get(0);
+    Assert.assertEquals("mongo.query", trace0.span.operationName());
+    Assert.assertEquals(createCollectionQuery, trace0.getDBStatement());
+    Assert.assertEquals("mongodb", trace0.getComponent());
+    Assert.assertEquals("mongo", trace0.getService());
 
     Assert.assertEquals("java-mongo", trace0.getTags().get(Tags.COMPONENT.getKey()));
     Assert.assertEquals(createCollectionQuery, trace0.getTags().get(Tags.DB_STATEMENT.getKey()));

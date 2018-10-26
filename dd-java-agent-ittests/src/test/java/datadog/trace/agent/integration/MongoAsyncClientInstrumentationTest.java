@@ -10,8 +10,9 @@ import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoDatabase;
 import datadog.trace.agent.test.IntegrationTestUtils;
+import datadog.trace.agent.test.utils.TestSpan;
 import datadog.trace.agent.test.utils.TestTracer;
-import datadog.trace.common.writer.ListWriter;
+import datadog.trace.agent.test.utils.ListWriter;
 import io.opentracing.mock.MockSpan;
 import io.opentracing.tag.Tags;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -102,10 +103,10 @@ public class MongoAsyncClientInstrumentationTest {
 
     final String createCollectionQuery =
         "{ \"create\" : \"asyncCollection\", \"autoIndexId\" : \"?\", \"capped\" : \"?\" }";
-    final MockSpan trace0 = writer.get(0).get(0);
+    final TestSpan trace0 = writer.get(0).get(0);
     Assert.assertEquals("mongo.query", trace0.getOperationName());
-    Assert.assertEquals(createCollectionQuery, trace0.getResourceName());
-    Assert.assertEquals("mongodb", trace0.getType());
+    Assert.assertEquals(createCollectionQuery, trace0.getDBStatement());
+    Assert.assertEquals("mongodb", trace0.getDBType());
     Assert.assertEquals("mongo", trace0.getServiceName());
 
     Assert.assertEquals("java-mongo", trace0.getTags().get(Tags.COMPONENT.getKey()));

@@ -8,7 +8,7 @@ import com.rabbitmq.client.Consumer
 import com.rabbitmq.client.DefaultConsumer
 import com.rabbitmq.client.Envelope
 import com.rabbitmq.client.GetResponse
-import io.opentracing.mock.MockSpan
+import datadog.trace.agent.test.utils.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.api.DDSpanTypes
@@ -269,7 +269,7 @@ class RabbitMQTest extends AgentTestRunner {
     TraceAssert trace,
     String resource,
     Boolean distributedRootSpan = false,
-    DDSpan parentSpan = null,
+    TestSpan parentSpan = null,
     Throwable exception = null,
     String errorMsg = null
   ) {
@@ -281,7 +281,7 @@ class RabbitMQTest extends AgentTestRunner {
     int index,
     String resource,
     Boolean distributedRootSpan = false,
-    DDSpan parentSpan = null,
+    TestSpan parentSpan = null,
     Throwable exception = null,
     String errorMsg = null
   ) {

@@ -1,7 +1,6 @@
 // Modified by SignalFx
-package datadog.trace.common.writer;
+package datadog.trace.agent.test.utils;
 
-import io.opentracing.mock.MockSpan;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -10,15 +9,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /** List writer used by tests mostly */
-public class ListWriter extends CopyOnWriteArrayList<List<MockSpan>> implements Writer<MockSpan> {
+public class ListWriter extends CopyOnWriteArrayList<List<TestSpan>> implements Writer<TestSpan> {
   private final List<CountDownLatch> latches = new ArrayList<>();
 
-  public List<MockSpan> firstTrace() {
+  public List<TestSpan> firstTrace() {
     return get(0);
   }
 
   @Override
-  public void write(final List<MockSpan> trace) {
+  public void write(final List<TestSpan> trace) {
     synchronized (latches) {
       add(trace);
       for (final CountDownLatch latch : latches) {

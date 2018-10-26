@@ -5,7 +5,7 @@ import datadog.trace.agent.test.utils.TestTracer
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.ListWriterAssert
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.common.writer.ListWriter
+import datadog.trace.agent.test.utils.ListWriter
 import okhttp3.MultipartBody
 import okhttp3.Request
 import spock.lang.Shared

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 // Set properties before any plugins get loaded
 project.ext {
   // Execute tests on all JVMs, even rare and outdated ones
@@ -14,6 +15,7 @@ compileTestJava.dependsOn tasks.getByPath(':dd-java-agent:agent-tooling:testClas
 dependencies {
   testCompile project(':dd-trace-api')
   testCompile project(':dd-trace-ot')
+  testCompile project(':dd-java-agent:testing')
 
   testCompile deps.opentracingMock
   testCompile deps.testLogging

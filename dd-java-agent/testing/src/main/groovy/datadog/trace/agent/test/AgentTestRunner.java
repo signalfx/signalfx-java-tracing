@@ -5,17 +5,17 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.common.collect.Sets;
 import datadog.trace.agent.test.asserts.ListWriterAssert;
+import datadog.trace.agent.test.utils.TestSpan;
 import datadog.trace.agent.test.utils.TestTracer;
 import datadog.trace.agent.tooling.AgentInstaller;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.common.writer.ListWriter;
-import datadog.trace.common.writer.Writer;
+import datadog.trace.agent.test.utils.ListWriter;
+import datadog.trace.agent.test.utils.Writer;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.SimpleType;
 import io.opentracing.Tracer;
-import io.opentracing.mock.MockSpan;
 import io.opentracing.util.GlobalTracer;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
@@ -84,7 +84,7 @@ public abstract class AgentTestRunner extends Specification {
     TEST_WRITER =
         new ListWriter() {
           @Override
-          public boolean add(final List<MockSpan> trace) {
+          public boolean add(final List<TestSpan> trace) {
             final boolean result = super.add(trace);
             return result;
           }

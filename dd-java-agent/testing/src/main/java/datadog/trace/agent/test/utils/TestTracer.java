@@ -3,7 +3,6 @@ package datadog.trace.agent.test.utils;
 import datadog.opentracing.scopemanager.ContextualScopeManager;
 import datadog.trace.api.Tracer;
 import datadog.trace.api.interceptor.TraceInterceptor;
-import datadog.trace.common.writer.ListWriter;
 import io.opentracing.Span;
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
@@ -11,7 +10,7 @@ import java.util.ArrayList;
 
 public class TestTracer extends MockTracer implements Tracer {
   protected ListWriter listWriter;
-  protected final ArrayList<MockSpan> unfinishedSpans = new ArrayList<>();
+  protected final ArrayList<TestSpan> unfinishedSpans = new ArrayList<>();
 
   public TestTracer() {
     super(new ContextualScopeManager());
@@ -25,7 +24,7 @@ public class TestTracer extends MockTracer implements Tracer {
 
   @Override
   protected void onSpanFinished(MockSpan mockSpan) {
-    unfinishedSpans.add(0, mockSpan);
+    unfinishedSpans.add(0, new TestSpan(mockSpan));
     if (mockSpan.parentId() == 0) {
       listWriter.write(unfinishedSpans);
     }

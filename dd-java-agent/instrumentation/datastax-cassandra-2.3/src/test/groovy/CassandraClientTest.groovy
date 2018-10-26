@@ -1,7 +1,7 @@
 // Modified by SignalFx
 import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.Session
-import io.opentracing.mock.MockSpan
+import datadog.trace.agent.test.utils.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
@@ -51,7 +51,7 @@ class CassandraClientTest extends AgentTestRunner {
     expect:
     session.getClass().getName().endsWith("cassandra.TracingSession")
     TEST_WRITER.size() == 5
-    final DDSpan selectTrace = TEST_WRITER.get(TEST_WRITER.size() - 1).get(0)
+    final TestSpan selectTrace = TEST_WRITER.get(TEST_WRITER.size() - 1).get(0)
 
     selectTrace.getServiceName() == "cassandra"
     selectTrace.getOperationName() == "cassandra.query"
@@ -88,7 +88,7 @@ class CassandraClientTest extends AgentTestRunner {
 
     expect:
     session.getClass().getName().endsWith("cassandra.TracingSession")
-    final DDSpan selectTrace = TEST_WRITER.get(TEST_WRITER.size() - 1).get(0)
+    final TestSpan selectTrace = TEST_WRITER.get(TEST_WRITER.size() - 1).get(0)
 
     selectTrace.getServiceName() == "cassandra"
     selectTrace.getOperationName() == "cassandra.query"

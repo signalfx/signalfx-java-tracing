@@ -1,5 +1,6 @@
 // Modified by SignalFx
-import io.opentracing.mock.MockSpan
+
+import datadog.trace.agent.test.utils.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.api.DDSpanTypes
@@ -113,7 +114,7 @@ class ApacheHttpClientTest extends AgentTestRunner {
     }
   }
 
-  def successClientSpan(TraceAssert trace, int index, DDSpan parent, status = 200, route = "success", Throwable exception = null) {
+  def successClientSpan(TraceAssert trace, int index, TestSpan parent, status = 200, route = "success", Throwable exception = null) {
     trace.span(index) {
       childOf parent
       serviceName "unnamed-java-app"

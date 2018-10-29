@@ -1,14 +1,14 @@
 // Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
+import datadog.trace.agent.test.utils.TestSpan
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
-import io.opentracing.mock.MockSpan
 
 import static SpanAssert.assertSpan
 
 class TraceAssert {
-  private final List<MockSpan> trace
+  private final List<TestSpan> trace
   private final int size
   private final Set<Integer> assertedIndexes = new HashSet<>()
 
@@ -17,7 +17,7 @@ class TraceAssert {
     size = trace.size()
   }
 
-  static void assertTrace(List<MockSpan> trace, int expectedSize,
+  static void assertTrace(List<TestSpan> trace, int expectedSize,
                           @ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.TraceAssert'])
                           @DelegatesTo(value = File, strategy = Closure.DELEGATE_FIRST) Closure spec) {
     assert trace.size() == expectedSize
@@ -29,7 +29,7 @@ class TraceAssert {
     asserter.assertSpansAllVerified()
   }
 
-  MockSpan span(int index) {
+  TestSpan span(int index) {
     trace.get(index)
   }
 

@@ -1,4 +1,4 @@
-import datadog.opentracing.decorators.ErrorFlag
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Trace
 import dd.test.trace.annotation.SayTracedHello
@@ -77,8 +77,6 @@ class TraceAnnotationsTest extends AgentTestRunner {
 
   def "test exception exit"() {
     setup:
-
-    TEST_TRACER.addDecorator(new ErrorFlag())
 
     Throwable error = null
     try {

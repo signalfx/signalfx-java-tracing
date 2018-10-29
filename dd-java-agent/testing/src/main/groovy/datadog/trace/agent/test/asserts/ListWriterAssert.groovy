@@ -2,9 +2,9 @@
 package datadog.trace.agent.test.asserts
 
 import datadog.trace.agent.test.utils.ListWriter
+import datadog.trace.agent.test.utils.TestSpan
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
-import io.opentracing.mock.MockSpan
 import org.codehaus.groovy.runtime.powerassert.PowerAssertionError
 import org.spockframework.runtime.Condition
 import org.spockframework.runtime.ConditionNotSatisfiedError
@@ -54,7 +54,7 @@ class ListWriterAssert {
     }
   }
 
-  List<MockSpan> trace(int index) {
+  List<TestSpan> trace(int index) {
     return writer.get(index)
   }
 

@@ -7,10 +7,12 @@ import io.opentracing.Span;
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class TestTracer extends MockTracer implements Tracer {
   protected ListWriter listWriter;
-  protected final ArrayList<TestSpan> unfinishedSpans = new ArrayList<>();
+  protected final HashMap<Long, ArrayList<TestSpan>> traceMap = new HashMap<>();
+  public String serviceName = "unnamed-java-app";
 
   public TestTracer() {
     super(new ContextualScopeManager());
@@ -23,10 +25,33 @@ public class TestTracer extends MockTracer implements Tracer {
   }
 
   @Override
-  protected void onSpanFinished(MockSpan mockSpan) {
-    unfinishedSpans.add(0, new TestSpan(mockSpan));
-    if (mockSpan.parentId() == 0) {
-      listWriter.write(unfinishedSpans);
+  protected void onSpanFinished(MockSpan span) {
+    setSpanServiceName(span);
+    trackAndWriteTrace(span);
+  }
+
+  private void setSpanServiceName(MockSpan span) {
+    if (!serviceName.isEmpty()) {
+      span.setTag("service", serviceName);
+    }
+  }
+
+  private void trackAndWriteTrace(MockSpan span) {
+    boolean writeToWriter = false;
+    long parentId;
+    if (span.parentId() == 0) {
+      parentId = span.context().spanId();
+      writeToWriter = true;
+    } else {
+      parentId = span.parentId();
+    }
+    if (!traceMap.containsKey(parentId)) {
+      traceMap.put(parentId, new ArrayList<TestSpan>());
+    }
+    ArrayList<TestSpan> trace = traceMap.get(parentId);
+    trace.add(0, new TestSpan(span));
+    if (writeToWriter) {
+      listWriter.write(trace);
     }
   }
 

@@ -1,7 +1,6 @@
 package datadog.trace.agent.test.utils;
 
 import io.opentracing.Span;
-import io.opentracing.SpanContext;
 import io.opentracing.mock.MockSpan;
 import io.opentracing.tag.AbstractTag;
 import io.opentracing.tag.Tags;
@@ -19,9 +18,17 @@ public class TestSpan implements Span {
     return span.tags();
   }
 
+  public Map<String, Object> tags() {
+    return span.tags();
+  }
+
   private String getTagValue(AbstractTag tag) {
     String key = tag.getKey();
     return (String) span.tags().get(key);
+  }
+
+  public long parentId() {
+    return span.parentId();
   }
 
   public String getKind() {
@@ -53,7 +60,12 @@ public class TestSpan implements Span {
   }
 
   @Override
-  public SpanContext context() {
+  public String toString() {
+    return span.toString() + " " + span.tags().toString() + "\n";
+  }
+
+  @Override
+  public MockSpan.MockContext context() {
     return span.context();
   }
 

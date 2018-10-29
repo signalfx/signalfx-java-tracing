@@ -6,7 +6,6 @@ import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.tooling.Utils
 import io.opentracing.Span
 import io.opentracing.Tracer
-import io.opentracing.util.GlobalTracer
 import spock.lang.Shared
 
 import java.lang.reflect.Field

@@ -1,22 +1,22 @@
 // Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
+import datadog.trace.agent.test.utils.TestSpan
 import datadog.trace.api.Config
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
-import io.opentracing.mock.MockSpan
 
 class TagsAssert {
   private final String spanParentId
   private final Map<String, Object> tags
   private final Set<String> assertedTags = new TreeSet<>()
 
-  private TagsAssert(MockSpan span) {
-    this.spanParentId = span.parentId
+  private TagsAssert(TestSpan span) {
+    this.spanParentId = span.parentId()
     this.tags = span.tags
   }
 
-  static void assertTags(MockSpan span,
+  static void assertTags(TestSpan span,
                          @ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.TagsAssert'])
                          @DelegatesTo(value = TagsAssert, strategy = Closure.DELEGATE_FIRST) Closure spec) {
     def asserter = new TagsAssert(span)
@@ -31,9 +31,7 @@ class TagsAssert {
    * @param distributedRootSpan set to true if current span has a parent span but still considered 'root' for current service
    */
   def defaultTags(boolean distributedRootSpan = false) {
-    assertedTags.add("thread.name")
-    assertedTags.add("thread.id")
-    assertedTags.add(Config.RUNTIME_ID_TAG)
+    assertedTags.add("service")
   }
 
   def errorTags(Class<Throwable> errorType) {

@@ -1,20 +1,20 @@
 // Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
+import datadog.trace.agent.test.utils.TestSpan
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
-import io.opentracing.mock.MockSpan
 
 import static TagsAssert.assertTags
 
 class SpanAssert {
-  private final MockSpan span
+  private final TestSpan span
 
   private SpanAssert(span) {
     this.span = span
   }
 
-  static void assertSpan(MockSpan span,
+  static void assertSpan(TestSpan span,
                          @ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.SpanAssert'])
                          @DelegatesTo(value = SpanAssert, strategy = Closure.DELEGATE_FIRST) Closure spec) {
     def asserter = new SpanAssert(span)
@@ -31,11 +31,11 @@ class SpanAssert {
   }
 
   def serviceName(String name) {
-    assert span.serviceName == name
+    assert span.getServiceName() == name
   }
 
   def operationName(String name) {
-    assert span.operationName == name
+    assert span.getOperationName() == name
   }
 
   def operationNameContains(String... operationNameParts) {
@@ -43,31 +43,30 @@ class SpanAssert {
   }
 
   def resourceName(String name) {
-    assert span.resourceName == name
+    assert span.getOperationName() == name
   }
 
   def resourceNameContains(String... resourceNameParts) {
-    assertSpanNameContains(span.resourceName, resourceNameParts)
+    assertSpanNameContains(span.getOperationName(), resourceNameParts)
   }
 
   def spanType(String type) {
-    assert span.spanType == type
-    assert span.tags["span.type"] == type
+    assert span.getComponent() == type
   }
 
   def parent() {
-    assert span.parentId == 0
+    assert span.parentId() == 0
   }
 
   def parentId(long parentId) {
-    assert span.parentId == parentId
+    assert span.parentId() == parentId
   }
 
   def traceId(long traceId) {
-    assert span.traceId == traceId
+    assert span.context().traceId() == traceId
   }
 
-  def childOf(MockSpan parent) {
+  def childOf(TestSpan parent) {
     assert span.parentId() == parent.context().spanId()
     assert span.context().traceId() == parent.context().traceId()
   }

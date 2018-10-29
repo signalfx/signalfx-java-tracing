@@ -1,8 +1,8 @@
 // Modified by SignalFx
 package datadog.trace;
 
-import datadog.trace.agent.test.utils.TestTracer;
 import datadog.trace.agent.test.utils.ListWriter;
+import datadog.trace.agent.test.utils.TestTracer;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import org.openjdk.jmh.annotations.Benchmark;

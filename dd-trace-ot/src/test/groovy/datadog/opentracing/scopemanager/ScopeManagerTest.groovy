@@ -64,7 +64,7 @@ class ScopeManagerTest extends Specification {
 
     then:
     spanFinished(scope.span()) == finishSpan
-    writer == [[scope.span()]] || !finishSpan
+    writer.collect{it.collect{it.span}} == [[scope.span()]] || !finishSpan
     scopeManager.active() == null
 
     where:
@@ -95,7 +95,7 @@ class ScopeManagerTest extends Specification {
     then:
     spanFinished(childScope.span()) == finishSpan
     spanFinished(parentScope.span()) == finishSpan
-    writer == [[parentScope.span(), childScope.span()]] || !finishSpan
+    writer.collect{it.collect{it.span}} == [[parentScope.span(), childScope.span()]] || !finishSpan
     scopeManager.active() == null
 
     where:
@@ -163,7 +163,7 @@ class ScopeManagerTest extends Specification {
     then:
     scopeManager.active() == null
     spanFinished(scope.span())
-    writer == [[scope.span()]]
+    writer.collect{it.collect({it.span})} == [[scope.span()]]
 
     where:
     autoClose | forceGC
@@ -217,7 +217,7 @@ class ScopeManagerTest extends Specification {
     scopeManager.active() == null
     spanFinished(childSpan)
     spanFinished(parentSpan)
-    writer == [[childSpan, parentSpan]]
+    writer.collect{it.collect{it.span}} == [[childSpan, parentSpan]]
   }
 
   def "continuation allows adding spans even after other spans were completed"() {

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package test
 
 import datadog.trace.agent.test.AgentTestRunner
@@ -31,8 +32,7 @@ class SpringBootBasedTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          operationName "servlet.request"
-          resourceName "GET /"
+          operationName "GET /"
           spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
@@ -59,8 +59,7 @@ class SpringBootBasedTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          operationName "servlet.request"
-          resourceName "GET /param/{parameter}/"
+          operationName "GET /param/{parameter}/"
           spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
@@ -92,7 +91,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "servlet.request"
-          resourceName "404"
+          operationName "404"
           spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
@@ -112,7 +111,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(1, 2) {
         span(0) {
           operationName "servlet.request"
-          resourceName "404"
+          operationName "404"
           spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
@@ -145,8 +144,7 @@ class SpringBootBasedTest extends AgentTestRunner {
     assertTraces(2) {
       trace(0, 2) {
         span(0) {
-          operationName "servlet.request"
-          resourceName "GET /error/{parameter}/"
+          operationName "GET /error/{parameter}/"
           spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored true
@@ -166,8 +164,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       }
       trace(1, 2) {
         span(0) {
-          operationName "servlet.request"
-          resourceName "GET /error"
+          operationName "GET /error"
           spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored true
@@ -195,8 +192,7 @@ class SpringBootBasedTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          operationName "servlet.request"
-          resourceName "POST /validated"
+          operationName "POST /validated"
           spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
@@ -229,8 +225,7 @@ class SpringBootBasedTest extends AgentTestRunner {
     assertTraces(2) {
       trace(0, 2) {
         span(0) {
-          operationName "servlet.request"
-          resourceName "POST /validated"
+          operationName "POST /validated"
           spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
@@ -253,8 +248,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       }
       trace(1, 2) {
         span(0) {
-          operationName "servlet.request"
-          resourceName "POST /error"
+          operationName "POST /error"
           spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false

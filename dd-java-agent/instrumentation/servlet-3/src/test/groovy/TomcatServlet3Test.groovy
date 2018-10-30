@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.google.common.io.Files
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
@@ -81,8 +82,7 @@ class TomcatServlet3Test extends AgentTestRunner {
             parent()
           }
           serviceName "my-context"
-          operationName "servlet.request"
-          resourceName "GET /my-context/$path"
+          operationName "GET /my-context/$path"
           spanType DDSpanTypes.WEB_SERVLET
           errored false
           tags {
@@ -123,8 +123,7 @@ class TomcatServlet3Test extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "my-context"
-          operationName "servlet.request"
-          resourceName "GET /my-context/$path"
+          operationName "GET /my-context/$path"
           spanType DDSpanTypes.WEB_SERVLET
           errored true
           parent()
@@ -165,8 +164,7 @@ class TomcatServlet3Test extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "my-context"
-          operationName "servlet.request"
-          resourceName "GET /my-context/$path"
+          operationName "GET /my-context/$path"
           spanType DDSpanTypes.WEB_SERVLET
           errored true
           parent()

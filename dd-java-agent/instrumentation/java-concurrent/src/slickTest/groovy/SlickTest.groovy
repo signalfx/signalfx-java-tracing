@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
@@ -20,9 +21,8 @@ class SlickTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          operationName "SlickUtils.startQuery"
           serviceName "unnamed-java-app"
-          resourceName "SlickUtils.startQuery"
+          operationName "SlickUtils.startQuery"
           parent()
           errored false
           tags {
@@ -30,7 +30,6 @@ class SlickTest extends AgentTestRunner {
           }
         }
         span(1) {
-          operationName "${SlickUtils.Driver()}.query"
           serviceName SlickUtils.Driver()
           resourceName SlickUtils.TestQuery()
           childOf span(0)

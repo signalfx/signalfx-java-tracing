@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.amazonaws.SDKGlobalConfiguration
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.handlers.RequestHandler2
@@ -76,8 +77,7 @@ class AWSClientTest extends AgentTestRunner {
     assertTraces(2) {
       trace(0, 1) {
         span(0) {
-          operationName "http.request"
-          resourceName "$method /$url"
+          operationName "$method /$url"
           errored false
           parent() // FIXME: This should be a child of the aws.http call.
           tags {
@@ -96,8 +96,7 @@ class AWSClientTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           serviceName "java-aws-sdk"
-          operationName "aws.http"
-          resourceName "$service.$operation"
+          operationName "$service.$operation"
           errored false
           parent()
           tags {

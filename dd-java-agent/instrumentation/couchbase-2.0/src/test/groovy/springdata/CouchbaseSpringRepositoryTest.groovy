@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package springdata
 
 import com.couchbase.client.java.view.DefaultView
@@ -77,8 +78,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
       trace(0, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.query"
-          operationName "couchbase.call"
+          operationName "Bucket.query"
           errored false
           parent()
           tags {
@@ -106,8 +106,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
       trace(0, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.upsert"
-          operationName "couchbase.call"
+          operationName "Bucket.upsert"
           errored false
           parent()
           tags {
@@ -128,8 +127,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
       trace(0, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.get"
-          operationName "couchbase.call"
+          operationName "Bucket.get"
           errored false
           parent()
           tags {
@@ -153,8 +151,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
       trace(0, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.upsert"
-          operationName "couchbase.call"
+          operationName "Bucket.upsert"
           errored false
           parent()
           tags {
@@ -167,8 +164,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
       trace(1, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.query"
-          operationName "couchbase.call"
+          operationName "Bucket.query"
           errored false
           parent()
           tags {
@@ -181,8 +177,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
       trace(2, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.get"
-          operationName "couchbase.call"
+          operationName "Bucket.get"
           errored false
           parent()
           tags {
@@ -206,8 +201,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
       trace(0, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.remove"
-          operationName "couchbase.call"
+          operationName "Bucket.remove"
           errored false
           parent()
           tags {
@@ -220,8 +214,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
       trace(1, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.query"
-          operationName "couchbase.call"
+          operationName "Bucket.query"
           errored false
           parent()
           tags {

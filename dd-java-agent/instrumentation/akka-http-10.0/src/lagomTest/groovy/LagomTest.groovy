@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import akka.NotUsed
 import akka.stream.javadsl.Source
 import akka.stream.testkit.TestSubscriber.Probe
@@ -64,8 +65,7 @@ class LagomTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET ws://?/echo"
+          operationName "GET /echo"
           errored false
           tags {
             defaultTags()
@@ -102,8 +102,7 @@ class LagomTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET ws://?/error"
+          operationName "GET /error"
           errored true
           tags {
             defaultTags()

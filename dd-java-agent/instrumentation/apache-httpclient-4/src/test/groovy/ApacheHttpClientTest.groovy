@@ -103,7 +103,6 @@ class ApacheHttpClientTest extends AgentTestRunner {
       parent()
       serviceName "unnamed-java-app"
       operationName "parent"
-      resourceName "parent"
       errored exception != null
       tags {
         defaultTags()
@@ -118,8 +117,7 @@ class ApacheHttpClientTest extends AgentTestRunner {
     trace.span(index) {
       childOf parent
       serviceName "unnamed-java-app"
-      operationName "http.request"
-      resourceName "GET /$route"
+      operationName "GET /$route"
       errored exception != null
       tags {
         defaultTags()

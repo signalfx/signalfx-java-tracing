@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.api.DDSpanTypes
@@ -48,8 +49,7 @@ class Netty41ClientTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "netty.client.request"
-          resourceName "GET /"
+          operationName "GET /"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(1)
           errored false
@@ -101,7 +101,6 @@ class Netty41ClientTest extends AgentTestRunner {
         }
         span(1) {
           operationName "netty.connect"
-          resourceName "netty.connect"
           childOf span(0)
           errored true
           tags {

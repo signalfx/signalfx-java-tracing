@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.api.DDSpanTypes
@@ -116,9 +117,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "CONNECT:" + dbAddr
+          operationName "CONNECT:" + dbAddr
           errored false
 
           tags {
@@ -157,9 +157,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "CONNECT:" + dbAddrNonExistent
+          operationName "CONNECT:" + dbAddrNonExistent
           errored true
 
           tags {
@@ -190,9 +189,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "SET"
+          operationName "SET"
           errored false
 
           tags {
@@ -229,9 +227,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "GET"
+          operationName "GET"
           errored false
 
           tags {
@@ -282,9 +279,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "GET"
+          operationName "GET"
           errored false
 
           tags {
@@ -321,9 +317,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "RANDOMKEY"
+          operationName "RANDOMKEY"
           errored false
 
           tags {
@@ -379,9 +374,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "HMSET"
+          operationName "HMSET"
           errored false
 
           tags {
@@ -396,9 +390,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "HGETALL"
+          operationName "HGETALL"
           errored false
 
           tags {
@@ -443,9 +436,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "DEL"
+          operationName "DEL"
           errored true
 
           tags {
@@ -485,9 +477,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "SADD"
+          operationName "SADD"
           errored false
 
           tags {
@@ -512,7 +503,6 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
           resourceName AGENT_CRASHING_COMMAND_PREFIX + "DEBUG"
           errored false
@@ -539,9 +529,8 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
           spanType DDSpanTypes.REDIS
-          resourceName "SHUTDOWN"
+          operationName "SHUTDOWN"
           errored false
 
           tags {

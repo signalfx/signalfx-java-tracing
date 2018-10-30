@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
 import io.opentracing.tag.Tags
@@ -29,9 +30,8 @@ class OkHttp3Test extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          operationName "okhttp.http"
           serviceName "okhttp"
-          resourceName "okhttp.http"
+          operationName "okhttp.http"
           spanType DDSpanTypes.HTTP_CLIENT
           errored false
           parent()
@@ -42,9 +42,8 @@ class OkHttp3Test extends AgentTestRunner {
           }
         }
         span(1) {
-          operationName "okhttp.http"
           serviceName "okhttp"
-          resourceName "GET /ping"
+          operationName "GET /ping"
           errored false
           childOf(span(0))
           tags {

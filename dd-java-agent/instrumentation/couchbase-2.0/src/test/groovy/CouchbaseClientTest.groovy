@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.couchbase.client.java.Bucket
 import com.couchbase.client.java.document.JsonDocument
 import com.couchbase.client.java.document.json.JsonObject
@@ -17,8 +18,7 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
       trace(0, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "ClusterManager.hasBucket"
-          operationName "couchbase.call"
+          operationName "ClusterManager.hasBucket"
           errored false
           parent()
           tags {
@@ -43,8 +43,7 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
       trace(0, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.upsert"
-          operationName "couchbase.call"
+          operationName "Bucket.upsert"
           errored false
           parent()
           tags {
@@ -69,8 +68,7 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
       trace(0, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.get"
-          operationName "couchbase.call"
+          operationName "Bucket.get"
           errored false
           parent()
           tags {
@@ -111,8 +109,7 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
       trace(0, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.query"
-          operationName "couchbase.call"
+          operationName "Bucket.query"
           errored false
           parent()
           tags {

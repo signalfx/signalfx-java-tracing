@@ -287,7 +287,6 @@ class RabbitMQTest extends AgentTestRunner {
   ) {
     trace.span(index) {
       serviceName "rabbitmq"
-      operationName "amqp.command"
       resourceName resource
 
       if (parentSpan) {

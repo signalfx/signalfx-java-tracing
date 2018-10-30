@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.netflix.hystrix.HystrixCommand
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Trace
@@ -40,7 +41,6 @@ class HystrixTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "parent"
-          resourceName "parent"
           spanType null
           parent()
           errored false
@@ -51,7 +51,6 @@ class HystrixTest extends AgentTestRunner {
         span(1) {
           serviceName "unnamed-java-app"
           operationName "HystrixTest\$1.run"
-          resourceName "HystrixTest\$1.run"
           spanType null
           childOf span(0)
           errored false
@@ -62,7 +61,6 @@ class HystrixTest extends AgentTestRunner {
         span(2) {
           serviceName "unnamed-java-app"
           operationName "HystrixTest\$1.tracedMethod"
-          resourceName "HystrixTest\$1.tracedMethod"
           spanType null
           childOf span(1)
           errored false
@@ -112,7 +110,6 @@ class HystrixTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "parent"
-          resourceName "parent"
           spanType null
           parent()
           errored false
@@ -123,7 +120,6 @@ class HystrixTest extends AgentTestRunner {
         span(1) {
           serviceName "unnamed-java-app"
           operationName "HystrixTest\$2.getFallback"
-          resourceName "HystrixTest\$2.getFallback"
           spanType null
           childOf span(0)
           errored false
@@ -134,7 +130,6 @@ class HystrixTest extends AgentTestRunner {
         span(2) {
           serviceName "unnamed-java-app"
           operationName "HystrixTest\$2.run"
-          resourceName "HystrixTest\$2.run"
           spanType null
           childOf span(0)
           errored true

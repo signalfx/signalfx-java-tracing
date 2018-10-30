@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
@@ -89,8 +90,7 @@ class GrpcStreamingTest extends AgentTestRunner {
       trace(0, clientMessageCount + 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "grpc.server"
-          resourceName "example.Greeter/Conversation"
+          operationName "example.Greeter/Conversation"
           spanType DDSpanTypes.RPC
           childOf trace(1).get(0)
           errored false
@@ -104,7 +104,6 @@ class GrpcStreamingTest extends AgentTestRunner {
           span(it) {
             serviceName "unnamed-java-app"
             operationName "grpc.message"
-            resourceName "grpc.message"
             spanType DDSpanTypes.RPC
             childOf span(0)
             errored false
@@ -120,8 +119,7 @@ class GrpcStreamingTest extends AgentTestRunner {
       trace(1, (clientMessageCount * serverMessageCount) + 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "grpc.client"
-          resourceName "example.Greeter/Conversation"
+          operationName "example.Greeter/Conversation"
           spanType DDSpanTypes.RPC
           parent()
           errored false
@@ -136,7 +134,6 @@ class GrpcStreamingTest extends AgentTestRunner {
           span(it) {
             serviceName "unnamed-java-app"
             operationName "grpc.message"
-            resourceName "grpc.message"
             spanType DDSpanTypes.RPC
             childOf span(0)
             errored false

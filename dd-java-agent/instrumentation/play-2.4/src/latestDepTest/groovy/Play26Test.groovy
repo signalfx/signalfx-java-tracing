@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
@@ -49,8 +50,7 @@ class Play26Test extends AgentTestRunner {
           traceId "123"
           parentId "456"
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /helloplay/:from"
+          operationName "GET /helloplay/:from"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -65,8 +65,7 @@ class Play26Test extends AgentTestRunner {
         }
         span(1) {
           childOf span(0)
-          operationName "play.request"
-          resourceName "GET /helloplay/:from"
+          operationName "GET /helloplay/:from"
           spanType DDSpanTypes.HTTP_SERVER
           tags {
             defaultTags()
@@ -100,8 +99,7 @@ class Play26Test extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /make-error"
+          operationName "GET /make-error"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
@@ -117,8 +115,7 @@ class Play26Test extends AgentTestRunner {
         }
         span(1) {
           childOf span(0)
-          operationName "play.request"
-          resourceName "GET /make-error"
+          operationName "GET /make-error"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
@@ -151,8 +148,7 @@ class Play26Test extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /exception"
+          operationName "GET /exception"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
@@ -168,8 +164,7 @@ class Play26Test extends AgentTestRunner {
         }
         span(1) {
           childOf span(0)
-          operationName "play.request"
-          resourceName "GET /exception"
+          operationName "GET /exception"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
@@ -206,7 +201,7 @@ class Play26Test extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "404"
+          operationName "404"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -222,7 +217,7 @@ class Play26Test extends AgentTestRunner {
         span(1) {
           childOf span(0)
           operationName "play.request"
-          resourceName "404"
+          operationName "404"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {

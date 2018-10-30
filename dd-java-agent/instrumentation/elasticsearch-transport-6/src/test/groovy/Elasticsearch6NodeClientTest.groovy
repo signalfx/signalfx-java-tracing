@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.anotherchrisberry.spock.extensions.retry.RetryOnFailure
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
@@ -78,8 +79,7 @@ class Elasticsearch6NodeClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "elasticsearch"
-          resourceName "ClusterHealthAction"
-          operationName "elasticsearch.query"
+          operationName "ClusterHealthAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -106,8 +106,7 @@ class Elasticsearch6NodeClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "elasticsearch"
-          resourceName "GetAction"
-          operationName "elasticsearch.query"
+          operationName "GetAction"
           spanType DDSpanTypes.ELASTICSEARCH
           errored true
           tags {
@@ -179,8 +178,7 @@ class Elasticsearch6NodeClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "elasticsearch"
-          resourceName "CreateIndexAction"
-          operationName "elasticsearch.query"
+          operationName "CreateIndexAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -196,8 +194,7 @@ class Elasticsearch6NodeClientTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           serviceName "elasticsearch"
-          resourceName "GetAction"
-          operationName "elasticsearch.query"
+          operationName "GetAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -216,8 +213,7 @@ class Elasticsearch6NodeClientTest extends AgentTestRunner {
       trace(2, 1) {
         span(0) {
           serviceName "elasticsearch"
-          resourceName "PutMappingAction"
-          operationName "elasticsearch.query"
+          operationName "PutMappingAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -232,8 +228,7 @@ class Elasticsearch6NodeClientTest extends AgentTestRunner {
       trace(3, 1) {
         span(0) {
           serviceName "elasticsearch"
-          resourceName "IndexAction"
-          operationName "elasticsearch.query"
+          operationName "IndexAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -255,8 +250,7 @@ class Elasticsearch6NodeClientTest extends AgentTestRunner {
       trace(4, 1) {
         span(0) {
           serviceName "elasticsearch"
-          resourceName "GetAction"
-          operationName "elasticsearch.query"
+          operationName "GetAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"

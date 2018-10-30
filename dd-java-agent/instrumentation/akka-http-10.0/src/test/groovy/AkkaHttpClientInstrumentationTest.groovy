@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import akka.actor.ActorSystem
 import akka.http.javadsl.Http
 import akka.http.javadsl.model.HttpRequest
@@ -75,8 +76,7 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
         span(0) {
           parent()
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /$route"
+          operationName "GET /$route"
           spanType DDSpanTypes.HTTP_CLIENT
           errored expectedError
           tags {
@@ -120,8 +120,7 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
         span(0) {
           parent()
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /test"
+          operationName "GET /test"
           spanType DDSpanTypes.HTTP_CLIENT
           errored true
           tags {
@@ -152,7 +151,6 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
           parent()
           serviceName "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "akka-http.request"
           spanType DDSpanTypes.HTTP_CLIENT
           errored true
           tags {
@@ -194,8 +192,7 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
         span(0) {
           parent()
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /$route"
+          operationName "GET /$route"
           spanType DDSpanTypes.HTTP_CLIENT
           errored expectedError
           tags {
@@ -240,8 +237,7 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
         span(0) {
           parent()
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /test"
+          operationName "GET /test"
           spanType DDSpanTypes.HTTP_CLIENT
           errored true
           tags {

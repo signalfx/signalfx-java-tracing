@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.api.DDSpanTypes
@@ -47,8 +48,7 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
           traceId "123"
           parentId "456"
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /test"
+          operationName "GET /test"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -89,8 +89,7 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /$endpoint"
+          operationName "GET /$endpoint"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
@@ -129,8 +128,7 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /server-error"
+          operationName "GET /server-error"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
@@ -169,7 +167,7 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "404"
+          operationName "404"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.akkahttp
 
 import java.util.Collections
@@ -21,7 +22,7 @@ object AkkaHttpClientTransformFlow {
     Flow.fromFunction((input: (HttpRequest, T)) => {
       val (request, data) = input
       val scope = GlobalTracer.get
-        .buildSpan("akka-http.request")
+        .buildSpan(request.method.value + " " + request.getUri().path())
         .withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_CLIENT)
         .withTag(Tags.HTTP_METHOD.getKey, request.method.value)
         .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)

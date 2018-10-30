@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.google.common.io.Files
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.ListWriterAssert
@@ -87,8 +88,7 @@ class JMS2Test extends AgentTestRunner {
         span(0) {
           childOf TEST_WRITER.firstTrace().get(0)
           serviceName "jms"
-          operationName "jms.consume"
-          resourceName "Consumed from $jmsResourceName"
+          operationName "Consumed from $jmsResourceName"
           spanType DDSpanTypes.MESSAGE_PRODUCER
           errored false
 
@@ -139,8 +139,7 @@ class JMS2Test extends AgentTestRunner {
         span(0) {
           childOf TEST_WRITER.firstTrace().get(0)
           serviceName "jms"
-          operationName "jms.onMessage"
-          resourceName "Received from $jmsResourceName"
+          operationName "Received from $jmsResourceName"
           spanType DDSpanTypes.MESSAGE_PRODUCER
           errored false
 
@@ -183,8 +182,7 @@ class JMS2Test extends AgentTestRunner {
         span(0) {
           parent()
           serviceName "jms"
-          operationName "jms.consume"
-          resourceName "JMS receiveNoWait"
+          operationName "JMS receiveNoWait"
           spanType DDSpanTypes.MESSAGE_PRODUCER
           errored false
 
@@ -222,8 +220,7 @@ class JMS2Test extends AgentTestRunner {
         span(0) {
           parent()
           serviceName "jms"
-          operationName "jms.consume"
-          resourceName "JMS receive"
+          operationName "JMS receive"
           spanType DDSpanTypes.MESSAGE_PRODUCER
           errored false
 
@@ -252,8 +249,7 @@ class JMS2Test extends AgentTestRunner {
       span(0) {
         parent()
         serviceName "jms"
-        operationName "jms.produce"
-        resourceName "Produced for $jmsResourceName"
+        operationName "Produced for $jmsResourceName"
         spanType DDSpanTypes.MESSAGE_PRODUCER
         errored false
 
@@ -273,8 +269,7 @@ class JMS2Test extends AgentTestRunner {
       span(0) {
         childOf TEST_WRITER.firstTrace().get(2)
         serviceName "jms"
-        operationName "jms.onMessage"
-        resourceName "Received from $jmsResourceName"
+        operationName "Received from $jmsResourceName"
         spanType DDSpanTypes.MESSAGE_PRODUCER
         errored false
 

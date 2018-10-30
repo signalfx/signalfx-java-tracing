@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
@@ -81,8 +82,7 @@ class JettyServlet2Test extends AgentTestRunner {
             parent()
           }
           serviceName "ctx"
-          operationName "servlet.request"
-          resourceName "GET /ctx/$path"
+          operationName "GET /ctx/$path"
           spanType DDSpanTypes.WEB_SERVLET
           errored false
           tags {
@@ -125,8 +125,7 @@ class JettyServlet2Test extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "ctx"
-          operationName "servlet.request"
-          resourceName "GET /ctx/$path"
+          operationName "GET /ctx/$path"
           spanType DDSpanTypes.WEB_SERVLET
           errored true
           parent()
@@ -166,8 +165,7 @@ class JettyServlet2Test extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "ctx"
-          operationName "servlet.request"
-          resourceName "GET /ctx/$path"
+          operationName "GET /ctx/$path"
           spanType DDSpanTypes.WEB_SERVLET
           errored false
           parent()

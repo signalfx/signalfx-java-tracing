@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.anotherchrisberry.spock.extensions.retry.RetryOnFailure
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
@@ -87,8 +88,7 @@ class Elasticsearch5RestClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "elasticsearch"
-          resourceName "GET _cluster/health"
-          operationName "elasticsearch.rest.query"
+          operationName "GET _cluster/health"
           spanType DDSpanTypes.ELASTICSEARCH
           parent()
           tags {

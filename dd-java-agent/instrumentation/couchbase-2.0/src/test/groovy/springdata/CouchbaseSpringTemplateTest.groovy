@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package springdata
 
 
@@ -43,8 +44,7 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
       trace(0, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.upsert"
-          operationName "couchbase.call"
+          operationName "Bucket.upsert"
           errored false
           parent()
           tags {
@@ -57,8 +57,7 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
       trace(1, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.get"
-          operationName "couchbase.call"
+          operationName "Bucket.get"
           errored false
           parent()
           tags {
@@ -71,8 +70,7 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
       trace(2, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.remove"
-          operationName "couchbase.call"
+          operationName "Bucket.remove"
           errored false
           parent()
           tags {
@@ -85,8 +83,7 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
       trace(3, 1) {
         span(0) {
           serviceName "couchbase"
-          resourceName "Bucket.get"
-          operationName "couchbase.call"
+          operationName "Bucket.get"
           errored false
           parent()
           tags {

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.akkahttp;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -101,7 +102,7 @@ public final class AkkaHttpServerInstrumentation extends Instrumenter.Default {
               .extract(Format.Builtin.HTTP_HEADERS, new AkkaHttpServerHeaders(request));
       final Scope scope =
           GlobalTracer.get()
-              .buildSpan("akka-http.request")
+              .buildSpan(request.method().value() + " " + request.getUri().path())
               .asChildOf(extractedContext)
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
               .withTag(Tags.HTTP_METHOD.getKey(), request.method().value())
@@ -118,6 +119,9 @@ public final class AkkaHttpServerInstrumentation extends Instrumenter.Default {
 
     public static void finishSpan(final Span span, final HttpResponse response) {
       Tags.HTTP_STATUS.set(span, response.status().intValue());
+      if (response.status().intValue() >= 500) {
+        Tags.ERROR.set(span, true);
+      }
 
       if (GlobalTracer.get().scopeManager().active() instanceof TraceScope) {
         ((TraceScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(false);

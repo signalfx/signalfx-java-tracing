@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
@@ -118,8 +119,7 @@ class JettyHandlerTest extends AgentTestRunner {
         trace(i, 1) {
           span(0) {
             serviceName "unnamed-java-app"
-            operationName "jetty.request"
-            resourceName "GET ${handler.class.name}"
+            operationName "GET ${handler.class.name}"
           }
         }
       }

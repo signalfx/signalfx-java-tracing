@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.mchange.v2.c3p0.ComboPooledDataSource
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -156,7 +157,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           parent()
         }
         span(1) {
-          operationName "${driver}.query"
           serviceName driver
           resourceName query
           spanType DDSpanTypes.SQL
@@ -217,7 +217,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           parent()
         }
         span(1) {
-          operationName "${driver}.query"
           serviceName driver
           resourceName query
           spanType DDSpanTypes.SQL
@@ -273,7 +272,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           parent()
         }
         span(1) {
-          operationName "${driver}.query"
           serviceName driver
           resourceName query
           spanType DDSpanTypes.SQL
@@ -329,7 +327,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           parent()
         }
         span(1) {
-          operationName "${driver}.query"
           serviceName driver
           resourceName query
           spanType DDSpanTypes.SQL
@@ -388,7 +385,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           parent()
         }
         span(1) {
-          operationName "${driver}.query"
           serviceName driver
           resourceName query
           spanType DDSpanTypes.SQL
@@ -460,7 +456,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           parent()
         }
         span(1) {
-          operationName "${driver}.query"
           serviceName driver
           resourceName query
           spanType DDSpanTypes.SQL
@@ -537,9 +532,8 @@ class JDBCInstrumentationTest extends AgentTestRunner {
     assertTraces(6) {
       trace(0, 1) {
         span(0) {
-          operationName "${dbType}.query"
           serviceName dbType
-          resourceName "CALL USER()"
+          operationName "CALL USER()"
           spanType DDSpanTypes.SQL
           errored false
           tags {
@@ -557,7 +551,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
       for (int i = 1; i < numQueries + 1; ++i) {
         trace(i, 1) {
           span(0) {
-            operationName "${dbType}.query"
             serviceName dbType
             resourceName query
             spanType DDSpanTypes.SQL

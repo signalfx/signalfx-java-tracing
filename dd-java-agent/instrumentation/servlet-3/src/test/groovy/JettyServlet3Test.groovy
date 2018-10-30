@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
@@ -85,8 +86,7 @@ class JettyServlet3Test extends AgentTestRunner {
             parent()
           }
           serviceName "unnamed-java-app"
-          operationName "servlet.request"
-          resourceName "GET /$path"
+          operationName "GET /$path"
           spanType DDSpanTypes.WEB_SERVLET
           errored false
           tags {
@@ -135,8 +135,7 @@ class JettyServlet3Test extends AgentTestRunner {
         trace(i, 1) {
           span(0) {
             serviceName "unnamed-java-app"
-            operationName "servlet.request"
-            resourceName "GET /async"
+            operationName "GET /async"
           }
         }
       }
@@ -158,8 +157,7 @@ class JettyServlet3Test extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "servlet.request"
-          resourceName "GET /$path"
+          operationName "GET /$path"
           spanType DDSpanTypes.WEB_SERVLET
           errored true
           parent()
@@ -199,8 +197,7 @@ class JettyServlet3Test extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "servlet.request"
-          resourceName "GET /$path"
+          operationName "GET /$path"
           spanType DDSpanTypes.WEB_SERVLET
           errored true
           parent()

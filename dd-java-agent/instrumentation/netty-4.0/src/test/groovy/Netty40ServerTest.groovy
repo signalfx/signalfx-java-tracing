@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
@@ -57,8 +58,7 @@ class Netty40ServerTest extends AgentTestRunner {
           traceId "123"
           parentId "456"
           serviceName "unnamed-java-app"
-          operationName "netty.request"
-          resourceName "GET /"
+          operationName "GET /"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -103,7 +103,6 @@ class Netty40ServerTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          operationName "netty.request"
           resourceName name
           spanType DDSpanTypes.HTTP_SERVER
           errored error

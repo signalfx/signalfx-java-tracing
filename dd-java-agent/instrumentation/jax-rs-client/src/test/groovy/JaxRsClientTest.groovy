@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.api.DDSpanTypes
@@ -55,8 +56,7 @@ class JaxRsClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          resourceName "GET /ping"
-          operationName "jax-rs.client.call"
+          operationName "GET /ping"
           spanType "http"
           parent()
           errored false
@@ -106,8 +106,7 @@ class JaxRsClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          resourceName "GET /ping"
-          operationName "jax-rs.client.call"
+          operationName "GET /ping"
           spanType "http"
           parent()
           errored true

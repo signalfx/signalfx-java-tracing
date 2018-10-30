@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.api.DDSpanTypes
@@ -56,8 +57,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /greet$pathVariableUrlSuffix"
-          operationName "netty.request"
+          operationName "GET /greet$pathVariableUrlSuffix"
           spanType DDSpanTypes.HTTP_SERVER
           parent()
           tags {
@@ -108,8 +108,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /foo$pathVariableUrlSuffix"
-          operationName "netty.request"
+          operationName "GET /foo$pathVariableUrlSuffix"
           spanType DDSpanTypes.HTTP_SERVER
           parent()
           tags {
@@ -147,7 +146,7 @@ class SpringWebfluxTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceName "404"
+          operationName "404"
           operationName "netty.request"
           spanType DDSpanTypes.HTTP_SERVER
           parent()
@@ -164,7 +163,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "DispatcherHandler.handle"
           operationName "DispatcherHandler.handle"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(span(0))
@@ -211,8 +209,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "POST /echo"
-          operationName "netty.request"
+          operationName "POST /echo"
           spanType DDSpanTypes.HTTP_SERVER
           parent()
           tags {
@@ -244,8 +241,7 @@ class SpringWebfluxTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceName "GET /failfoo/{id}"
-          operationName "netty.request"
+          operationName "GET /failfoo/{id}"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           parent()
@@ -263,7 +259,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "TestController.getFooModelFail"
           operationName "TestController.getFooModelFail"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(span(0))
@@ -295,8 +290,7 @@ class SpringWebfluxTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceName "POST /fail-echo"
-          operationName "netty.request"
+          operationName "POST /fail-echo"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           parent()
@@ -347,8 +341,7 @@ class SpringWebfluxTest extends AgentTestRunner {
     assertTraces(2) {
       trace(0, 2) {
         span(0) {
-          resourceName "GET /double-greet-redirect"
-          operationName "netty.request"
+          operationName "GET /double-greet-redirect"
           spanType DDSpanTypes.HTTP_SERVER
           parent()
           tags {
@@ -364,7 +357,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "RedirectComponent.lambda"
           operationName "RedirectComponent.lambda"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(span(0))
@@ -397,8 +389,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /double-greet"
-          operationName "netty.request"
+          operationName "GET /double-greet"
           spanType DDSpanTypes.HTTP_SERVER
           parent()
           tags {
@@ -448,8 +439,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /greet-counter/{count}"
-          operationName "netty.request"
+          operationName "GET /greet-counter/{count}"
           spanType DDSpanTypes.HTTP_SERVER
           parent()
           tags {
@@ -499,8 +489,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /annotation-foos/{count}"
-          operationName "netty.request"
+          operationName "GET /annotation-foos/{count}"
           spanType DDSpanTypes.HTTP_SERVER
           parent()
           tags {

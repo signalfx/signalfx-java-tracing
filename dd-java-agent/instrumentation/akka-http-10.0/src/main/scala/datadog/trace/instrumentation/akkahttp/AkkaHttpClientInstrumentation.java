@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.akkahttp;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -79,7 +80,7 @@ public final class AkkaHttpClientInstrumentation extends Instrumenter.Default {
         @Advice.Argument(value = 0, readOnly = false) HttpRequest request) {
       Tracer.SpanBuilder builder =
           GlobalTracer.get()
-              .buildSpan("akka-http.request")
+              .buildSpan(request.method().value() + " " + request.getUri().path())
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
               .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
               .withTag(Tags.COMPONENT.getKey(), "akka-http-client");

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import io.dropwizard.views.View
 import io.dropwizard.views.freemarker.FreemarkerViewRenderer
@@ -21,8 +22,7 @@ class ViewRenderTest extends AgentTestRunner {
     assertTraces(TEST_WRITER, 1) {
       trace(0, 1) {
         span(0) {
-          resourceName "View $template"
-          operationName "view.render"
+          operationName "View $template"
           tags {
             "component" "dropwizard-view"
             "span.origin.type" renderer.class.simpleName

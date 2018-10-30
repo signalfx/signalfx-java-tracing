@@ -70,14 +70,12 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       message == expectedMessage
     }
 
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][0])
-      trace(1, 1) {
+    assertTraces(1) {
+      trace(0, 2) {
         span(0) {
           parent()
           serviceName "unnamed-java-app"
           operationName "GET /$route"
-          spanType DDSpanTypes.HTTP_CLIENT
           errored expectedError
           tags {
             defaultTags()
@@ -85,11 +83,18 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "${server.address}/$route"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "akka-http-client"
             if (expectedError) {
               "$Tags.ERROR.key" true
             }
+          }
+        }
+        span(1) {
+          operationName "test-http-server"
+          errored false
+          childOf span(0)
+          tags {
+            defaultTags()
           }
         }
       }
@@ -121,14 +126,12 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
           parent()
           serviceName "unnamed-java-app"
           operationName "GET /test"
-          spanType DDSpanTypes.HTTP_CLIENT
           errored true
           tags {
             defaultTags()
             "$Tags.HTTP_URL.key" url.toString()
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "akka-http-client"
             "$Tags.ERROR.key" true
             errorTags(StreamTcpException, { it.contains("Tcp command") })
@@ -151,12 +154,10 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
           parent()
           serviceName "unnamed-java-app"
           operationName "akka-http.request"
-          spanType DDSpanTypes.HTTP_CLIENT
           errored true
           tags {
             defaultTags()
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "akka-http-client"
             "$Tags.ERROR.key" true
             errorTags(NullPointerException)
@@ -186,14 +187,12 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       message == expectedMessage
     }
 
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][0])
-      trace(1, 1) {
+    assertTraces(1) {
+      trace(0, 2) {
         span(0) {
           parent()
           serviceName "unnamed-java-app"
           operationName "GET /$route"
-          spanType DDSpanTypes.HTTP_CLIENT
           errored expectedError
           tags {
             defaultTags()
@@ -201,11 +200,18 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "${server.address}/$route"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "akka-http-client"
             if (expectedError) {
               "$Tags.ERROR.key" true
             }
+          }
+        }
+        span(1) {
+          operationName "test-http-server"
+          errored false
+          childOf span(0)
+          tags {
+            defaultTags()
           }
         }
       }
@@ -238,14 +244,12 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
           parent()
           serviceName "unnamed-java-app"
           operationName "GET /test"
-          spanType DDSpanTypes.HTTP_CLIENT
           errored true
           tags {
             defaultTags()
             "$Tags.HTTP_URL.key" url.toString()
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "akka-http-client"
             "$Tags.ERROR.key" true
             errorTags(StreamTcpException, { it.contains("Tcp command") })

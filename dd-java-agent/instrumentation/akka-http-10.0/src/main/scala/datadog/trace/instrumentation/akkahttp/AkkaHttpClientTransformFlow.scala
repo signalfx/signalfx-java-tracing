@@ -25,7 +25,6 @@ object AkkaHttpClientTransformFlow {
         .buildSpan(request.method.value + " " + request.getUri().path())
         .withTag(Tags.SPAN_KIND.getKey, Tags.SPAN_KIND_CLIENT)
         .withTag(Tags.HTTP_METHOD.getKey, request.method.value)
-        .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
         .withTag(Tags.COMPONENT.getKey, "akka-http-client")
         .withTag(Tags.HTTP_URL.getKey, request.getUri.toString)
         .startActive(false)
@@ -36,7 +35,11 @@ object AkkaHttpClientTransformFlow {
       (headers.getRequest, data)
     }).via(flow).map(output => {
       output._1 match {
-        case Success(response) => Tags.HTTP_STATUS.set(span, response.status.intValue)
+        case Success(response) =>
+          val status = response.status.intValue
+          Tags.HTTP_STATUS.set(span, status)
+          if (status >= 500)
+            Tags.ERROR.set(span, true)
         case Failure(e) =>
           Tags.ERROR.set(span, true)
           span.log(Collections.singletonMap(ERROR_OBJECT, e))

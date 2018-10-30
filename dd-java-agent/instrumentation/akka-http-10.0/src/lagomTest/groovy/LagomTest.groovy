@@ -73,7 +73,6 @@ class LagomTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "ws://localhost:${server.port()}/echo"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.COMPONENT.key" "akka-http-server"
           }
         }
@@ -110,7 +109,6 @@ class LagomTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "ws://localhost:${server.port()}/error"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.COMPONENT.key" "akka-http-server"
             "$Tags.ERROR.key" true
           }

@@ -11,8 +11,6 @@ import akka.http.scaladsl.model.HttpResponse;
 import akka.stream.Materializer;
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -106,7 +104,6 @@ public final class AkkaHttpServerInstrumentation extends Instrumenter.Default {
               .asChildOf(extractedContext)
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
               .withTag(Tags.HTTP_METHOD.getKey(), request.method().value())
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_SERVER)
               .withTag(Tags.COMPONENT.getKey(), "akka-http-server")
               .withTag(Tags.HTTP_URL.getKey(), request.getUri().toString())
               .startActive(false);

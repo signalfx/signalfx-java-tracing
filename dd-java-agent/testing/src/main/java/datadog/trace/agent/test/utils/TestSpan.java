@@ -61,7 +61,12 @@ public class TestSpan implements Span {
 
   @Override
   public String toString() {
-    return span.toString() + " " + span.tags().toString() + "\n";
+    return span.toString()
+        + " "
+        + span.tags().toString()
+        + " "
+        + span.logEntries().toString()
+        + "\n";
   }
 
   @Override

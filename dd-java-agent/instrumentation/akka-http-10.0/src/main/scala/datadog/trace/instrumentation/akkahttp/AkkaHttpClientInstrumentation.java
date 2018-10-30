@@ -14,8 +14,6 @@ import akka.http.scaladsl.model.HttpResponse;
 import akka.stream.scaladsl.Flow;
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
@@ -78,18 +76,20 @@ public final class AkkaHttpClientInstrumentation extends Instrumenter.Default {
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Scope methodEnter(
         @Advice.Argument(value = 0, readOnly = false) HttpRequest request) {
-      Tracer.SpanBuilder builder =
-          GlobalTracer.get()
-              .buildSpan(request.method().value() + " " + request.getUri().path())
-              .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
-              .withTag(Tags.COMPONENT.getKey(), "akka-http-client");
+      Tracer tracer = GlobalTracer.get();
+      Tracer.SpanBuilder builder;
       if (request != null) {
         builder =
-            builder
+            tracer
+                .buildSpan(request.method().value() + " " + request.getUri().path())
                 .withTag(Tags.HTTP_METHOD.getKey(), request.method().value())
                 .withTag(Tags.HTTP_URL.getKey(), request.getUri().toString());
+      } else {
+        builder = tracer.buildSpan("akka-http.request");
       }
+      builder
+          .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
+          .withTag(Tags.COMPONENT.getKey(), "akka-http-client");
       final Scope scope = builder.startActive(false);
 
       if (request != null) {
@@ -140,7 +140,11 @@ public final class AkkaHttpClientInstrumentation extends Instrumenter.Default {
     @Override
     public Void apply(final Try<HttpResponse> result) {
       if (result.isSuccess()) {
-        Tags.HTTP_STATUS.set(span, result.get().status().intValue());
+        int status = result.get().status().intValue();
+        Tags.HTTP_STATUS.set(span, status);
+        if (status >= 500) {
+          Tags.ERROR.set(span, true);
+        }
       } else {
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, result.failed().get()));

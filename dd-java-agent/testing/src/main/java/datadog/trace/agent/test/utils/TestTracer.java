@@ -8,10 +8,11 @@ import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class TestTracer extends MockTracer implements Tracer {
   protected ListWriter listWriter;
-  protected final HashMap<Long, ArrayList<TestSpan>> traceMap = new HashMap<>();
+  protected final Map<Long, ArrayList<TestSpan>> traceMap = new HashMap<>();
   public String serviceName = "unnamed-java-app";
 
   public TestTracer() {

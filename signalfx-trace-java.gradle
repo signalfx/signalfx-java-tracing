@@ -1,7 +1,5 @@
 plugins {
   id 'io.franzbecker.gradle-lombok' version '1.13'
-  id 'com.jfrog.artifactory' version '4.7.5'
-  id 'com.jfrog.bintray' version '1.8.4'
   id 'net.ltgt.errorprone' version '0.0.14'
   id 'org.unbroken-dome.test-sets' version '1.5.1'
 
@@ -15,7 +13,7 @@ plugins {
 def isCI = System.getenv("CI") != null
 
 allprojects {
-  group = 'com.datadoghq'
+  group = 'com.signalfx.public'
   version = '0.18.0-SNAPSHOT'
 
   if (isCI) {
@@ -26,11 +24,10 @@ allprojects {
 }
 
 repositories {
-  jcenter()
   mavenCentral()
 }
 
-description = 'dd-trace-java'
+description = 'signalfx-trace-java'
 
 task traceAgentTest {}
 task latestDepTest {}

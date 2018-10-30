@@ -1,5 +1,5 @@
 // Modified by SignalFx
-rootProject.name = 'dd-trace-java'
+rootProject.name = 'signalfx-trace-java'
 
 include ':dd-trace-ot'
 include ':dd-java-agent'

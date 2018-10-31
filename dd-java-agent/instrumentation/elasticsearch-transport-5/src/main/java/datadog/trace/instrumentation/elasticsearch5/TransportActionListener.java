@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.elasticsearch5;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -35,7 +36,10 @@ public class TransportActionListener<T extends ActionResponse> implements Action
     if (request instanceof IndicesRequest) {
       final IndicesRequest req = (IndicesRequest) request;
       if (req.indices() != null) {
-        span.setTag("elasticsearch.request.indices", Joiner.on(",").join(req.indices()));
+        final String indices = Joiner.on(",").join(req.indices());
+        if (!indices.isEmpty()) {
+          span.setTag("elasticsearch.request.indices", indices);
+        }
       }
     }
     if (request instanceof SearchRequest) {
@@ -45,7 +49,9 @@ public class TransportActionListener<T extends ActionResponse> implements Action
     if (request instanceof DocumentRequest) {
       final DocumentRequest req = (DocumentRequest) request;
       span.setTag("elasticsearch.request.write.type", req.type());
-      span.setTag("elasticsearch.request.write.routing", req.routing());
+      if (req.routing() != null) {
+        span.setTag("elasticsearch.request.write.routing", req.routing());
+      }
     }
   }
 

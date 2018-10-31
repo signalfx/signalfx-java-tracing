@@ -65,9 +65,8 @@ class ApacheHttpClientTest extends AgentTestRunner {
     then:
     response == "Hello."
     // one trace on the server, one trace on the client
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][1])
-      trace(1, 2) {
+    assertTraces(1) {
+      trace(0, 2) {
         parentSpan(it, 0)
         successClientSpan(it, 1, span(0))
       }
@@ -101,7 +100,6 @@ class ApacheHttpClientTest extends AgentTestRunner {
   def parentSpan(TraceAssert trace, int index, Throwable exception = null) {
     trace.span(index) {
       parent()
-      serviceName "unnamed-java-app"
       operationName "parent"
       errored exception != null
       tags {
@@ -116,7 +114,6 @@ class ApacheHttpClientTest extends AgentTestRunner {
   def successClientSpan(TraceAssert trace, int index, TestSpan parent, status = 200, route = "success", Throwable exception = null) {
     trace.span(index) {
       childOf parent
-      serviceName "unnamed-java-app"
       operationName "GET /$route"
       errored exception != null
       tags {

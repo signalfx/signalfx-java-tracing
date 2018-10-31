@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.couchbase.client;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -11,8 +12,6 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import com.couchbase.client.java.CouchbaseCluster;
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
 import io.opentracing.Span;
 import io.opentracing.noop.NoopSpan;
@@ -103,15 +102,13 @@ public class CouchbaseClusterInstrumentation extends Instrumenter.Default {
       final Class<?> declaringClass = method.getDeclaringClass();
       final String className =
           declaringClass.getSimpleName().replace("CouchbaseAsync", "").replace("DefaultAsync", "");
-      final String resourceName = className + "." + method.getName();
+      final String operationName = className + "." + method.getName();
 
       // just replace the no-op span.
       spanRef.set(
           GlobalTracer.get()
-              .buildSpan("couchbase.call")
-              .withTag(DDTags.SERVICE_NAME, "couchbase")
-              .withTag(DDTags.RESOURCE_NAME, resourceName)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.COUCHBASE)
+              .buildSpan(operationName)
+              .withTag(Tags.COMPONENT.getKey(), "couchbase")
               .start());
     }
   }

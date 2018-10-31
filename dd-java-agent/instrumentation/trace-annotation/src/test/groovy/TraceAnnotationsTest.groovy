@@ -20,7 +20,6 @@ class TraceAnnotationsTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "test"
           operationName "SayTracedHello.sayHello"
           parent()
           errored false
@@ -50,7 +49,6 @@ class TraceAnnotationsTest extends AgentTestRunner {
         }
         span(1) {
           operationName "SAY_HA"
-          spanType "DB"
           childOf span(0)
           errored false
           tags {
@@ -59,7 +57,6 @@ class TraceAnnotationsTest extends AgentTestRunner {
           }
         }
         span(2) {
-          serviceName "test"
           operationName "SayTracedHello.sayHello"
           childOf span(0)
           errored false

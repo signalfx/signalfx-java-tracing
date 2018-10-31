@@ -27,14 +27,7 @@ public class TestTracer extends MockTracer implements Tracer {
 
   @Override
   protected void onSpanFinished(MockSpan span) {
-    setSpanServiceName(span);
     trackAndWriteTrace(span);
-  }
-
-  private void setSpanServiceName(MockSpan span) {
-    if (!serviceName.isEmpty()) {
-      span.setTag("service", serviceName);
-    }
   }
 
   private void trackAndWriteTrace(MockSpan span) {

@@ -31,7 +31,7 @@ class TagsAssert {
    * @param distributedRootSpan set to true if current span has a parent span but still considered 'root' for current service
    */
   def defaultTags(boolean distributedRootSpan = false) {
-    assertedTags.add("service")
+    //assertedTags.add("service")
   }
 
   def errorTags(Class<Throwable> errorType) {
@@ -73,6 +73,6 @@ class TagsAssert {
     // The primary goal is to ensure the set is empty.
     // tags and assertedTags are included via an "always true" comparison
     // so they provide better context in the error message.
-    assert tags.entrySet() != assertedTags && set.isEmpty()
+    assert (assertedTags.size() == 0 || tags.entrySet() != assertedTags) && set.isEmpty()
   }
 }

@@ -3,7 +3,6 @@ import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.Session
 import datadog.trace.agent.test.utils.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import spock.lang.Shared
@@ -53,18 +52,16 @@ class CassandraClientTest extends AgentTestRunner {
     TEST_WRITER.size() == 5
     final TestSpan selectTrace = TEST_WRITER.get(TEST_WRITER.size() - 1).get(0)
 
-    selectTrace.getServiceName() == "cassandra"
-    selectTrace.getOperationName() == "cassandra.query"
-    selectTrace.getResourceName() == query
+    selectTrace.getOperationName() == "cassandra.execute"
 
     selectTrace.getTags().get(Tags.COMPONENT.getKey()) == "java-cassandra"
     selectTrace.getTags().get(Tags.DB_TYPE.getKey()) == "cassandra"
+    selectTrace.getTags().get(Tags.DB_STATEMENT.getKey()) == query
     selectTrace.getTags().get(Tags.PEER_HOSTNAME.getKey()) == "localhost"
     // More info about IPv4 tag: https://trello.com/c/2el2IwkF/174-mongodb-ot-contrib-provides-a-wrong-peeripv4
     selectTrace.getTags().get(Tags.PEER_HOST_IPV4.getKey()) == 2130706433
     selectTrace.getTags().get(Tags.PEER_PORT.getKey()) == 9142
     selectTrace.getTags().get(Tags.SPAN_KIND.getKey()) == "client"
-    selectTrace.getTags().get(DDTags.SPAN_TYPE) == "cassandra"
   }
 
   def "async traces"() {
@@ -90,17 +87,15 @@ class CassandraClientTest extends AgentTestRunner {
     session.getClass().getName().endsWith("cassandra.TracingSession")
     final TestSpan selectTrace = TEST_WRITER.get(TEST_WRITER.size() - 1).get(0)
 
-    selectTrace.getServiceName() == "cassandra"
-    selectTrace.getOperationName() == "cassandra.query"
-    selectTrace.getResourceName() == query
+    selectTrace.getOperationName() == "cassandra.execute"
 
     selectTrace.getTags().get(Tags.COMPONENT.getKey()) == "java-cassandra"
     selectTrace.getTags().get(Tags.DB_TYPE.getKey()) == "cassandra"
+    selectTrace.getTags().get(Tags.DB_STATEMENT.getKey()) == query
     selectTrace.getTags().get(Tags.PEER_HOSTNAME.getKey()) == "localhost"
     // More info about IPv4 tag: https://trello.com/c/2el2IwkF/174-mongodb-ot-contrib-provides-a-wrong-peeripv4
     selectTrace.getTags().get(Tags.PEER_HOST_IPV4.getKey()) == 2130706433
     selectTrace.getTags().get(Tags.PEER_PORT.getKey()) == 9142
     selectTrace.getTags().get(Tags.SPAN_KIND.getKey()) == "client"
-    selectTrace.getTags().get(DDTags.SPAN_TYPE) == "cassandra"
   }
 }

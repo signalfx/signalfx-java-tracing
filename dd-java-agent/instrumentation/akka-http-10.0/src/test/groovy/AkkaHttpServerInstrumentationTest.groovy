@@ -33,8 +33,8 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
     setup:
     def request = new Request.Builder()
       .url("http://localhost:$port/test")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("traceid", "123")
+      .header("spanid", "0")
       .get()
       .build()
     def response = client.newCall(request).execute()
@@ -45,9 +45,8 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          traceId "123"
-          parentId "456"
-          serviceName "unnamed-java-app"
+          traceId 123
+          parentId 0
           operationName "GET /test"
           errored false
           tags {
@@ -86,7 +85,6 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
           operationName "GET /$endpoint"
           errored true
           tags {
@@ -123,7 +121,6 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
           operationName "GET /server-error"
           errored true
           tags {
@@ -159,9 +156,7 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          operationName "404"
+          operationName "GET /not-found"
           errored false
           tags {
             defaultTags()

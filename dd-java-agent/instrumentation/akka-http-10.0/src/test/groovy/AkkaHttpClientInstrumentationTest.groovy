@@ -74,7 +74,6 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
           operationName "GET /$route"
           errored expectedError
           tags {
@@ -124,7 +123,6 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
           operationName "GET /test"
           errored true
           tags {
@@ -152,7 +150,6 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
           operationName "akka-http.request"
           errored true
           tags {
@@ -191,7 +188,6 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
           operationName "GET /$route"
           errored expectedError
           tags {
@@ -242,7 +238,6 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
           operationName "GET /test"
           errored true
           tags {

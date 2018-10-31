@@ -64,7 +64,6 @@ class LagomTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          serviceName "unnamed-java-app"
           operationName "GET /echo"
           errored false
           tags {
@@ -100,7 +99,6 @@ class LagomTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
           operationName "GET /error"
           errored true
           tags {

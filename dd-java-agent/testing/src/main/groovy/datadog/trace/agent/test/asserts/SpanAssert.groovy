@@ -2,6 +2,7 @@
 package datadog.trace.agent.test.asserts
 
 import datadog.trace.agent.test.utils.TestSpan
+import datadog.trace.api.DDTags
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 
@@ -43,15 +44,11 @@ class SpanAssert {
   }
 
   def resourceName(String name) {
-    assert span.getOperationName() == name
+    assert span.tags.get(DDTags.RESOURCE_NAME) == name
   }
 
   def resourceNameContains(String... resourceNameParts) {
-    assertSpanNameContains(span.getOperationName(), resourceNameParts)
-  }
-
-  def spanType(String type) {
-    assert span.getComponent() == type
+    assertSpanNameContains(span.tags.get(DDTags.RESOURCE_NAME), resourceNameParts)
   }
 
   def parent() {

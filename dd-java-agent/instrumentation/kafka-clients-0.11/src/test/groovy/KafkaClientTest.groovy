@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Config
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -120,8 +121,8 @@ class KafkaClientTest extends AgentTestRunner {
 
     def headers = received.headers()
     headers.iterator().hasNext()
-    new String(headers.headers("x-datadog-trace-id").iterator().next().value()) == "$t1span1.traceId"
-    new String(headers.headers("x-datadog-parent-id").iterator().next().value()) == "$t1span1.spanId"
+    new String(headers.headers("traceid").iterator().next().value()) == "$t1span1.traceId"
+    new String(headers.headers("spanid").iterator().next().value()) == "$t1span1.spanId"
 
 
     cleanup:

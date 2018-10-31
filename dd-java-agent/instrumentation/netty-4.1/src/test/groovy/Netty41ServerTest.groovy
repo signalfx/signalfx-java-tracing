@@ -43,8 +43,8 @@ class Netty41ServerTest extends AgentTestRunner {
 
     def request = new Request.Builder()
       .url("http://localhost:$port/")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("traceid", "123")
+      .header("spanid", "456")
       .get()
       .build()
     def response = client.newCall(request).execute()

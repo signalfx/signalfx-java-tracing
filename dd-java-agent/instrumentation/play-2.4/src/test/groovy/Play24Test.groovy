@@ -32,8 +32,8 @@ class Play24Test extends AgentTestRunner {
     setup:
     def request = new Request.Builder()
       .url("http://localhost:$port/helloplay/spock")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("traceid", "123")
+      .header("spanid", "456")
       .get()
       .build()
     def response = client.newCall(request).execute()

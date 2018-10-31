@@ -61,8 +61,8 @@ class JettyServlet2Test extends AgentTestRunner {
       .url("http://localhost:$port/ctx/$path")
       .get()
     if (distributedTracing) {
-      requestBuilder.header("x-datadog-trace-id", "123")
-      requestBuilder.header("x-datadog-parent-id", "456")
+      requestBuilder.header("traceid", "123")
+      requestBuilder.header("spanid", "456")
     }
     if (auth) {
       requestBuilder.header(HttpHeaders.AUTHORIZATION, Credentials.basic("user", "password"))

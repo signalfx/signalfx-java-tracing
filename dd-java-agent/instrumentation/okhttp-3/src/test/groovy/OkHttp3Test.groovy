@@ -62,8 +62,8 @@ class OkHttp3Test extends AgentTestRunner {
       }
     }
 
-    server.lastRequest.headers.get("x-datadog-trace-id") == TEST_WRITER[0][1].traceId
-    server.lastRequest.headers.get("x-datadog-parent-id") == TEST_WRITER[0][1].spanId
+    server.lastRequest.headers.get("traceid") == TEST_WRITER[0][1].traceId
+    server.lastRequest.headers.get("spanid") == TEST_WRITER[0][1].spanId
 
     cleanup:
     server.close()

@@ -9,9 +9,13 @@ import java.util.Map;
 public class TestSpan implements Span {
 
   public final MockSpan span;
+  public long traceId;
+  public long spanId;
 
   public TestSpan(MockSpan span) {
     this.span = span;
+    this.traceId = span.context().traceId();
+    this.spanId = span.context().spanId();
   }
 
   public Map<String, Object> getTags() {

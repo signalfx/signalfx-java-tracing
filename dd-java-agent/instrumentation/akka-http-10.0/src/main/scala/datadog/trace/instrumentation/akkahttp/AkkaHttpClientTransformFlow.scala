@@ -6,7 +6,6 @@ import java.util.Collections
 import akka.NotUsed
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.stream.scaladsl.Flow
-import datadog.trace.api.{DDSpanTypes, DDTags}
 import io.opentracing.Span
 import io.opentracing.log.Fields.ERROR_OBJECT
 import io.opentracing.propagation.Format

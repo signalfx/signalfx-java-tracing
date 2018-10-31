@@ -74,8 +74,8 @@ class JaxRsClientTest extends AgentTestRunner {
       }
     }
 
-    server.lastRequest.headers.get("x-datadog-trace-id") == TEST_WRITER[0][0].traceId
-    server.lastRequest.headers.get("x-datadog-parent-id") == TEST_WRITER[0][0].spanId
+    server.lastRequest.headers.get("traceid") == TEST_WRITER[0][0].traceId
+    server.lastRequest.headers.get("spanid") == TEST_WRITER[0][0].spanId
 
     where:
     builder                     | async | lib

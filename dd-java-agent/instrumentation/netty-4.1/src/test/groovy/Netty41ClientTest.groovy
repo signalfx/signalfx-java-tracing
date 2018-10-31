@@ -73,8 +73,8 @@ class Netty41ClientTest extends AgentTestRunner {
     }
 
     and:
-    server.lastRequest.headers.get("x-datadog-trace-id") == "${TEST_WRITER.get(0).get(0).traceId}"
-    server.lastRequest.headers.get("x-datadog-parent-id") == "${TEST_WRITER.get(0).get(0).spanId}"
+    server.lastRequest.headers.get("traceid") == "${TEST_WRITER.get(0).get(0).traceId}"
+    server.lastRequest.headers.get("spanid") == "${TEST_WRITER.get(0).get(0).spanId}"
   }
 
   def "test connection failure"() {

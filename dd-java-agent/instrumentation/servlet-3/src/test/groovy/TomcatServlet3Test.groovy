@@ -64,8 +64,8 @@ class TomcatServlet3Test extends AgentTestRunner {
       .url("http://localhost:$port/my-context/$path")
       .get()
     if (distributedTracing) {
-      requestBuilder.header("x-datadog-trace-id", "123")
-      requestBuilder.header("x-datadog-parent-id", "456")
+      requestBuilder.header("traceid", "123")
+      requestBuilder.header("spanid", "456")
     }
     def response = client.newCall(requestBuilder.build()).execute()
 

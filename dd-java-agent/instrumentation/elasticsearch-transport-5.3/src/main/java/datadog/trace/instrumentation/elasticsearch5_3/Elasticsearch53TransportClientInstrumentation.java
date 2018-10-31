@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.elasticsearch5_3;
 
 import static datadog.trace.agent.tooling.ClassLoaderMatcher.classLoaderHasClasses;
@@ -10,8 +11,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -83,10 +82,7 @@ public class Elasticsearch53TransportClientInstrumentation extends Instrumenter.
 
       final Scope scope =
           GlobalTracer.get()
-              .buildSpan("elasticsearch.query")
-              .withTag(DDTags.SERVICE_NAME, "elasticsearch")
-              .withTag(DDTags.RESOURCE_NAME, action.getClass().getSimpleName())
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.ELASTICSEARCH)
+              .buildSpan(action.getClass().getSimpleName())
               .withTag(Tags.COMPONENT.getKey(), "elasticsearch-java")
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
               .withTag("elasticsearch.action", action.getClass().getSimpleName())

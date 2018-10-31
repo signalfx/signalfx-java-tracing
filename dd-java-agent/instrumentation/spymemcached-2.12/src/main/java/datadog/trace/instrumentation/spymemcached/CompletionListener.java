@@ -39,7 +39,6 @@ public abstract class CompletionListener<T> {
     final Tracer.SpanBuilder spanBuilder =
         tracer
             .buildSpan(OPERATION_NAME)
-            .withTag(DDTags.SERVICE_NAME, SERVICE_NAME)
             .withTag(DDTags.RESOURCE_NAME, operation)
             .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MEMCACHED)
             .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)

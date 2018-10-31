@@ -623,14 +623,12 @@ class SpymemcachedTest extends AgentTestRunner {
         childOf(trace.span(0))
       }
 
-      serviceName SERVICE_NAME
       operationName OPERATION_NAME
-      resourceName operation
-      spanType DDSpanTypes.MEMCACHED
       errored(error != null && error != "canceled")
 
       tags {
         defaultTags()
+        "${DDTags.RESOURCE_NAME}" operation
         "${DDTags.SPAN_TYPE}" DDSpanTypes.MEMCACHED
         "${Tags.COMPONENT.key}" COMPONENT_NAME
         "${Tags.SPAN_KIND.key}" Tags.SPAN_KIND_CLIENT

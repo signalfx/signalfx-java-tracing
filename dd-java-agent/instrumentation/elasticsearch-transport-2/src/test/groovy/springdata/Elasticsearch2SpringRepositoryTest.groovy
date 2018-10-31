@@ -3,8 +3,6 @@ package springdata
 
 import com.anotherchrisberry.spock.extensions.retry.RetryOnFailure
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
@@ -40,14 +38,11 @@ class Elasticsearch2SpringRepositoryTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "elasticsearch"
           operationName "SearchAction"
-          spanType DDSpanTypes.ELASTICSEARCH
           errored false
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "SearchAction"
             "elasticsearch.request" "SearchRequest"
             "elasticsearch.request.indices" indexName
@@ -74,11 +69,9 @@ class Elasticsearch2SpringRepositoryTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           operationName "IndexAction"
-          spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "$Tags.PEER_HOSTNAME.key" "local"
             "$Tags.PEER_HOST_IPV4.key" "0.0.0.0"
             "$Tags.PEER_PORT.key" 0
@@ -93,11 +86,9 @@ class Elasticsearch2SpringRepositoryTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           operationName "RefreshAction"
-          spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "RefreshAction"
             "elasticsearch.request" "RefreshRequest"
             "elasticsearch.request.indices" indexName
@@ -118,13 +109,10 @@ class Elasticsearch2SpringRepositoryTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "elasticsearch"
           operationName "GetAction"
-          spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "$Tags.PEER_HOSTNAME.key" "local"
             "$Tags.PEER_HOST_IPV4.key" "0.0.0.0"
             "$Tags.PEER_PORT.key" 0
@@ -153,11 +141,9 @@ class Elasticsearch2SpringRepositoryTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           operationName "IndexAction"
-          spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "$Tags.PEER_HOSTNAME.key" "local"
             "$Tags.PEER_HOST_IPV4.key" "0.0.0.0"
             "$Tags.PEER_PORT.key" 0
@@ -172,11 +158,9 @@ class Elasticsearch2SpringRepositoryTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           operationName "RefreshAction"
-          spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "RefreshAction"
             "elasticsearch.request" "RefreshRequest"
             "elasticsearch.request.indices" indexName
@@ -189,13 +173,10 @@ class Elasticsearch2SpringRepositoryTest extends AgentTestRunner {
       }
       trace(2, 1) {
         span(0) {
-          serviceName "elasticsearch"
           operationName "GetAction"
-          spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "$Tags.PEER_HOSTNAME.key" "local"
             "$Tags.PEER_HOST_IPV4.key" "0.0.0.0"
             "$Tags.PEER_PORT.key" 0
@@ -223,11 +204,9 @@ class Elasticsearch2SpringRepositoryTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           operationName "DeleteAction"
-          spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "$Tags.PEER_HOSTNAME.key" "local"
             "$Tags.PEER_HOST_IPV4.key" "0.0.0.0"
             "$Tags.PEER_PORT.key" 0
@@ -242,11 +221,9 @@ class Elasticsearch2SpringRepositoryTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           operationName "RefreshAction"
-          spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "RefreshAction"
             "elasticsearch.request" "RefreshRequest"
             "elasticsearch.request.indices" indexName
@@ -259,13 +236,10 @@ class Elasticsearch2SpringRepositoryTest extends AgentTestRunner {
       }
       trace(2, 1) {
         span(0) {
-          serviceName "elasticsearch"
           operationName "SearchAction"
-          spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "SearchAction"
             "elasticsearch.request" "SearchRequest"
             "elasticsearch.request.indices" indexName

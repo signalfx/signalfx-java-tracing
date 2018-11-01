@@ -628,7 +628,7 @@ class SpymemcachedTest extends AgentTestRunner {
 
       tags {
         defaultTags()
-        "${DDTags.RESOURCE_NAME}" operation
+        "memcached.command" operation
         "${DDTags.SPAN_TYPE}" DDSpanTypes.MEMCACHED
         "${Tags.COMPONENT.key}" COMPONENT_NAME
         "${Tags.SPAN_KIND.key}" Tags.SPAN_KIND_CLIENT

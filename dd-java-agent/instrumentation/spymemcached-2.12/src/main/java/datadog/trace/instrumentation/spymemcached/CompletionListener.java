@@ -39,7 +39,7 @@ public abstract class CompletionListener<T> {
     final Tracer.SpanBuilder spanBuilder =
         tracer
             .buildSpan(OPERATION_NAME)
-            .withTag(DDTags.RESOURCE_NAME, operation)
+            .withTag("memcached.command", operation)
             .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MEMCACHED)
             .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)

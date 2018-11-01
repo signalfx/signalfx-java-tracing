@@ -2,7 +2,6 @@ package datadog.trace.instrumentation.springwebflux;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -35,7 +34,6 @@ public class DispatcherHandlerMonoBiConsumer<U> implements BiConsumer<U, Throwab
 
     if (pathUrl != null && parentSpan != null) {
       parentSpan.setTag(DDTags.RESOURCE_NAME, pathUrl);
-      parentSpan.setTag(DDTags.SPAN_TYPE, DDSpanTypes.WEB_SERVLET);
       tlsPathUrlTag.remove();
     }
   }

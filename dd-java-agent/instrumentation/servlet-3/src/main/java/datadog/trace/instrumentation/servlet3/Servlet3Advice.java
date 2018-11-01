@@ -2,8 +2,6 @@ package datadog.trace.instrumentation.servlet3;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -44,7 +42,6 @@ public class Servlet3Advice {
             .withTag(Tags.HTTP_METHOD.getKey(), httpServletRequest.getMethod())
             .withTag(Tags.HTTP_URL.getKey(), httpServletRequest.getRequestURL().toString())
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.WEB_SERVLET)
             .withTag("span.origin.type", servlet.getClass().getName())
             .withTag("servlet.context", httpServletRequest.getContextPath())
             .startActive(false);

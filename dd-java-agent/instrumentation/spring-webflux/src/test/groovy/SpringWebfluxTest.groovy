@@ -146,14 +146,12 @@ class SpringWebfluxTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          operationName "404"
+          //operationName "404"
           operationName "netty.request"
-          spanType DDSpanTypes.HTTP_SERVER
           parent()
           tags {
             "$Tags.COMPONENT.key" "netty"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.HTTP_METHOD.key" "GET"
@@ -164,12 +162,10 @@ class SpringWebfluxTest extends AgentTestRunner {
         }
         span(1) {
           operationName "DispatcherHandler.handle"
-          spanType DDSpanTypes.HTTP_SERVER
           childOf(span(0))
           errored true
           tags {
             "$Tags.COMPONENT.key" "spring-webflux-controller"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             errorTags(ResponseStatusException, String)
             defaultTags()
           }

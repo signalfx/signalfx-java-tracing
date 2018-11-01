@@ -48,7 +48,6 @@ public class HttpServerRequestTracingHandler extends ChannelInboundHandlerAdapte
             .withTag(Tags.HTTP_METHOD.getKey(), request.method().name())
             .withTag(Tags.HTTP_URL.getKey(), url)
             .withTag(Tags.COMPONENT.getKey(), "netty")
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_SERVER)
             .startActive(false);
 
     if (scope instanceof TraceScope) {

@@ -31,6 +31,7 @@ testSets {
 dependencies {
   compileOnly group: 'io.netty', name: 'netty-codec-http', version: '4.1.0.Final'
 
+  compile project(':dd-trace-ot')
   compile project(':dd-java-agent:agent-tooling')
 
   compile deps.bytebuddy

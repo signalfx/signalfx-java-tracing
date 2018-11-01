@@ -13,7 +13,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -72,7 +71,6 @@ public final class HandlerAdapterInstrumentation extends Instrumenter.Default {
         if (method != null && bestMatchingPattern != null) {
           final String resourceName = method + " " + bestMatchingPattern;
           parentScope.span().setTag(DDTags.RESOURCE_NAME, resourceName);
-          parentScope.span().setTag(DDTags.SPAN_TYPE, DDSpanTypes.WEB_SERVLET);
         }
       }
 

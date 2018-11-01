@@ -2,7 +2,6 @@
 package datadog.trace.agent.test.asserts
 
 import datadog.trace.agent.test.utils.TestSpan
-import datadog.trace.api.Config
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 

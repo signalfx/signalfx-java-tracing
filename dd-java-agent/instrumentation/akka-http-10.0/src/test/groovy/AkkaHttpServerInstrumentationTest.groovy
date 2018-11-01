@@ -33,7 +33,7 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
     setup:
     def request = new Request.Builder()
       .url("http://localhost:$port/test")
-      .header("traceid", "123")
+      .header("traceid", "$tid")
       .header("spanid", "0")
       .get()
       .build()
@@ -45,7 +45,7 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          traceId 123
+          traceId tid
           parentId 0
           operationName "GET /test"
           errored false
@@ -66,9 +66,9 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
     }
 
     where:
-    server  | port
-    "async" | asyncPort
-    "sync"  | syncPort
+    server  | port      | tid
+    "async" | asyncPort | 123
+    "sync"  | syncPort  | 234
   }
 
   def "#server exceptions trace for #endpoint"() {

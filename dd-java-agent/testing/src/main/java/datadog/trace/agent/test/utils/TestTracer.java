@@ -31,20 +31,13 @@ public class TestTracer extends MockTracer implements Tracer {
   }
 
   private void trackAndWriteTrace(MockSpan span) {
-    boolean writeToWriter = false;
-    long parentId;
-    if (span.parentId() == 0) {
-      parentId = span.context().spanId();
-      writeToWriter = true;
-    } else {
-      parentId = span.parentId();
+    long traceId = span.context().traceId();
+    if (!traceMap.containsKey(traceId)) {
+      traceMap.put(traceId, new ArrayList<TestSpan>());
     }
-    if (!traceMap.containsKey(parentId)) {
-      traceMap.put(parentId, new ArrayList<TestSpan>());
-    }
-    ArrayList<TestSpan> trace = traceMap.get(parentId);
+    ArrayList<TestSpan> trace = traceMap.get(traceId);
     trace.add(0, new TestSpan(span));
-    if (writeToWriter) {
+    if (span.parentId() == 0) {
       listWriter.write(trace);
     }
   }

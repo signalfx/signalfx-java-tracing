@@ -62,11 +62,14 @@ class ApacheHttpClientTest extends AgentTestRunner {
 
     then:
     response == "Hello."
-    // one trace on the server, one trace on the client
     assertTraces(1) {
-      trace(0, 2) {
+      trace(0, 3) {
         parentSpan(it, 0)
         successClientSpan(it, 1, span(0))
+        span(2) {
+          operationName "test-http-server"
+          childOf(span(1))
+        }
       }
     }
 

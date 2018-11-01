@@ -38,7 +38,7 @@ public abstract class CompletionListener<T> {
   private Scope buildSpan(final String operation, final boolean async) {
     final Tracer.SpanBuilder spanBuilder =
         tracer
-            .buildSpan(OPERATION_NAME)
+            .buildSpan(DB_TYPE + "." + operation)
             .withTag("memcached.command", operation)
             .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MEMCACHED)
             .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)

@@ -623,7 +623,7 @@ class SpymemcachedTest extends AgentTestRunner {
         childOf(trace.span(0))
       }
 
-      operationName OPERATION_NAME
+      operationName "memcached." + operation
       errored(error != null && error != "canceled")
 
       tags {

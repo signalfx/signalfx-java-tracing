@@ -24,7 +24,7 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceName name
+          operationName name
           parent()
           tags {
             "$Tags.COMPONENT.key" "jax-rs"

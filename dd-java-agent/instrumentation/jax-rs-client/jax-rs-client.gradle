@@ -1,3 +1,4 @@
+// Modified by SignalFx
 muzzle {
   pass {
     group = "javax.ws.rs"
@@ -32,6 +33,7 @@ dependencies {
   annotationProcessor deps.autoservice
   implementation deps.autoservice
 
+  compile project(':dd-trace-ot')
   compile project(':dd-java-agent:agent-tooling')
 
   testCompile project(':dd-java-agent:testing')

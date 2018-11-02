@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jaxrs;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -8,7 +9,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -100,7 +100,7 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
 
       final Scope scope = GlobalTracer.get().scopeManager().active();
       if (scope != null && !resourceName.isEmpty()) {
-        scope.span().setTag(DDTags.RESOURCE_NAME, resourceName);
+        scope.span().setOperationName(resourceName);
         Tags.COMPONENT.set(scope.span(), "jax-rs");
       }
 

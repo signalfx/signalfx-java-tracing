@@ -1,6 +1,5 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import io.opentracing.util.GlobalTracer
 import org.springframework.web.client.RestTemplate
@@ -55,10 +54,8 @@ class HttpUrlConnectionTest extends AgentTestRunner {
     }
 
     expect:
-    assertTraces(3) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[2][2])
-      server.distributedRequestTrace(it, 1, TEST_WRITER[2][1])
-      trace(2, 3) {
+    assertTraces(1) {
+      trace(0, 5) {
         span(0) {
           operationName "someTrace"
           parent()
@@ -74,7 +71,6 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
@@ -84,18 +80,33 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(2) {
+          operationName "test-http-server"
+          errored false
+          childOf span(1)
+          tags {
+            defaultTags()
+          }
+        }
+        span(3) {
           operationName "http.request.input-stream"
           childOf span(0)
           errored false
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
             "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_PORT.key" server.address.port
+            defaultTags()
+          }
+        }
+        span(4) {
+          operationName "test-http-server"
+          errored false
+          childOf span(3)
+          tags {
             defaultTags()
           }
         }
@@ -150,7 +161,6 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
@@ -166,7 +176,6 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
@@ -210,7 +219,6 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "HEAD"
             "$Tags.HTTP_STATUS.key" STATUS
@@ -252,7 +260,6 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
@@ -295,9 +302,8 @@ class HttpUrlConnectionTest extends AgentTestRunner {
     }
 
     expect:
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][1])
-      trace(1, 3) {
+    assertTraces(1) {
+      trace(0, 4) {
         span(0) {
           operationName "someTrace"
           parent()
@@ -313,7 +319,6 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "POST"
             "$Tags.HTTP_STATUS.key" STATUS
@@ -323,13 +328,20 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(2) {
+          operationName "test-http-server"
+          errored false
+          childOf span(1)
+          tags {
+            defaultTags()
+          }
+        }
+        span(3) {
           operationName "http.request.output-stream"
           childOf span(0)
           errored false
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "POST"
             "$Tags.PEER_HOSTNAME.key" "localhost"
@@ -392,9 +404,8 @@ class HttpUrlConnectionTest extends AgentTestRunner {
     }
 
     expect:
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][2])
-      trace(1, 4) {
+    assertTraces(1) {
+      trace(0, 5) {
         span(0) {
           operationName "someTrace"
           parent()
@@ -410,7 +421,6 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "POST"
             "$Tags.HTTP_STATUS.key" STATUS
@@ -420,13 +430,20 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(2) {
+          operationName "test-http-server"
+          errored false
+          childOf span(3)
+          tags {
+            defaultTags()
+          }
+        }
+        span(3) {
           operationName "http.request.output-stream"
           childOf span(0)
           errored false
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "POST"
             "$Tags.PEER_HOSTNAME.key" "localhost"
@@ -434,14 +451,13 @@ class HttpUrlConnectionTest extends AgentTestRunner {
             defaultTags()
           }
         }
-        span(3) {
+        span(4) {
           operationName "http.request.connect"
           childOf span(0)
           errored false
           tags {
             "$Tags.COMPONENT.key" "HttpURLConnection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "POST"
             "$Tags.PEER_HOSTNAME.key" "localhost"

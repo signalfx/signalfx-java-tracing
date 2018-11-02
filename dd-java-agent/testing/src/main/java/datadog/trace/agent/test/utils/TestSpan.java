@@ -11,11 +11,13 @@ public class TestSpan implements Span {
   public final MockSpan span;
   public long traceId;
   public long spanId;
+  public long parentId;
 
   public TestSpan(MockSpan span) {
     this.span = span;
     this.traceId = span.context().traceId();
     this.spanId = span.context().spanId();
+    this.parentId = span.parentId();
   }
 
   public Map<String, Object> getTags() {

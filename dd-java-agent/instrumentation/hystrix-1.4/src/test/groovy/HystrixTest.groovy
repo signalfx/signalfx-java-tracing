@@ -39,9 +39,7 @@ class HystrixTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 3) {
         span(0) {
-          serviceName "unnamed-java-app"
           operationName "parent"
-          spanType null
           parent()
           errored false
           tags {
@@ -49,9 +47,7 @@ class HystrixTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
           operationName "HystrixTest\$1.run"
-          spanType null
           childOf span(0)
           errored false
           tags {
@@ -59,9 +55,7 @@ class HystrixTest extends AgentTestRunner {
           }
         }
         span(2) {
-          serviceName "unnamed-java-app"
           operationName "HystrixTest\$1.tracedMethod"
-          spanType null
           childOf span(1)
           errored false
           tags {
@@ -108,9 +102,7 @@ class HystrixTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 3) {
         span(0) {
-          serviceName "unnamed-java-app"
           operationName "parent"
-          spanType null
           parent()
           errored false
           tags {
@@ -118,9 +110,7 @@ class HystrixTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
           operationName "HystrixTest\$2.getFallback"
-          spanType null
           childOf span(0)
           errored false
           tags {
@@ -128,9 +118,7 @@ class HystrixTest extends AgentTestRunner {
           }
         }
         span(2) {
-          serviceName "unnamed-java-app"
           operationName "HystrixTest\$2.run"
-          spanType null
           childOf span(0)
           errored true
           tags {

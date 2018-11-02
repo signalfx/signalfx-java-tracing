@@ -13,7 +13,7 @@ public class URLUtil {
   public static final Pattern QUERYSTRING = Pattern.compile("\\?.*$");
   // Matches any path segments with numbers in them. (exception for versioning: "/v1/")
   public static final Pattern PATH_MIXED_ALPHANUMERICS =
-    Pattern.compile("(?<=/)(?![vV]\\d{1,2}/)(?:[^\\/\\d\\?]*[\\d]+[^\\/\\?]*)");
+      Pattern.compile("(?<=/)(?![vV]\\d{1,2}/)(?:[^\\/\\d\\?]*[\\d]+[^\\/\\?]*)");
 
   public static String deriveOperationName(String method, String url) {
     try {

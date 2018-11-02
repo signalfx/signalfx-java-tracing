@@ -15,6 +15,7 @@ import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.SimpleType;
+import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
 import java.lang.instrument.ClassFileTransformer;
@@ -144,7 +145,8 @@ public abstract class AgentTestRunner extends Specification {
     TEST_WRITER.start();
     INSTRUMENTATION_ERROR_COUNT.set(0);
     ERROR_LISTENER.activateTest(this);
-    assert getTestTracer().activeSpan() == null : "Span is active before test has started";
+    Span active = getTestTracer().activeSpan();
+    assert active == null : "Span is active before test has started: " + active.toString();
   }
 
   @After

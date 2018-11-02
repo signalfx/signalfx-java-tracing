@@ -1,7 +1,6 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
+import datadog.trace.agent.test.utils.TestSpan
 import example.GreeterGrpc
 import example.Helloworld
 import io.grpc.BindableService
@@ -73,7 +72,6 @@ class GrpcStreamingTest extends AgentTestRunner {
 
       @Override
       void onCompleted() {
-        TEST_WRITER.waitForTraces(1)
       }
     })
 
@@ -86,67 +84,47 @@ class GrpcStreamingTest extends AgentTestRunner {
     then:
     error.get() == null
 
-    assertTraces(2) {
-      trace(0, clientMessageCount + 1) {
-        span(0) {
-          serviceName "unnamed-java-app"
-          operationName "example.Greeter/Conversation"
-          spanType DDSpanTypes.RPC
-          childOf trace(1).get(0)
-          errored false
-          tags {
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.RPC
-            defaultTags(true)
-          }
-        }
-        clientRange.each {
-          span(it) {
-            serviceName "unnamed-java-app"
-            operationName "grpc.message"
-            spanType DDSpanTypes.RPC
-            childOf span(0)
-            errored false
-            tags {
-              "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-              "$DDTags.SPAN_TYPE" DDSpanTypes.RPC
-              "message.type" "example.Helloworld\$Response"
-              defaultTags()
-            }
-          }
-        }
+    TEST_WRITER.waitForTraces(1)
+    TEST_WRITER.sort()
+
+    def trace = TEST_WRITER.get(0)
+    trace.size() == expectedSpans
+
+    def span0 = trace.get(0)
+    span0.operationName == "example.Greeter/Conversation"
+    span0.parentId() == 0
+    def span0Tags = span0.tags()
+    span0Tags.get("status.code") == "OK"
+    span0Tags.get(Tags.SPAN_KIND.getKey()) == Tags.SPAN_KIND_CLIENT
+
+    def span1 = trace.get(1)
+    span1.operationName == "example.Greeter/Conversation"
+    span1.parentId() == span0.spanId
+    span1.tags().get(Tags.SPAN_KIND.getKey()) == Tags.SPAN_KIND_SERVER
+
+    def numClient = 0
+    def numServer = 0
+    for (int i = 2 ; i < expectedSpans ; i++) {
+
+      def span = trace.get(i)
+      def spanKind = span.tags().get(Tags.SPAN_KIND.getKey())
+
+      def parentId
+      if (spanKind == Tags.SPAN_KIND_CLIENT) {
+        parentId = span0.spanId
+        numClient++
+      } else {
+        parentId = span1.spanId
+        numServer++
       }
-      trace(1, (clientMessageCount * serverMessageCount) + 1) {
-        span(0) {
-          serviceName "unnamed-java-app"
-          operationName "example.Greeter/Conversation"
-          spanType DDSpanTypes.RPC
-          parent()
-          errored false
-          tags {
-            "status.code" "OK"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.RPC
-            defaultTags()
-          }
-        }
-        (1..(clientMessageCount * serverMessageCount)).each {
-          span(it) {
-            serviceName "unnamed-java-app"
-            operationName "grpc.message"
-            spanType DDSpanTypes.RPC
-            childOf span(0)
-            errored false
-            tags {
-              "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-              "$DDTags.SPAN_TYPE" DDSpanTypes.RPC
-              "message.type" "example.Helloworld\$Response"
-              defaultTags()
-            }
-          }
-        }
-      }
+
+      assert span.operationName == "grpc.message"
+      assert span.parentId() == parentId
+      assert span.tags().get("message.type") == "example.Helloworld\$Response"
     }
+
+    numClient == clientMessageCount * serverMessageCount
+    numServer == clientMessageCount
 
     serverReceived == clientRange.collect { "call $it" }
     clientReceived == serverRange.collect { clientRange.collect { "call $it" } }.flatten().sort()
@@ -165,5 +143,6 @@ class GrpcStreamingTest extends AgentTestRunner {
 
     clientRange = 1..clientMessageCount
     serverRange = 1..serverMessageCount
+    expectedSpans = clientMessageCount + clientMessageCount * serverMessageCount + 2
   }
 }

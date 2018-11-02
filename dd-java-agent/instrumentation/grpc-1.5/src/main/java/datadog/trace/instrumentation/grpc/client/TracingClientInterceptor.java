@@ -1,9 +1,8 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.grpc.client;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -36,9 +35,7 @@ public class TracingClientInterceptor implements ClientInterceptor {
 
     final Scope scope =
         tracer
-            .buildSpan("grpc.client")
-            .withTag(DDTags.RESOURCE_NAME, method.getFullMethodName())
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.RPC)
+            .buildSpan(method.getFullMethodName())
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
             .startActive(false);
     final Span span = scope.span();
@@ -117,7 +114,6 @@ public class TracingClientInterceptor implements ClientInterceptor {
               .buildSpan("grpc.message")
               .asChildOf(span)
               .withTag("message.type", message.getClass().getName())
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.RPC)
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
               .startActive(true);
       try {

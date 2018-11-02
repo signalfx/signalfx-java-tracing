@@ -2,11 +2,13 @@
 package datadog.trace.agent.test.utils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 /** List writer used by tests mostly */
 public class ListWriter extends CopyOnWriteArrayList<List<TestSpan>> implements Writer<TestSpan> {
@@ -65,5 +67,21 @@ public class ListWriter extends CopyOnWriteArrayList<List<TestSpan>> implements 
   @Override
   public String toString() {
     return "ListWriter { size=" + this.size() + " }";
+  }
+
+  public void sort() {
+    forEach(
+        new Consumer<List<TestSpan>>() {
+          @Override
+          public void accept(List<TestSpan> testSpans) {
+            testSpans.sort(
+                new Comparator<TestSpan>() {
+                  @Override
+                  public int compare(TestSpan o1, TestSpan o2) {
+                    return Long.compare(o1.spanId, o2.spanId);
+                  }
+                });
+          }
+        });
   }
 }

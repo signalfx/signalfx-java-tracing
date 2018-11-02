@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jedis;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -8,8 +9,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -59,17 +58,13 @@ public final class JedisInstrumentation extends Instrumenter.Default {
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Scope startSpan(@Advice.Argument(1) final Command command) {
 
-      final Scope scope = GlobalTracer.get().buildSpan("redis.command").startActive(true);
+      final Scope scope = GlobalTracer.get().buildSpan("redis." + command.name()).startActive(true);
 
       final Span span = scope.span();
       Tags.DB_TYPE.set(span, SERVICE_NAME);
       Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_CLIENT);
       Tags.COMPONENT.set(span, COMPONENT_NAME);
-
-      span.setTag(DDTags.RESOURCE_NAME, command.name());
-      span.setTag(DDTags.SERVICE_NAME, SERVICE_NAME);
-      span.setTag(DDTags.SPAN_TYPE, DDSpanTypes.REDIS);
-
+      Tags.DB_STATEMENT.set(span, command.toString());
       return scope;
     }
 

@@ -4,6 +4,7 @@ package datadog.trace.instrumentation.netty41.server;
 import static io.netty.handler.codec.http.HttpHeaderNames.HOST;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
+import datadog.trace.common.util.URLUtil;
 import datadog.trace.context.TraceScope;
 import datadog.trace.instrumentation.netty41.AttributeKeys;
 import io.netty.channel.ChannelHandlerContext;
@@ -39,7 +40,7 @@ public class HttpServerRequestTracingHandler extends ChannelInboundHandlerAdapte
     }
     final Scope scope =
         GlobalTracer.get()
-            .buildSpan("netty.request")
+            .buildSpan(URLUtil.deriveOperationName(request.method().name(), url, false))
             .asChildOf(extractedContext)
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
             .withTag(Tags.PEER_HOSTNAME.getKey(), remoteAddress.getHostName())

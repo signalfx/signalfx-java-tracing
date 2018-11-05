@@ -1,7 +1,6 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
-import datadog.trace.api.DDSpanTypes
 import io.netty.channel.AbstractChannel
 import io.opentracing.tag.Tags
 import org.asynchttpclient.AsyncHttpClient
@@ -95,16 +94,16 @@ class Netty41ClientTest extends AgentTestRunner {
           operationName "parent"
           parent()
         }
-        span(1) {
-          operationName "netty.connect"
-          childOf span(0)
-          errored true
-          tags {
-            "$Tags.COMPONENT.key" "netty"
-            errorTags AbstractChannel.AnnotatedConnectException, "Connection refused: localhost/127.0.0.1:$invalidPort"
-            defaultTags()
+          span(1) {
+            operationName "netty.connect"
+            childOf span(0)
+            errored true
+            tags {
+              "$Tags.COMPONENT.key" "netty"
+              errorTags AbstractChannel.AnnotatedConnectException, "Connection refused: localhost/127.0.0.1:$invalidPort"
+              defaultTags()
+            }
           }
-        }
       }
     }
   }

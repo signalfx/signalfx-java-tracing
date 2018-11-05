@@ -33,7 +33,13 @@ public class HttpServerResponseTracingHandler extends ChannelOutboundHandlerAdap
       throw throwable;
     }
 
-    Tags.HTTP_STATUS.set(span, response.status().code());
+    int code = response.status().code();
+
+    Tags.HTTP_STATUS.set(span, code);
+    if (code >= 500 && code < 600) {
+      Tags.ERROR.set(span, Boolean.TRUE);
+    }
+
     span.finish(); // Finish the span manually since finishSpanOnClose was false
   }
 }

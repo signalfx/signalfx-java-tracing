@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.kafka_clients;
 
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
@@ -9,10 +10,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
+import io.opentracing.Tracer.SpanBuilder;
 import io.opentracing.propagation.Format;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
@@ -74,7 +74,7 @@ public final class KafkaConsumerInstrumentation extends Instrumenter.Default {
     @Advice.OnMethodExit(suppress = Throwable.class)
     public static void wrap(@Advice.Return(readOnly = false) Iterable<ConsumerRecord> iterable) {
       if (iterable != null) {
-        iterable = new TracingIterable<>(iterable, "kafka.consume", ConsumeScopeAction.INSTANCE);
+        iterable = new TracingIterable<>(iterable, ConsumeScopeAction.INSTANCE);
       }
     }
   }
@@ -84,9 +84,7 @@ public final class KafkaConsumerInstrumentation extends Instrumenter.Default {
     @Advice.OnMethodExit(suppress = Throwable.class)
     public static void wrap(@Advice.Return(readOnly = false) Iterator<ConsumerRecord> iterator) {
       if (iterator != null) {
-        iterator =
-            new TracingIterable.TracingIterator<>(
-                iterator, "kafka.consume", ConsumeScopeAction.INSTANCE);
+        iterator = new TracingIterable.TracingIterator<>(iterator, ConsumeScopeAction.INSTANCE);
       }
     }
   }
@@ -96,20 +94,19 @@ public final class KafkaConsumerInstrumentation extends Instrumenter.Default {
     public static final ConsumeScopeAction INSTANCE = new ConsumeScopeAction();
 
     @Override
-    public void decorate(final Tracer.SpanBuilder spanBuilder, final ConsumerRecord record) {
+    public SpanBuilder buildSpan(final ConsumerRecord record) {
+      final Tracer tracer = GlobalTracer.get();
       final String topic = record.topic() == null ? "kafka" : record.topic();
+      final Tracer.SpanBuilder spanBuilder = tracer.buildSpan("Consume Topic " + topic);
       final SpanContext spanContext =
-          GlobalTracer.get()
-              .extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(record.headers()));
+          tracer.extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(record.headers()));
       spanBuilder
           .asChildOf(spanContext)
-          .withTag(DDTags.SERVICE_NAME, "kafka")
-          .withTag(DDTags.RESOURCE_NAME, "Consume Topic " + topic)
-          .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_CONSUMER)
           .withTag(Tags.COMPONENT.getKey(), "java-kafka")
           .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER)
           .withTag("partition", record.partition())
           .withTag("offset", record.offset());
+      return spanBuilder;
     }
   }
 }

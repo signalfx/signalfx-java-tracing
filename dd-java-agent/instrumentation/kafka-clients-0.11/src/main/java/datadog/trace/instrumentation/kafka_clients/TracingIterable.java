@@ -1,44 +1,37 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.kafka_clients;
 
 import io.opentracing.Scope;
 import io.opentracing.Tracer;
-import io.opentracing.util.GlobalTracer;
+import io.opentracing.Tracer.SpanBuilder;
 import java.util.Iterator;
 import lombok.extern.slf4j.Slf4j;
 
 public class TracingIterable<T> implements Iterable<T> {
   private final Iterable<T> delegateIterable;
-  private final String operationName;
   private final SpanBuilderDecorator<T> decorator;
 
   public TracingIterable(
-      final Iterable<T> delegateIterable,
-      final String operationName,
-      final SpanBuilderDecorator<T> decorator) {
+      final Iterable<T> delegateIterable, final SpanBuilderDecorator<T> decorator) {
     this.delegateIterable = delegateIterable;
-    this.operationName = operationName;
     this.decorator = decorator;
   }
 
   @Override
   public Iterator<T> iterator() {
-    return new TracingIterator<>(delegateIterable.iterator(), operationName, decorator);
+    return new TracingIterator<>(delegateIterable.iterator(), decorator);
   }
 
   @Slf4j
   public static class TracingIterator<T> implements Iterator<T> {
     private final Iterator<T> delegateIterator;
-    private final String operationName;
     private final SpanBuilderDecorator<T> decorator;
 
     private Scope currentScope;
 
     public TracingIterator(
-        final Iterator<T> delegateIterator,
-        final String operationName,
-        final SpanBuilderDecorator<T> decorator) {
+        final Iterator<T> delegateIterator, final SpanBuilderDecorator<T> decorator) {
       this.delegateIterator = delegateIterator;
-      this.operationName = operationName;
       this.decorator = decorator;
     }
 
@@ -63,8 +56,7 @@ public class TracingIterable<T> implements Iterable<T> {
 
       try {
         if (next != null) {
-          final Tracer.SpanBuilder spanBuilder = GlobalTracer.get().buildSpan(operationName);
-          decorator.decorate(spanBuilder, next);
+          final Tracer.SpanBuilder spanBuilder = decorator.buildSpan(next);
           currentScope = spanBuilder.startActive(true);
         }
       } catch (final Exception e) {
@@ -80,6 +72,6 @@ public class TracingIterable<T> implements Iterable<T> {
   }
 
   public interface SpanBuilderDecorator<T> {
-    void decorate(Tracer.SpanBuilder spanBuilder, T context);
+    SpanBuilder buildSpan(T context);
   }
 }

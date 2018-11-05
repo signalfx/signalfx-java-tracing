@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.kafka_clients;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -8,8 +9,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.propagation.Format;
@@ -81,9 +80,7 @@ public final class KafkaProducerInstrumentation extends Instrumenter.Default {
       Tags.COMPONENT.set(span, COMPONENT_NAME);
       Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_PRODUCER);
 
-      span.setTag(DDTags.RESOURCE_NAME, "Produce Topic " + topic);
-      span.setTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_PRODUCER);
-      span.setTag(DDTags.SERVICE_NAME, "kafka");
+      span.setOperationName("Produce Topic " + topic);
 
       try {
         GlobalTracer.get()

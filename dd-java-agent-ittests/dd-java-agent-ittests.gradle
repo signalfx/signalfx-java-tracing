@@ -39,7 +39,9 @@ tasks.withType(Test) {
     // Defining here to allow jacoco to be first on the command line.
     jvmArgs "-javaagent:${project(':dd-java-agent').tasks.shadowJar.archivePath}"
   }
-
+  environment "JAEGER_SERVICE_NAME", "IntegrationTest"
+  environment "JAEGER_SAMPLER_TYPE", "const"
+  environment "JAEGER_SAMPLER_PARAM", "1.0"
   testLogging {
     events "started"
   }

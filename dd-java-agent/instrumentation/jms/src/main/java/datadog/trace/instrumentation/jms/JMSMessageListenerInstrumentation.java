@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jms;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -11,8 +12,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -66,11 +65,8 @@ public final class JMSMessageListenerInstrumentation extends Instrumenter.Defaul
 
       final Scope scope =
           GlobalTracer.get()
-              .buildSpan("jms.onMessage")
+              .buildSpan("Receive from " + toResourceName(message, null))
               .asChildOf(extractedContext)
-              .withTag(DDTags.SERVICE_NAME, "jms")
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_CONSUMER)
-              .withTag(DDTags.RESOURCE_NAME, "Received from " + toResourceName(message, null))
               .withTag(Tags.COMPONENT.getKey(), "jms")
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER)
               .withTag("span.origin.type", listener.getClass().getName())

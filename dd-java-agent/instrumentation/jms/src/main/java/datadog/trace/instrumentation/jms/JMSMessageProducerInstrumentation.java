@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jms;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -11,8 +12,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.propagation.Format;
@@ -74,13 +73,8 @@ public final class JMSMessageProducerInstrumentation extends Instrumenter.Defaul
       }
       final Scope scope =
           GlobalTracer.get()
-              .buildSpan("jms.produce")
-              .withTag(DDTags.SERVICE_NAME, "jms")
-              .withTag(
-                  DDTags.RESOURCE_NAME,
-                  "Produced for " + toResourceName(message, defaultDestination))
+              .buildSpan("Produce for " + toResourceName(message, defaultDestination))
               .withTag(Tags.COMPONENT.getKey(), "jms")
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_PRODUCER)
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_PRODUCER)
               .withTag("span.origin.type", producer.getClass().getName())
               .startActive(true);
@@ -116,10 +110,7 @@ public final class JMSMessageProducerInstrumentation extends Instrumenter.Defaul
         @Advice.This final MessageProducer producer) {
       final Scope scope =
           GlobalTracer.get()
-              .buildSpan("jms.produce")
-              .withTag(DDTags.SERVICE_NAME, "jms")
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_PRODUCER)
-              .withTag(DDTags.RESOURCE_NAME, "Produced for " + toResourceName(message, destination))
+              .buildSpan("Produce for " + toResourceName(message, destination))
               .withTag(Tags.COMPONENT.getKey(), "jms")
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_PRODUCER)
               .withTag("span.origin.type", producer.getClass().getName())

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 muzzle {
   pass {
     group = "javax.servlet"
@@ -14,6 +15,7 @@ apply from: "${rootDir}/gradle/java.gradle"
 dependencies {
   compileOnly group: 'javax.servlet', name: 'servlet-api', version: '2.3'
 
+  compile project(':dd-trace-ot')
   compile project(':dd-java-agent:agent-tooling')
 
   compile deps.bytebuddy

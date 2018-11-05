@@ -1,7 +1,9 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.servlet3;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
+import datadog.trace.common.util.URLUtil;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -36,7 +38,9 @@ public class Servlet3Advice {
 
     final Scope scope =
         GlobalTracer.get()
-            .buildSpan("servlet.request")
+            .buildSpan(
+                URLUtil.deriveOperationName(
+                    httpServletRequest.getMethod(), httpServletRequest.getRequestURL().toString()))
             .asChildOf(extractedContext)
             .withTag(Tags.COMPONENT.getKey(), "java-web-servlet")
             .withTag(Tags.HTTP_METHOD.getKey(), httpServletRequest.getMethod())

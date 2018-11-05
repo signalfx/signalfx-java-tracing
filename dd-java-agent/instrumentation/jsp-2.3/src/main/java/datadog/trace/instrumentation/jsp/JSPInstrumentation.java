@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jsp;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -10,8 +11,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -59,7 +58,6 @@ public final class JSPInstrumentation extends Instrumenter.Default {
           GlobalTracer.get()
               .buildSpan("jsp.render")
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.WEB_SERVLET)
               .withTag("span.origin.type", obj.getClass().getSimpleName())
               .withTag("servlet.context", req.getContextPath())
               .startActive(true);
@@ -71,7 +69,7 @@ public final class JSPInstrumentation extends Instrumenter.Default {
       if (includeServletPath != null && includeServletPath instanceof String) {
         resourceName = includeServletPath.toString();
       }
-      span.setTag(DDTags.RESOURCE_NAME, resourceName);
+      span.setOperationName(resourceName);
 
       final Object forwardOrigin = req.getAttribute(RequestDispatcher.FORWARD_SERVLET_PATH);
       if (forwardOrigin != null && forwardOrigin instanceof String) {

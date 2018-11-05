@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jsp;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -7,8 +8,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -49,16 +48,14 @@ public final class JasperJSPCompilationContextInstrumentation extends Instrument
 
       final Scope scope =
           GlobalTracer.get()
-              .buildSpan("jsp.compile")
+              .buildSpan(jspCompilationContext.getJspFile())
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.WEB_SERVLET)
               .startActive(true);
 
       final Span span = scope.span();
       if (jspCompilationContext.getServletContext() != null) {
         span.setTag("servlet.context", jspCompilationContext.getServletContext().getContextPath());
       }
-      span.setTag(DDTags.RESOURCE_NAME, jspCompilationContext.getJspFile());
       Tags.COMPONENT.set(span, "jsp-http-servlet");
       return scope;
     }

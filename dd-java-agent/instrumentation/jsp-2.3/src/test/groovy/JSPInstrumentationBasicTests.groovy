@@ -84,7 +84,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
       trace(0, 3) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/$jspFileName"
+          operationName "GET /$jspWebappContext/$jspFileName"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/$jspFileName"
@@ -151,7 +151,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
       trace(0, 3) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/getQuery.jsp"
+          operationName "GET /$jspWebappContext/getQuery.jsp"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/getQuery.jsp"
@@ -215,7 +215,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
       trace(0, 3) {
         span(0) {
           parent()
-          operationName "POST localhost/$jspWebappContext/post.jsp"
+          operationName "POST /$jspWebappContext/post.jsp"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/post.jsp"
@@ -276,7 +276,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
       trace(0, 3) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/$jspFileName"
+          operationName "GET /$jspWebappContext/$jspFileName"
           errored true
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/$jspFileName"
@@ -344,7 +344,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
       trace(0, 3) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/includes/includeHtml.jsp"
+          operationName "GET /$jspWebappContext/includes/includeHtml.jsp"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/includes/includeHtml.jsp"
@@ -404,7 +404,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
       trace(0, 7) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/includes/includeMulti.jsp"
+          operationName "GET /$jspWebappContext/includes/includeMulti.jsp"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/includes/includeMulti.jsp"
@@ -516,7 +516,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/$jspFileName"
+          operationName "GET /$jspWebappContext/$jspFileName"
           errored true
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/$jspFileName"

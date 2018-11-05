@@ -65,8 +65,8 @@ class JettyServlet3Test extends AgentTestRunner {
       .url("http://localhost:$port/$path")
       .get()
     if (distributedTracing) {
-      requestBuilder.header("traceid", "123")
-      requestBuilder.header("spanid", "456")
+      requestBuilder.header("traceid", tid.toString())
+      requestBuilder.header("spanid", "0")
     }
     if (auth) {
       requestBuilder.header(HttpHeaders.AUTHORIZATION, Credentials.basic("user", "password"))
@@ -80,14 +80,12 @@ class JettyServlet3Test extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           if (distributedTracing) {
-            traceId "123"
-            parentId "456"
+            traceId tid
+            parentId 0
           } else {
             parent()
           }
-          serviceName "unnamed-java-app"
           operationName "GET /$path"
-          spanType DDSpanTypes.WEB_SERVLET
           errored false
           tags {
             "http.url" "http://localhost:$port/$path"
@@ -95,8 +93,8 @@ class JettyServlet3Test extends AgentTestRunner {
             "span.kind" "server"
             "component" "java-web-servlet"
             "span.origin.type" "TestServlet3\$$origin"
-            "span.type" DDSpanTypes.WEB_SERVLET
             "http.status_code" 200
+            "servlet.context" ""
             if (auth) {
               "user.principal" "user"
             }
@@ -107,15 +105,15 @@ class JettyServlet3Test extends AgentTestRunner {
     }
 
     where:
-    path         | expectedResponse | auth  | origin  | distributedTracing
-    "async"      | "Hello Async"    | false | "Async" | false
-    "sync"       | "Hello Sync"     | false | "Sync"  | false
-    "auth/async" | "Hello Async"    | true  | "Async" | false
-    "auth/sync"  | "Hello Sync"     | true  | "Sync"  | false
-    "async"      | "Hello Async"    | false | "Async" | true
-    "sync"       | "Hello Sync"     | false | "Sync"  | true
-    "auth/async" | "Hello Async"    | true  | "Async" | true
-    "auth/sync"  | "Hello Sync"     | true  | "Sync"  | true
+    path         | expectedResponse | auth  | origin  | distributedTracing | tid
+    "async"      | "Hello Async"    | false | "Async" | false              | 123
+    "sync"       | "Hello Sync"     | false | "Sync"  | false              | 124
+    "auth/async" | "Hello Async"    | true  | "Async" | false              | 125
+    "auth/sync"  | "Hello Sync"     | true  | "Sync"  | false              | 126
+    "async"      | "Hello Async"    | false | "Async" | true               | 127
+    "sync"       | "Hello Sync"     | false | "Sync"  | true               | 128
+    "auth/async" | "Hello Async"    | true  | "Async" | true               | 129
+    "auth/sync"  | "Hello Sync"     | true  | "Sync"  | true               | 130
   }
 
   def "servlet instrumentation clears state after async request"() {
@@ -134,7 +132,6 @@ class JettyServlet3Test extends AgentTestRunner {
       for (int i = 0; i < numTraces; ++i) {
         trace(i, 1) {
           span(0) {
-            serviceName "unnamed-java-app"
             operationName "GET /async"
           }
         }
@@ -156,9 +153,7 @@ class JettyServlet3Test extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
           operationName "GET /$path"
-          spanType DDSpanTypes.WEB_SERVLET
           errored true
           parent()
           tags {
@@ -166,9 +161,9 @@ class JettyServlet3Test extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.WEB_SERVLET
             "span.origin.type" "TestServlet3\$Sync"
             "http.status_code" 500
+            "servlet.context" ""
             errorTags(RuntimeException, "some $path error")
             defaultTags()
           }
@@ -196,9 +191,7 @@ class JettyServlet3Test extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
           operationName "GET /$path"
-          spanType DDSpanTypes.WEB_SERVLET
           errored true
           parent()
           tags {
@@ -206,8 +199,8 @@ class JettyServlet3Test extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.WEB_SERVLET
             "span.origin.type" "TestServlet3\$Sync"
+            "servlet.context" ""
             "http.status_code" 500
             "error" true
             defaultTags()

@@ -40,7 +40,9 @@ public class Servlet3Advice {
         GlobalTracer.get()
             .buildSpan(
                 URLUtil.deriveOperationName(
-                    httpServletRequest.getMethod(), httpServletRequest.getRequestURL().toString()))
+                    httpServletRequest.getMethod(),
+                    httpServletRequest.getRequestURL().toString(),
+                    false))
             .asChildOf(extractedContext)
             .withTag(Tags.COMPONENT.getKey(), "java-web-servlet")
             .withTag(Tags.HTTP_METHOD.getKey(), httpServletRequest.getMethod())
@@ -92,6 +94,9 @@ public class Servlet3Advice {
           scope.close();
         } else {
           Tags.HTTP_STATUS.set(span, resp.getStatus());
+          if (resp.getStatus() >= 500 && resp.getStatus() < 600) {
+            Tags.ERROR.set(span, Boolean.TRUE);
+          }
           if (scope instanceof TraceScope) {
             ((TraceScope) scope).setAsyncPropagation(false);
           }

@@ -64,8 +64,8 @@ class TomcatServlet3Test extends AgentTestRunner {
       .url("http://localhost:$port/my-context/$path")
       .get()
     if (distributedTracing) {
-      requestBuilder.header("traceid", "123")
-      requestBuilder.header("spanid", "456")
+      requestBuilder.header("traceid", tid.toString())
+      requestBuilder.header("spanid", "0")
     }
     def response = client.newCall(requestBuilder.build()).execute()
 
@@ -76,21 +76,18 @@ class TomcatServlet3Test extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           if (distributedTracing) {
-            traceId "123"
-            parentId "456"
+            traceId tid
+            parentId 0
           } else {
             parent()
           }
-          serviceName "my-context"
           operationName "GET /my-context/$path"
-          spanType DDSpanTypes.WEB_SERVLET
           errored false
           tags {
             "http.url" "http://localhost:$port/my-context/$path"
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.WEB_SERVLET
             "span.origin.type" ApplicationFilterChain.name
             "servlet.context" "/my-context"
             "http.status_code" 200
@@ -101,11 +98,11 @@ class TomcatServlet3Test extends AgentTestRunner {
     }
 
     where:
-    path    | expectedResponse | distributedTracing
-    "async" | "Hello Async"    | false
-    "sync"  | "Hello Sync"     | false
-    "async" | "Hello Async"    | true
-    "sync"  | "Hello Sync"     | true
+    path    | expectedResponse | distributedTracing | tid
+    "async" | "Hello Async"    | false              | 123
+    "sync"  | "Hello Sync"     | false              | 124
+    "async" | "Hello Async"    | true               | 125
+    "sync"  | "Hello Sync"     | true               | 126
   }
 
   def "test #path error servlet call"() {
@@ -122,9 +119,7 @@ class TomcatServlet3Test extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "my-context"
           operationName "GET /my-context/$path"
-          spanType DDSpanTypes.WEB_SERVLET
           errored true
           parent()
           tags {
@@ -132,7 +127,6 @@ class TomcatServlet3Test extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.WEB_SERVLET
             "span.origin.type" ApplicationFilterChain.name
             "servlet.context" "/my-context"
             "http.status_code" 500
@@ -163,9 +157,7 @@ class TomcatServlet3Test extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "my-context"
           operationName "GET /my-context/$path"
-          spanType DDSpanTypes.WEB_SERVLET
           errored true
           parent()
           tags {
@@ -173,7 +165,6 @@ class TomcatServlet3Test extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.WEB_SERVLET
             "span.origin.type" ApplicationFilterChain.name
             "servlet.context" "/my-context"
             "http.status_code" 500

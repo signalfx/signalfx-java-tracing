@@ -82,7 +82,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
       trace(0, 5) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/$forwardFromFileName"
+          operationName "GET /$jspWebappContext/$forwardFromFileName"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/$forwardFromFileName"
@@ -174,7 +174,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
       trace(0, 3) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/forwards/forwardToHtml.jsp"
+          operationName "GET /$jspWebappContext/forwards/forwardToHtml.jsp"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToHtml.jsp"
@@ -234,7 +234,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
       trace(0, 9) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/forwards/forwardToIncludeMulti.jsp"
+          operationName "GET /$jspWebappContext/forwards/forwardToIncludeMulti.jsp"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToIncludeMulti.jsp"
@@ -375,7 +375,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
       trace(0, 7) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/forwards/forwardToJspForward.jsp"
+          operationName "GET /$jspWebappContext/forwards/forwardToJspForward.jsp"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToJspForward.jsp"
@@ -489,7 +489,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
       trace(0, 4) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/forwards/forwardToCompileError.jsp"
+          operationName "GET /$jspWebappContext/forwards/forwardToCompileError.jsp"
           errored true
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToCompileError.jsp"
@@ -567,7 +567,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
       trace(0, 3) {
         span(0) {
           parent()
-          operationName "GET localhost/$jspWebappContext/forwards/forwardToNonExistent.jsp"
+          operationName "GET /$jspWebappContext/forwards/forwardToNonExistent.jsp"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToNonExistent.jsp"

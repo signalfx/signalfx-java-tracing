@@ -2,8 +2,6 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.api.Config
-import datadog.trace.api.DDSpanTypes
 import okhttp3.OkHttpClient
 import org.eclipse.jetty.continuation.Continuation
 import org.eclipse.jetty.continuation.ContinuationSupport
@@ -60,25 +58,17 @@ class JettyHandlerTest extends AgentTestRunner {
     TEST_WRITER.size() == 1
     def trace = TEST_WRITER.firstTrace()
     trace.size() == 1
-    def context = trace[0].context()
-    context.serviceName == "unnamed-java-app"
-    context.operationName == "jetty.request"
-    context.resourceName == "GET ${handler.class.name}"
-    context.spanType == DDSpanTypes.HTTP_SERVER
-    !context.getErrorFlag()
-    context.parentId == "0"
-    def tags = context.tags
+    def span = trace[0]
+    span.operationName == "GET ${handler.class.name}"
+    span.parentId == 0
+    def tags = span.tags()
     tags["http.url"] == "http://localhost:$port/"
     tags["http.method"] == "GET"
     tags["span.kind"] == "server"
-    tags["span.type"] == DDSpanTypes.HTTP_SERVER
     tags["component"] == "jetty-handler"
     tags["http.status_code"] == 200
-    tags["thread.name"] != null
-    tags["thread.id"] != null
-    tags[Config.RUNTIME_ID_TAG] == Config.get().runtimeId
     tags["span.origin.type"] == handler.class.name
-    tags.size() == 10
+    tags.size() == 7
   }
 
 
@@ -118,7 +108,6 @@ class JettyHandlerTest extends AgentTestRunner {
       for (int i = 0; i < numTraces; ++i) {
         trace(i, 1) {
           span(0) {
-            serviceName "unnamed-java-app"
             operationName "GET ${handler.class.name}"
           }
         }
@@ -148,27 +137,17 @@ class JettyHandlerTest extends AgentTestRunner {
     TEST_WRITER.size() == 1
     def trace = TEST_WRITER.firstTrace()
     trace.size() == 1
-    def context = trace[0].context()
-    context.serviceName == "unnamed-java-app"
-    context.operationName == "jetty.request"
-    context.resourceName == "GET ${handler.class.name}"
-    context.spanType == DDSpanTypes.HTTP_SERVER
-    context.getErrorFlag()
-    context.parentId == "0"
-    def tags = context.tags
+    def span = trace[0]
+    span.operationName == "GET ${handler.class.name}"
+    span.parentId == 0
+    def tags = span.tags()
     tags["http.url"] == "http://localhost:$port/"
     tags["http.method"] == "GET"
     tags["span.kind"] == "server"
-    tags["span.type"] == DDSpanTypes.HTTP_SERVER
     tags["component"] == "jetty-handler"
     tags["http.status_code"] == 500
-    tags["thread.name"] != null
-    tags["thread.id"] != null
-    tags[Config.RUNTIME_ID_TAG] == Config.get().runtimeId
     tags["span.origin.type"] == handler.class.name
     tags["error"] == true
-    tags["error.type"] == RuntimeException.name
-    tags["error.stack"] != null
-    tags.size() == 13
+    tags.size() == 8
   }
 }

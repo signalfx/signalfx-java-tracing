@@ -1,7 +1,5 @@
 package datadog.trace.instrumentation.ratpack.impl;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
@@ -99,7 +97,6 @@ public final class WrappedRequestSpec implements RequestSpec {
             .asChildOf(scope != null ? scope.span() : null)
             .withTag(Tags.COMPONENT.getKey(), "httpclient")
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
             .withTag(Tags.HTTP_URL.getKey(), getUri().toString())
             .withTag(Tags.HTTP_METHOD.getKey(), method.getName())
             .start();

@@ -1,6 +1,5 @@
 package datadog.trace.instrumentation.ratpack.impl;
 
-import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -32,7 +31,6 @@ public final class TracingHandler implements Handler {
             .asChildOf(extractedContext)
             .withTag(Tags.COMPONENT.getKey(), "handler")
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_SERVER)
             .withTag(Tags.HTTP_METHOD.getKey(), request.getMethod().getName())
             .withTag(Tags.HTTP_URL.getKey(), request.getUri())
             .startActive(true);

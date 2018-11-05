@@ -37,7 +37,9 @@ public class Servlet2Advice {
         GlobalTracer.get()
             .buildSpan(
                 URLUtil.deriveOperationName(
-                    httpServletRequest.getMethod(), httpServletRequest.getRequestURL().toString()))
+                    httpServletRequest.getMethod(),
+                    httpServletRequest.getRequestURL().toString(),
+                    false))
             .asChildOf(extractedContext)
             .withTag(Tags.COMPONENT.getKey(), "java-web-servlet")
             .withTag(Tags.HTTP_METHOD.getKey(), httpServletRequest.getMethod())

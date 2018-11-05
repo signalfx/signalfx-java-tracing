@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.mongo;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -6,8 +7,6 @@ import com.mongodb.event.CommandFailedEvent;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.CommandStartedEvent;
 import com.mongodb.event.CommandSucceededEvent;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
@@ -72,7 +71,9 @@ public class DDTracingCommandListener implements CommandListener {
 
   private Span buildSpan(final CommandStartedEvent event) {
     final Tracer.SpanBuilder spanBuilder =
-        tracer.buildSpan(MONGO_OPERATION).withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT);
+        tracer
+            .buildSpan("mongo." + event.getCommandName())
+            .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT);
 
     final Span span = spanBuilder.start();
     try {
@@ -106,10 +107,7 @@ public class DDTracingCommandListener implements CommandListener {
     Tags.PEER_PORT.set(span, event.getConnectionDescription().getServerAddress().getPort());
     Tags.DB_TYPE.set(span, "mongo");
 
-    // dd-specific tags
-    span.setTag(DDTags.RESOURCE_NAME, mongoCmd);
-    span.setTag(DDTags.SPAN_TYPE, DDSpanTypes.MONGO);
-    span.setTag(DDTags.SERVICE_NAME, "mongo");
+    Tags.DB_STATEMENT.set(span, mongoCmd);
   }
 
   private static BsonDocument scrub(final BsonDocument origin) {

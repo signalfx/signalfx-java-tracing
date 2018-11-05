@@ -103,10 +103,9 @@ public class MongoAsyncClientInstrumentationTest {
     final String createCollectionQuery =
         "{ \"create\" : \"asyncCollection\", \"autoIndexId\" : \"?\", \"capped\" : \"?\" }";
     final TestSpan trace0 = writer.get(0).get(0);
-    Assert.assertEquals("mongo.query", trace0.getOperationName());
+    Assert.assertEquals("mongo.create", trace0.getOperationName());
     Assert.assertEquals(createCollectionQuery, trace0.getDBStatement());
-    Assert.assertEquals("mongodb", trace0.getDBType());
-    Assert.assertEquals("mongo", trace0.getServiceName());
+    Assert.assertEquals("mongo", trace0.getDBType());
 
     Assert.assertEquals("java-mongo", trace0.getTags().get(Tags.COMPONENT.getKey()));
     Assert.assertEquals(createCollectionQuery, trace0.getTags().get(Tags.DB_STATEMENT.getKey()));

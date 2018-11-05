@@ -30,10 +30,9 @@ public class MongoClientInstrumentationTest {
 
     final TestSpan span = new TestSpan(new TestTracer().buildSpan("foo").start());
     DDTracingCommandListener.decorate(span.span, cmd);
-
-    assertThat(span.getComponent()).isEqualTo("mongodb");
-    assertThat(span.getDBStatement()).isNotEmpty();
-    assertThat(span.getDBType()).isEqualTo("mongodb");
+    assertThat(span.getComponent()).isEqualTo("java-mongo");
+    assertThat(span.getDBStatement()).isEqualTo("{ }");
+    assertThat(span.getDBType()).isEqualTo("mongo");
   }
 
   @Test
@@ -53,7 +52,7 @@ public class MongoClientInstrumentationTest {
       final TestSpan span = new TestSpan(new TestTracer().buildSpan("foo").start());
       DDTracingCommandListener.decorate(span.span, cmd);
 
-      assertThat(span.getComponent()).isEqualTo("mongodb");
+      assertThat(span.getComponent()).isEqualTo("java-mongo");
       assertThat(span.getDBStatement()).isEqualTo(query.toString().replaceAll("secret", "?"));
     }
   }

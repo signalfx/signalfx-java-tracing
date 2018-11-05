@@ -100,10 +100,9 @@ public class MongoClientInstrumentationTest {
     final String createCollectionQuery =
         "{ \"create\" : \"testCollection\", \"autoIndexId\" : \"?\", \"capped\" : \"?\" }";
     final TestSpan trace0 = writer.get(0).get(0);
-    Assert.assertEquals("mongo.query", trace0.span.operationName());
+    Assert.assertEquals("mongo.create", trace0.span.operationName());
     Assert.assertEquals(createCollectionQuery, trace0.getDBStatement());
-    Assert.assertEquals("mongodb", trace0.getComponent());
-    Assert.assertEquals("mongo", trace0.getService());
+    Assert.assertEquals("java-mongo", trace0.getComponent());
 
     Assert.assertEquals("java-mongo", trace0.getTags().get(Tags.COMPONENT.getKey()));
     Assert.assertEquals(createCollectionQuery, trace0.getTags().get(Tags.DB_STATEMENT.getKey()));

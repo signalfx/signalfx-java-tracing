@@ -2,6 +2,7 @@ package datadog.trace.instrumentation.okhttp3;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
+import datadog.trace.common.util.URLUtil;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
 import java.net.Inet6Address;
@@ -60,6 +61,7 @@ public interface OkHttpClientSpanDecorator {
           Tags.COMPONENT.set(span, TracingCallFactory.COMPONENT_NAME);
           Tags.HTTP_METHOD.set(span, request.method());
           Tags.HTTP_URL.set(span, request.url().toString());
+          span.setOperationName(URLUtil.deriveOperationName(request.method(), request.url().url()));
         }
 
         @Override

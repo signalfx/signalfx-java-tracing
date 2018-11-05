@@ -1,6 +1,5 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDSpanTypes
 import io.opentracing.tag.Tags
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,26 +29,21 @@ class OkHttp3Test extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          serviceName "okhttp"
           operationName "okhttp.http"
-          spanType DDSpanTypes.HTTP_CLIENT
           errored false
           parent()
           tags {
             "component" "okhttp"
-            "span.type" DDSpanTypes.HTTP_CLIENT
             defaultTags()
           }
         }
         span(1) {
-          serviceName "okhttp"
-          operationName "GET /ping"
+          operationName "GET localhost/ping"
           errored false
           childOf(span(0))
           tags {
             defaultTags()
             "component" "okhttp"
-            "span.type" DDSpanTypes.HTTP_CLIENT
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
@@ -62,8 +56,8 @@ class OkHttp3Test extends AgentTestRunner {
       }
     }
 
-    server.lastRequest.headers.get("traceid") == TEST_WRITER[0][1].traceId
-    server.lastRequest.headers.get("spanid") == TEST_WRITER[0][1].spanId
+    server.lastRequest.headers.get("traceid") == TEST_WRITER[0][1].traceId.toString()
+    server.lastRequest.headers.get("spanid") == TEST_WRITER[0][1].spanId.toString()
 
     cleanup:
     server.close()

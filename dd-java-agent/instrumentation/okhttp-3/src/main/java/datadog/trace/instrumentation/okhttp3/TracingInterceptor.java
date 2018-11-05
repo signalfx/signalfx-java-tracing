@@ -2,8 +2,6 @@ package datadog.trace.instrumentation.okhttp3;
 
 import static datadog.trace.instrumentation.okhttp3.TracingCallFactory.COMPONENT_NAME;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
@@ -88,10 +86,8 @@ public class TracingInterceptor implements Interceptor {
     if (chain.connection() == null) {
       final Scope scope =
           tracer
-              .buildSpan("http.request")
+              .buildSpan("okhttp.http")
               .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)
-              .withTag(DDTags.SERVICE_NAME, COMPONENT_NAME)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
               .startActive(true);
 
       final Request.Builder requestBuilder = chain.request().newBuilder();

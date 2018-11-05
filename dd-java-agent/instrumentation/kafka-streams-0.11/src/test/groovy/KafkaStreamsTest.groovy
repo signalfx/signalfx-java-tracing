@@ -96,7 +96,6 @@ class KafkaStreamsTest extends AgentTestRunner {
 
     TEST_WRITER.waitForTraces(1)
     TEST_WRITER.size() == 1
-    println(TEST_WRITER)
     def trace = TEST_WRITER.get(0)
     trace.size() == 4
 

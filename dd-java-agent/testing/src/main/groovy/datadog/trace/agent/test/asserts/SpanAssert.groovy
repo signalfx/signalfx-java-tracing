@@ -69,7 +69,7 @@ class SpanAssert {
   }
 
   def errored(boolean errored) {
-    assert span.tags().containsKey("error") == errored
+    assert span.tags().get("error", false) == errored
   }
 
   void tags(@ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.TagsAssert'])

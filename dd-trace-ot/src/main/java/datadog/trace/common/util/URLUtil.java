@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 /**
  * This is a rip of the DD class datadog.opentracing.decorators.URLAsResourceName to pull out the
- * core logic for determining the operation name for http requests/responses.
+ * core logic for determining a useful operation name for http requests/responses.
  */
 public class URLUtil {
   // Matches everything after the ? character.
@@ -16,20 +16,24 @@ public class URLUtil {
       Pattern.compile("(?<=/)(?![vV]\\d{1,2}/)(?:[^\\/\\d\\?]*[\\d]+[^\\/\\?]*)");
 
   public static String deriveOperationName(String method, String url) {
+    return deriveOperationName(method, url, true);
+  }
+
+  public static String deriveOperationName(String method, String url, boolean includeHost) {
     try {
-      return deriveOperationName(method, new java.net.URL(url));
+      return deriveOperationName(method, new java.net.URL(url), includeHost);
     } catch (final MalformedURLException e) {
       return method + " " + url;
     }
   }
 
   public static String deriveOperationName(String method, URL url) {
-    return method + " " + deriveHostPath(url);
+    return deriveOperationName(method, url, true);
   }
 
-  public static String deriveHostPath(URL url) {
+  public static String deriveOperationName(String method, URL url, boolean includeHost) {
     String path = norm(url.getPath());
-    return url.getHost() + path;
+    return method + " " + (includeHost ? url.getHost() : "") + path;
   }
 
   // Method to normalise the url string

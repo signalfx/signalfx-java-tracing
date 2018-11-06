@@ -567,7 +567,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
       trace(0, 3) {
         span(0) {
           parent()
-          operationName "GET /$jspWebappContext/forwards/forwardToNonExistent.jsp"
+          operationName "404"
           errored false
           tags {
             "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToNonExistent.jsp"

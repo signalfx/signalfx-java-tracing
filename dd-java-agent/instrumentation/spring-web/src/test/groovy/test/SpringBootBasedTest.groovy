@@ -33,14 +33,12 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "GET /"
-          spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
           tags {
             "http.url" "http://localhost:$port/"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 200
@@ -60,14 +58,12 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "GET /param/{parameter}/"
-          spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
           tags {
             "http.url" "http://localhost:$port/param/asdf1234/"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 200
@@ -90,16 +86,13 @@ class SpringBootBasedTest extends AgentTestRunner {
     assertTraces(2) {
       trace(0, 2) {
         span(0) {
-          operationName "servlet.request"
           operationName "404"
-          spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
           tags {
             "http.url" "http://localhost:$port/invalid"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 404
@@ -110,16 +103,13 @@ class SpringBootBasedTest extends AgentTestRunner {
       }
       trace(1, 2) {
         span(0) {
-          operationName "servlet.request"
           operationName "404"
-          spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
           tags {
             "http.url" "http://localhost:$port/error"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 404
@@ -145,14 +135,12 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "GET /error/{parameter}/"
-          spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored true
           tags {
             "http.url" "http://localhost:$port/error/qwerty/"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 500
@@ -165,14 +153,12 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(1, 2) {
         span(0) {
           operationName "GET /error"
-          spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored true
           tags {
             "http.url" "http://localhost:$port/error"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 500
@@ -193,14 +179,12 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "POST /validated"
-          spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
           tags {
             "http.url" "http://localhost:$port/validated"
             "http.method" "POST"
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 200
@@ -226,21 +210,16 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "POST /validated"
-          spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
           tags {
             "http.url" "http://localhost:$port/validated"
             "http.method" "POST"
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 400
             "error" false
-            "error.msg" String
-            "error.type" MethodArgumentNotValidException.name
-            "error.stack" String
             defaultTags()
           }
         }
@@ -249,14 +228,12 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(1, 2) {
         span(0) {
           operationName "POST /error"
-          spanType DDSpanTypes.WEB_SERVLET
           parent()
           errored false
           tags {
             "http.url" "http://localhost:$port/error"
             "http.method" "POST"
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 400
@@ -270,16 +247,12 @@ class SpringBootBasedTest extends AgentTestRunner {
 
   def controllerSpan(TraceAssert trace, int index, String name, Class<Throwable> errorType = null) {
     trace.span(index) {
-      serviceName "unnamed-java-app"
       operationName name
-      resourceName name
       childOf(trace.span(0))
       errored errorType != null
       tags {
-        "$DDTags.SPAN_TYPE" DDSpanTypes.WEB_SERVLET
         "$Tags.COMPONENT.key" "spring-web-controller"
         if (errorType) {
-          "error.msg" String
           errorTags(errorType)
         }
         defaultTags()

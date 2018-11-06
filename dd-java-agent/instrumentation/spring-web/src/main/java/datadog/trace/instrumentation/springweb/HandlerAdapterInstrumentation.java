@@ -13,7 +13,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -69,8 +68,8 @@ public final class HandlerAdapterInstrumentation extends Instrumenter.Default {
         final Object bestMatchingPattern =
             request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         if (method != null && bestMatchingPattern != null) {
-          final String resourceName = method + " " + bestMatchingPattern;
-          parentScope.span().setTag(DDTags.RESOURCE_NAME, resourceName);
+          System.out.println("PATTERN " + bestMatchingPattern);
+          parentScope.span().setOperationName(method + " " + bestMatchingPattern);
         }
       }
 

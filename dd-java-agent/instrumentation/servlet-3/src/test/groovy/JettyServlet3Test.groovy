@@ -94,7 +94,6 @@ class JettyServlet3Test extends AgentTestRunner {
             "component" "java-web-servlet"
             "span.origin.type" "TestServlet3\$$origin"
             "http.status_code" 200
-            "servlet.context" ""
             if (auth) {
               "user.principal" "user"
             }
@@ -163,7 +162,6 @@ class JettyServlet3Test extends AgentTestRunner {
             "component" "java-web-servlet"
             "span.origin.type" "TestServlet3\$Sync"
             "http.status_code" 500
-            "servlet.context" ""
             errorTags(RuntimeException, "some $path error")
             defaultTags()
           }
@@ -200,7 +198,6 @@ class JettyServlet3Test extends AgentTestRunner {
             "span.kind" "server"
             "component" "java-web-servlet"
             "span.origin.type" "TestServlet3\$Sync"
-            "servlet.context" ""
             "http.status_code" 500
             "error" true
             defaultTags()

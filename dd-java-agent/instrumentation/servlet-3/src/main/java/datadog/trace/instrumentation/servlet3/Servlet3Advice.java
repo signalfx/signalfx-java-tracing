@@ -3,27 +3,31 @@ package datadog.trace.instrumentation.servlet3;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
+import com.google.common.base.Strings;
 import datadog.trace.common.util.URLUtil;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
+import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
+
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import net.bytebuddy.asm.Advice;
 
 public class Servlet3Advice {
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static Scope startSpan(
-      @Advice.This final Object servlet, @Advice.Argument(0) final ServletRequest req) {
+    @Advice.This final Object servlet, @Advice.Argument(0) final ServletRequest req) {
     if (GlobalTracer.get().activeSpan() != null || !(req instanceof HttpServletRequest)) {
       // Tracing might already be applied by the FilterChain.  If so ignore this.
       return null;
@@ -31,26 +35,29 @@ public class Servlet3Advice {
 
     final HttpServletRequest httpServletRequest = (HttpServletRequest) req;
     final SpanContext extractedContext =
-        GlobalTracer.get()
-            .extract(
-                Format.Builtin.HTTP_HEADERS,
-                new HttpServletRequestExtractAdapter(httpServletRequest));
+      GlobalTracer.get()
+        .extract(
+          Format.Builtin.HTTP_HEADERS,
+          new HttpServletRequestExtractAdapter(httpServletRequest));
 
-    final Scope scope =
-        GlobalTracer.get()
-            .buildSpan(
-                URLUtil.deriveOperationName(
-                    httpServletRequest.getMethod(),
-                    httpServletRequest.getRequestURL().toString(),
-                    false))
-            .asChildOf(extractedContext)
-            .withTag(Tags.COMPONENT.getKey(), "java-web-servlet")
-            .withTag(Tags.HTTP_METHOD.getKey(), httpServletRequest.getMethod())
-            .withTag(Tags.HTTP_URL.getKey(), httpServletRequest.getRequestURL().toString())
-            .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-            .withTag("span.origin.type", servlet.getClass().getName())
-            .withTag("servlet.context", httpServletRequest.getContextPath())
-            .startActive(false);
+    Tracer.SpanBuilder builder = GlobalTracer.get()
+      .buildSpan(
+        URLUtil.deriveOperationName(
+          httpServletRequest.getMethod(),
+          httpServletRequest.getRequestURL().toString(),
+          false))
+      .asChildOf(extractedContext)
+      .withTag(Tags.COMPONENT.getKey(), "java-web-servlet")
+      .withTag(Tags.HTTP_METHOD.getKey(), httpServletRequest.getMethod())
+      .withTag(Tags.HTTP_URL.getKey(), httpServletRequest.getRequestURL().toString())
+      .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
+      .withTag("span.origin.type", servlet.getClass().getName());
+
+    String contextPath = httpServletRequest.getContextPath();
+    if (!Strings.isNullOrEmpty(contextPath)) {
+      builder = builder.withTag("servlet.context", contextPath);
+    }
+    final Scope scope = builder.startActive(false);
 
     if (scope instanceof TraceScope) {
       ((TraceScope) scope).setAsyncPropagation(true);
@@ -64,10 +71,10 @@ public class Servlet3Advice {
 
   @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
   public static void stopSpan(
-      @Advice.Argument(0) final ServletRequest request,
-      @Advice.Argument(1) final ServletResponse response,
-      @Advice.Enter final Scope scope,
-      @Advice.Thrown final Throwable throwable) {
+    @Advice.Argument(0) final ServletRequest request,
+    @Advice.Argument(1) final ServletResponse response,
+    @Advice.Enter final Scope scope,
+    @Advice.Thrown final Throwable throwable) {
 
     if (scope != null) {
       if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
@@ -93,8 +100,11 @@ public class Servlet3Advice {
           req.getAsyncContext().addListener(new TagSettingAsyncListener(activated, span));
           scope.close();
         } else {
-          Tags.HTTP_STATUS.set(span, resp.getStatus());
-          if (resp.getStatus() >= 500 && resp.getStatus() < 600) {
+          int status = resp.getStatus();
+          Tags.HTTP_STATUS.set(span, status);
+          if (status == 404) {
+            span.setOperationName("404");
+          } else if (status >= 500 && status < 600) {
             Tags.ERROR.set(span, Boolean.TRUE);
           }
           if (scope instanceof TraceScope) {

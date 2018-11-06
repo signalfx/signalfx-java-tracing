@@ -3,8 +3,7 @@ package datadog.trace.instrumentation.netty40.server;
 import static io.netty.handler.codec.http.HttpHeaders.Names.HOST;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
+import datadog.trace.common.util.URLUtil;
 import datadog.trace.context.TraceScope;
 import datadog.trace.instrumentation.netty40.AttributeKeys;
 import io.netty.channel.ChannelHandlerContext;
@@ -40,7 +39,7 @@ public class HttpServerRequestTracingHandler extends ChannelInboundHandlerAdapte
     }
     final Scope scope =
         GlobalTracer.get()
-            .buildSpan("netty.request")
+            .buildSpan(URLUtil.deriveOperationName(request.getMethod().name(), url, false))
             .asChildOf(extractedContext)
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
             .withTag(Tags.PEER_HOSTNAME.getKey(), remoteAddress.getHostName())
@@ -48,7 +47,6 @@ public class HttpServerRequestTracingHandler extends ChannelInboundHandlerAdapte
             .withTag(Tags.HTTP_METHOD.getKey(), request.getMethod().name())
             .withTag(Tags.HTTP_URL.getKey(), url)
             .withTag(Tags.COMPONENT.getKey(), "netty")
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_SERVER)
             .startActive(false);
 
     if (scope instanceof TraceScope) {

@@ -3,8 +3,7 @@ package datadog.trace.instrumentation.netty40.client;
 import static io.netty.handler.codec.http.HttpHeaders.Names.HOST;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
+import datadog.trace.common.util.URLUtil;
 import datadog.trace.instrumentation.netty40.AttributeKeys;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
@@ -34,14 +33,13 @@ public class HttpClientRequestTracingHandler extends ChannelOutboundHandlerAdapt
     }
     final Span span =
         GlobalTracer.get()
-            .buildSpan("netty.client.request")
+            .buildSpan(URLUtil.deriveOperationName(request.getMethod().name(), url))
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
             .withTag(Tags.PEER_HOSTNAME.getKey(), remoteAddress.getHostName())
             .withTag(Tags.PEER_PORT.getKey(), remoteAddress.getPort())
             .withTag(Tags.HTTP_METHOD.getKey(), request.getMethod().name())
             .withTag(Tags.HTTP_URL.getKey(), url)
             .withTag(Tags.COMPONENT.getKey(), "netty-client")
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
             .start();
 
     GlobalTracer.get()

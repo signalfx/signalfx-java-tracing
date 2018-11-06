@@ -8,6 +8,14 @@ muzzle {
 
 apply from: "${rootDir}/gradle/java.gradle"
 
+apply plugin: 'org.unbroken-dome.test-sets'
+
+testSets {
+  latestDepTest {
+    dirName = 'test'
+  }
+}
+
 dependencies {
   compileOnly group: 'io.dropwizard', name: 'dropwizard-views', version: '0.7.0'
 

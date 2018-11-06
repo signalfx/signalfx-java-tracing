@@ -10,8 +10,6 @@ import com.google.auto.service.AutoService;
 import com.rabbitmq.client.Command;
 import com.rabbitmq.client.Method;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDTags;
-import datadog.trace.api.interceptor.MutableSpan;
 import io.opentracing.Span;
 import io.opentracing.util.GlobalTracer;
 import java.util.Collections;
@@ -51,16 +49,12 @@ public class RabbitCommandInstrumentation extends Instrumenter.Default {
       final Span span = GlobalTracer.get().activeSpan();
 
       final Method method = command.getMethod();
-      if (span instanceof MutableSpan && method != null) {
-        if (((MutableSpan) span).getOperationName().equals("amqp.command")) {
-          final String name = method.protocolMethodName();
-
-          if (!name.equals("basic.publish")) {
-            // Don't overwrite the name already set.
-            span.setTag(DDTags.RESOURCE_NAME, name);
-          }
-          span.setTag("amqp.command", name);
+      if (span != null && method != null) {
+        final String name = method.protocolMethodName();
+        if (!name.equals("basic.publish")) {
+          span.setOperationName(name);
         }
+        span.setTag("amqp.command", name);
       }
     }
 

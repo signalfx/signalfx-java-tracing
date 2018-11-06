@@ -9,8 +9,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import akka.japi.JavaPartialFunction;
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -82,13 +80,13 @@ public final class PlayInstrumentation extends Instrumenter.Default {
         }
         scope =
             GlobalTracer.get()
-                .buildSpan("play.request")
+                .buildSpan(req.method() + " " + req.path())
                 .asChildOf(extractedContext)
                 .startActive(false);
       } else {
         // An upstream framework (e.g. akka-http, netty) has already started the span.
         // Do not extract the context.
-        scope = GlobalTracer.get().buildSpan("play.request").startActive(false);
+        scope = GlobalTracer.get().buildSpan(req.method() + " " + req.path()).startActive(false);
       }
 
       if (GlobalTracer.get().scopeManager().active() instanceof TraceScope) {
@@ -110,12 +108,12 @@ public final class PlayInstrumentation extends Instrumenter.Default {
       if (!pathOption.isEmpty()) {
         final String path = (String) pathOption.get();
         scope.span().setTag(Tags.HTTP_URL.getKey(), path);
-        scope.span().setTag(DDTags.RESOURCE_NAME, req.method() + " " + path);
+        scope.span().setOperationName(req.method() + " " + path);
+      } else {
+        scope.span().setTag(Tags.HTTP_URL.getKey(), req.uri());
       }
-
       scope.span().setTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER);
       scope.span().setTag(Tags.HTTP_METHOD.getKey(), req.method());
-      scope.span().setTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_SERVER);
       scope.span().setTag(Tags.COMPONENT.getKey(), "play-action");
 
       if (throwable == null) {
@@ -134,7 +132,7 @@ public final class PlayInstrumentation extends Instrumenter.Default {
       if (rootSpan != null && !pathOption.isEmpty()) {
         // set the resource name on the upstream akka/netty span
         final String path = (String) pathOption.get();
-        rootSpan.setTag(DDTags.RESOURCE_NAME, req.method() + " " + path);
+        rootSpan.setOperationName(req.method() + " " + path);
       }
     }
   }
@@ -207,6 +205,9 @@ public final class PlayInstrumentation extends Instrumenter.Default {
       }
       try {
         Tags.HTTP_STATUS.set(span, result.header().status());
+        if (result.header().status() >= 500 && result.header().status() < 600) {
+          Tags.ERROR.set(span, Boolean.TRUE);
+        }
       } catch (final Throwable t) {
         log.debug("error in play instrumentation", t);
       }

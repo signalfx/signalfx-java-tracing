@@ -7,7 +7,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.util.GlobalTracer;
 import java.util.HashMap;
@@ -56,7 +55,7 @@ public class RoutesInstrumentation extends Instrumenter.Default {
       final Scope scope = GlobalTracer.get().scopeManager().active();
       if (scope != null && routeMatch != null) {
         final String resourceName = method.name().toUpperCase() + " " + routeMatch.getMatchUri();
-        scope.span().setTag(DDTags.RESOURCE_NAME, resourceName);
+        scope.span().setOperationName(resourceName);
       }
     }
   }

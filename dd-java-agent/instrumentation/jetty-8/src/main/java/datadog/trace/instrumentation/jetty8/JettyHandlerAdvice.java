@@ -3,10 +3,12 @@ package datadog.trace.instrumentation.jetty8;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
+import com.google.common.base.Strings;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
+import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
@@ -31,14 +33,19 @@ public class JettyHandlerAdvice {
         GlobalTracer.get()
             .extract(Format.Builtin.HTTP_HEADERS, new HttpServletRequestExtractAdapter(req));
     final String operationName = req.getMethod() + " " + source.getClass().getName();
-    final Scope scope =
+
+    Tracer.SpanBuilder builder =
         GlobalTracer.get()
             .buildSpan(operationName)
             .asChildOf(extractedContext)
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-            .withTag("servlet.context", req.getContextPath())
-            .withTag("span.origin.type", source.getClass().getName())
-            .startActive(false);
+            .withTag("span.origin.type", source.getClass().getName());
+
+    if (!Strings.isNullOrEmpty(req.getContextPath())) {
+      builder = builder.withTag("servlet.context", req.getContextPath());
+    }
+
+    final Scope scope = builder.startActive(false);
 
     if (scope instanceof TraceScope) {
       ((TraceScope) scope).setAsyncPropagation(true);

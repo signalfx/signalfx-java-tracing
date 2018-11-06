@@ -68,7 +68,7 @@ class JettyHandlerTest extends AgentTestRunner {
     tags["component"] == "jetty-handler"
     tags["http.status_code"] == 200
     tags["span.origin.type"] == handler.class.name
-    tags.size() == 7
+    tags.size() == 6
   }
 
 
@@ -148,6 +148,6 @@ class JettyHandlerTest extends AgentTestRunner {
     tags["http.status_code"] == 500
     tags["span.origin.type"] == handler.class.name
     tags["error"] == true
-    tags.size() == 8
+    tags.size() == 7
   }
 }

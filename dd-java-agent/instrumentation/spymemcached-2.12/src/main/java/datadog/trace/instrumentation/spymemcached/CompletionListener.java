@@ -2,8 +2,6 @@ package datadog.trace.instrumentation.spymemcached;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
@@ -15,11 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class CompletionListener<T> {
-
-  // Note: it looks like this value is being ignored and DBTypeDecorator overwrites it.
-  static final String OPERATION_NAME = "memcached.query";
-
-  static final String SERVICE_NAME = "memcached";
   static final String COMPONENT_NAME = "java-spymemcached";
   static final String DB_TYPE = "memcached";
   static final String DB_COMMAND_CANCELLED = "db.command.cancelled";
@@ -40,7 +33,6 @@ public abstract class CompletionListener<T> {
         tracer
             .buildSpan(DB_TYPE + "." + operation)
             .withTag("memcached.command", operation)
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MEMCACHED)
             .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
             .withTag(Tags.DB_TYPE.getKey(), DB_TYPE);

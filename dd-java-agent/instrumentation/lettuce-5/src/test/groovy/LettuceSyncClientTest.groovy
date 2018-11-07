@@ -12,8 +12,6 @@ import spock.lang.Shared
 
 import java.util.concurrent.CompletionException
 
-import static datadog.trace.instrumentation.lettuce.LettuceInstrumentationUtil.AGENT_CRASHING_COMMAND_PREFIX
-
 class LettuceSyncClientTest extends AgentTestRunner {
   public static final String HOST = "127.0.0.1"
   public static final int DB_INDEX = 0

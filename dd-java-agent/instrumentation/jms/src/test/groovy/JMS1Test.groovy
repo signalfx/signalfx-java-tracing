@@ -264,7 +264,7 @@ class JMS1Test extends AgentTestRunner {
   }
 
   def producerSpans(TraceAssert traceAssert, int spanIndex, String jmsResourceName) {
-    def _producerSpans = {
+    def innerProducerSpans = {
       span(spanIndex) {
         parent()
         operationName "Produce for $jmsResourceName"
@@ -302,9 +302,9 @@ class JMS1Test extends AgentTestRunner {
         }
       }
     }
-    _producerSpans.delegate = traceAssert
-    _producerSpans.resolveStrategy = Closure.DELEGATE_FIRST
-    return _producerSpans()
+    innerProducerSpans.delegate = traceAssert
+    innerProducerSpans.resolveStrategy = Closure.DELEGATE_FIRST
+    return innerProducerSpans()
   }
 
   def consumerTrace(ListWriterAssert writer, int index, String jmsResourceName, origin) {

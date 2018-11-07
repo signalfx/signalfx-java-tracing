@@ -25,8 +25,6 @@ import java.util.function.BiFunction
 import java.util.function.Consumer
 import java.util.function.Function
 
-import static datadog.trace.instrumentation.lettuce.LettuceInstrumentationUtil.AGENT_CRASHING_COMMAND_PREFIX
-
 class LettuceAsyncClientTest extends AgentTestRunner {
   public static final String HOST = "127.0.0.1"
   public static final int DB_INDEX = 0

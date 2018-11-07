@@ -1,8 +1,6 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.netty.channel.AbstractChannel
 import io.opentracing.tag.Tags
 import io.vertx.core.Vertx

@@ -3,8 +3,6 @@ package springdata
 
 
 import com.couchbase.client.java.Bucket
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.springframework.data.couchbase.core.CouchbaseTemplate
 import spock.lang.Shared

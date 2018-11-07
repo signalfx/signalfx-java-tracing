@@ -1,8 +1,6 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import datadog.trace.instrumentation.springwebflux.EchoHandlerFunction
 import datadog.trace.instrumentation.springwebflux.FooModel
 import datadog.trace.instrumentation.springwebflux.SpringWebFluxTestApplication

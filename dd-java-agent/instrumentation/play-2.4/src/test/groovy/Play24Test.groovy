@@ -1,9 +1,7 @@
 // Modified by SignalFx
-import datadog.trace.agent.test.utils.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.api.DDSpanTypes
 import okhttp3.Request
 import play.api.test.TestServer
 import play.test.Helpers
@@ -37,9 +35,6 @@ class Play24Test extends AgentTestRunner {
       .get()
       .build()
     def response = client.newCall(request).execute()
-    TEST_WRITER.waitForTraces(1)
-    TestSpan[] playTrace = TEST_WRITER.get(0)
-    TestSpan root = playTrace[0]
 
     expect:
     testServer != null
@@ -75,9 +70,6 @@ class Play24Test extends AgentTestRunner {
       .get()
       .build()
     def response = client.newCall(request).execute()
-    TEST_WRITER.waitForTraces(1)
-    TestSpan[] playTrace = TEST_WRITER.get(0)
-    TestSpan root = playTrace[0]
 
     expect:
     testServer != null
@@ -108,9 +100,6 @@ class Play24Test extends AgentTestRunner {
       .get()
       .build()
     def response = client.newCall(request).execute()
-    TEST_WRITER.waitForTraces(1)
-    TestSpan[] playTrace = TEST_WRITER.get(0)
-    TestSpan root = playTrace[0]
 
     expect:
     testServer != null
@@ -141,9 +130,6 @@ class Play24Test extends AgentTestRunner {
       .get()
       .build()
     def response = client.newCall(request).execute()
-    TEST_WRITER.waitForTraces(1)
-    TestSpan[] playTrace = TEST_WRITER.get(0)
-    TestSpan root = playTrace[0]
 
     expect:
     testServer != null

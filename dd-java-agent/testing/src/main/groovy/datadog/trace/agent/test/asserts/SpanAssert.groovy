@@ -27,7 +27,7 @@ class SpanAssert {
 
   def assertSpanNameContains(String spanName, String... shouldContainArr) {
     if (spanName == null) {
-      return false;
+      return false
     }
     for (String shouldContain : shouldContainArr) {
       assert spanName.contains(shouldContain)

@@ -2,8 +2,6 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.opentracing.tag.Tags
 import io.vertx.core.Vertx

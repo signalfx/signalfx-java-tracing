@@ -1,6 +1,5 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.agent.test.utils.TestSpan
 import example.GreeterGrpc
 import example.Helloworld
 import io.grpc.BindableService

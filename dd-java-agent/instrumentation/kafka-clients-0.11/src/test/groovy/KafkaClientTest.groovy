@@ -1,6 +1,5 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.Config
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.junit.ClassRule
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory

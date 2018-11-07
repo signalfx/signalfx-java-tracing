@@ -9,8 +9,6 @@ import akka.stream.StreamTcpException
 import akka.stream.javadsl.Sink
 import akka.stream.javadsl.Source
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import scala.util.Try
 import spock.lang.AutoCleanup

@@ -14,10 +14,10 @@ class ScalaInstrumentationTest extends AgentTestRunner {
     expect:
     trace.size() == expectedNumberOfSpans
     trace[0].operationName == "ScalaConcurrentTests.traceWithFutureAndCallbacks"
-    findSpan(trace, "goodFuture").context().getParentId() == trace[0].context().getSpanId()
-    findSpan(trace, "badFuture").context().getParentId() == trace[0].context().getSpanId()
-    findSpan(trace, "successCallback").context().getParentId() == trace[0].context().getSpanId()
-    findSpan(trace, "failureCallback").context().getParentId() == trace[0].context().getSpanId()
+    findSpan(trace, "goodFuture").parentId == trace[0].spanId
+    findSpan(trace, "badFuture").parentId == trace[0].spanId
+    findSpan(trace, "successCallback").parentId == trace[0].spanId
+    findSpan(trace, "failureCallback").parentId == trace[0].spanId
   }
 
   def "scala propagates across futures with no traces"() {
@@ -30,7 +30,7 @@ class ScalaInstrumentationTest extends AgentTestRunner {
     expect:
     trace.size() == expectedNumberOfSpans
     trace[0].operationName == "ScalaConcurrentTests.tracedAcrossThreadsWithNoTrace"
-    findSpan(trace, "callback").context().getParentId() == trace[0].context().getSpanId()
+    findSpan(trace, "callback").parentId == trace[0].spanId
   }
 
   def "scala either promise completion"() {
@@ -44,9 +44,9 @@ class ScalaInstrumentationTest extends AgentTestRunner {
     TEST_WRITER.size() == 1
     trace.size() == expectedNumberOfSpans
     trace[0].operationName == "ScalaConcurrentTests.traceWithPromises"
-    findSpan(trace, "keptPromise").context().getParentId() == trace[0].context().getSpanId()
-    findSpan(trace, "keptPromise2").context().getParentId() == trace[0].context().getSpanId()
-    findSpan(trace, "brokenPromise").context().getParentId() == trace[0].context().getSpanId()
+    findSpan(trace, "keptPromise").parentId == trace[0].spanId
+    findSpan(trace, "keptPromise2").parentId == trace[0].spanId
+    findSpan(trace, "brokenPromise").parentId == trace[0].spanId
   }
 
   def "scala first completed future"() {
@@ -59,9 +59,9 @@ class ScalaInstrumentationTest extends AgentTestRunner {
     expect:
     TEST_WRITER.size() == 1
     trace.size() == expectedNumberOfSpans
-    findSpan(trace, "timeout1").context().getParentId() == trace[0].context().getSpanId()
-    findSpan(trace, "timeout2").context().getParentId() == trace[0].context().getSpanId()
-    findSpan(trace, "timeout3").context().getParentId() == trace[0].context().getSpanId()
+    findSpan(trace, "timeout1").parentId == trace[0].spanId
+    findSpan(trace, "timeout2").parentId == trace[0].spanId
+    findSpan(trace, "timeout3").parentId == trace[0].spanId
   }
 
   private TestSpan findSpan(List<TestSpan> trace, String opName) {

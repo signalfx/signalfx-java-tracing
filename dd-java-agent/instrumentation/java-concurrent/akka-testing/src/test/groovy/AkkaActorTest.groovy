@@ -16,7 +16,7 @@ class AkkaActorTest extends AgentTestRunner {
     TEST_WRITER.size() == 1
     trace.size() == 2
     trace[0].getOperationName() == "AkkaActors.$testMethod"
-    findSpan(trace, "$expectedGreeting, Akka").context().getParentId() == trace[0].getSpanId()
+    findSpan(trace, "$expectedGreeting, Akka").parentId == trace[0].spanId
 
     where:
     testMethod     | expectedGreeting

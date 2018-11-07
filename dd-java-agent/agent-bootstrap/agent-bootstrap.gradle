@@ -1,3 +1,4 @@
+// Modified by SignalFx
 // The shadowJar of this project will be injected into the JVM's bootstrap classloader
 plugins {
   id "com.github.johnrengelman.shadow"
@@ -9,6 +10,7 @@ excludedClassesConverage += ['datadog.trace.bootstrap.*']
 
 dependencies {
   compile project(':dd-trace-api')
+  compile project(':dd-trace-ot')
   compile deps.opentracing
   compile deps.slf4j
   compile group: 'org.slf4j', name: 'slf4j-simple', version: versions.slf4j

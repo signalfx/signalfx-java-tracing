@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.tooling;
 
 import datadog.trace.bootstrap.DatadogClassLoader;
@@ -16,7 +17,8 @@ public class Utils {
     "datadog.slf4j",
     "datadog.trace.bootstrap",
     "datadog.trace.api",
-    "datadog.trace.context"
+    "datadog.trace.context",
+    "datadog.trace.agent.common.utils"
   };
 
   public static final String[] AGENT_PACKAGE_PREFIXES = {

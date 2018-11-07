@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.test;
 
 import com.google.common.reflect.ClassPath;
@@ -34,7 +35,8 @@ public class SpockRunner extends Sputnik {
     "datadog.slf4j",
     "datadog.trace.bootstrap",
     "datadog.trace.api",
-    "datadog.trace.context"
+    "datadog.trace.context",
+    "datadog.trace.agent.common.utils"
   };
 
   private static final String[] TEST_BOOTSTRAP_PREFIXES;

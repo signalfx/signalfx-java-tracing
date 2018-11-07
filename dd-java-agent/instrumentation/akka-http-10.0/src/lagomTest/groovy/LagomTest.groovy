@@ -4,8 +4,6 @@ import akka.stream.javadsl.Source
 import akka.stream.testkit.TestSubscriber.Probe
 import akka.stream.testkit.javadsl.TestSink
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import play.inject.guice.GuiceApplicationBuilder
 import spock.lang.Shared

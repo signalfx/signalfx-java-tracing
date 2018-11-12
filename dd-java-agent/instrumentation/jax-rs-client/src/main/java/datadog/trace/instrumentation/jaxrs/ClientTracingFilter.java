@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.jaxrs;
 
-import datadog.trace.common.util.URLUtil;
+import datadog.trace.instrumentation.utils.URLUtil;
 import io.opentracing.Span;
 import io.opentracing.propagation.Format;
 import io.opentracing.tag.Tags;

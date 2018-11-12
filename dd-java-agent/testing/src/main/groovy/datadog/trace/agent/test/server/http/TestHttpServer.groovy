@@ -3,7 +3,7 @@ package datadog.trace.agent.test.server.http
 
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.asserts.ListWriterAssert
-import datadog.trace.agent.test.utils.TestSpan
+import datadog.opentracing.mock.TestSpan
 import io.opentracing.SpanContext
 import io.opentracing.Tracer
 import io.opentracing.propagation.Format

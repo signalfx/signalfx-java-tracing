@@ -1,5 +1,5 @@
 // Modified by SignalFx
-import datadog.trace.agent.test.utils.TestSpan
+import datadog.opentracing.mock.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 
 class AkkaActorTest extends AgentTestRunner {

@@ -4,8 +4,8 @@ package datadog.trace.instrumentation.servlet3;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
 import com.google.common.base.Strings;
-import datadog.trace.common.util.URLUtil;
 import datadog.trace.context.TraceScope;
+import datadog.trace.instrumentation.utils.URLUtil;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;

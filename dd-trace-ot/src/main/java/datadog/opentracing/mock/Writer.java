@@ -1,5 +1,5 @@
 // Modified by SignalFx
-package datadog.trace.agent.test.utils;
+package datadog.opentracing.mock;
 
 import io.opentracing.Span;
 import java.util.List;

@@ -40,6 +40,11 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
   }
 
   @Override
+  public String[] helperClassNames() {
+    return new String[] {"datadog.trace.instrumentation.utils.URLUtil"};
+  }
+
+  @Override
   public Map<ElementMatcher, String> transformers() {
     final Map<ElementMatcher, String> transformers = new HashMap<>();
     transformers.put(

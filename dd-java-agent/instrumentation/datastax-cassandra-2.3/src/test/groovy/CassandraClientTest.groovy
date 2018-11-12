@@ -1,7 +1,7 @@
 // Modified by SignalFx
 import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.Session
-import datadog.trace.agent.test.utils.TestSpan
+import datadog.opentracing.mock.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 import io.opentracing.tag.Tags
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper

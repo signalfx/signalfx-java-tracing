@@ -1,3 +1,4 @@
+// Modified by SignalFx
 plugins {
   id "com.github.johnrengelman.shadow" version "4.0.1"
 }
@@ -42,7 +43,7 @@ def includeShadowJar(subproject, jarname) {
       relocate 'org.slf4j', 'datadog.slf4j'
       // rewrite dependencies calling Logger.getLogger
       relocate 'java.util.logging.Logger', 'datadog.trace.bootstrap.PatchLogger'
-
+      
       if (!project.hasProperty("disableShadowRelocate") || !disableShadowRelocate) {
         // shadow OT impl to prevent casts to implementation
         relocate 'datadog.trace.common', 'datadog.trace.agent.common'
@@ -53,7 +54,8 @@ def includeShadowJar(subproject, jarname) {
 }
 
 includeShadowJar(project(':dd-java-agent:agent-bootstrap'), 'agent-bootstrap.jar.zip')
-includeShadowJar(project(':dd-java-agent:instrumentation'), 'agent-tooling-and-instrumentation.jar.zip')
+includeShadowJar(project(':dd-java-agent:agent-tooling'), 'agent-tooling.jar.zip')
+includeShadowJar(project(':dd-java-agent:instrumentation'), 'agent-instrumentation.jar.zip')
 includeShadowJar(project(':dd-java-agent:agent-jmxfetch'), 'agent-jmxfetch.jar.zip')
 
 jar {

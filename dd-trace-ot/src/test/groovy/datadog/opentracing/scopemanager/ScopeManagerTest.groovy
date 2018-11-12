@@ -1,8 +1,8 @@
 // Modified by SignalFx
 package datadog.opentracing.scopemanager
 
-import datadog.trace.agent.test.utils.TestTracer
-import datadog.trace.agent.test.utils.ListWriter
+import datadog.opentracing.mock.TestTracer
+import datadog.opentracing.mock.ListWriter
 import io.opentracing.Scope
 import io.opentracing.Span
 import io.opentracing.noop.NoopSpan

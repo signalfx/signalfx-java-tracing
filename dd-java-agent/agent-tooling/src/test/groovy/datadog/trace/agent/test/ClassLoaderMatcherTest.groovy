@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.test
 
 import datadog.trace.agent.tooling.ClassLoaderMatcher
@@ -16,7 +17,8 @@ class ClassLoaderMatcherTest extends Specification {
   def "skips agent classloader"() {
     setup:
     URL root = new URL("file://")
-    final URLClassLoader agentLoader = new DatadogClassLoader(root, root, null)
+    URL[] classPath = [root]
+    final URLClassLoader agentLoader = new DatadogClassLoader(root, classPath, null)
     expect:
     ClassLoaderMatcher.skipClassLoader().matches(agentLoader)
   }

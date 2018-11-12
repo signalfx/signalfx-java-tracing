@@ -40,6 +40,7 @@ public class ChannelFutureListenerInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
+      "datadog.trace.instrumentation.utils.URLUtil",
       packageName + ".AttributeKeys",
       // server helpers
       packageName + ".server.NettyRequestExtractAdapter",

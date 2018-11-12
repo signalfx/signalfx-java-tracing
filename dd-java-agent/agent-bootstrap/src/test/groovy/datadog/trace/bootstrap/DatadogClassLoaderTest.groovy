@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.bootstrap
 
 import spock.lang.Specification
@@ -13,7 +14,8 @@ class DatadogClassLoaderTest extends Specification {
     def className1 = 'some/class/Name1'
     def className2 = 'some/class/Name2'
     final URL loc = getClass().getProtectionDomain().getCodeSource().getLocation()
-    final DatadogClassLoader ddLoader = new DatadogClassLoader(loc, loc, (ClassLoader) null)
+    final URL[] classPath = [loc]
+    final DatadogClassLoader ddLoader = new DatadogClassLoader(loc, classPath, (ClassLoader) null)
     final Phaser threadHoldLockPhase = new Phaser(2)
     final Phaser acquireLockFromMainThreadPhase = new Phaser(2)
 

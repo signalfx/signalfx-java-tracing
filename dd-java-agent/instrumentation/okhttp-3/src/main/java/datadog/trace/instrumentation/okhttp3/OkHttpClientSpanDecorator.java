@@ -1,8 +1,9 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.okhttp3;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.common.util.URLUtil;
+import datadog.trace.instrumentation.utils.URLUtil;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
 import java.net.Inet6Address;

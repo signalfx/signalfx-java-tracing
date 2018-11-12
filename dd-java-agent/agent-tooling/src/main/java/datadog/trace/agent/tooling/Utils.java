@@ -17,14 +17,17 @@ public class Utils {
     "datadog.slf4j",
     "datadog.trace.bootstrap",
     "datadog.trace.api",
-    "datadog.trace.context",
-    "datadog.trace.agent.common.utils"
+    "datadog.trace.context"
   };
 
   public static final String[] AGENT_PACKAGE_PREFIXES = {
+    // stripping slf4j from the agent-tooling jar seems to break lombok in instrumentations
+    "datadog.slf4j",
     "datadog.trace.common",
     "datadog.trace.agent",
     "datadog.trace.instrumentation",
+    // jaeger
+    "datadog.trace.jaeger",
     // guava
     "com.google.auto",
     "com.google.common",

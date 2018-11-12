@@ -1,5 +1,5 @@
 // Modified by SignalFx
-package datadog.trace.agent.test.utils;
+package datadog.opentracing.mock;
 
 import java.util.ArrayList;
 import java.util.Comparator;

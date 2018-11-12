@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
-import datadog.trace.agent.test.utils.TestSpan
+import datadog.opentracing.mock.TestSpan
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 

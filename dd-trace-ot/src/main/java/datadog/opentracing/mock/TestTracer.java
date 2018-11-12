@@ -1,4 +1,4 @@
-package datadog.trace.agent.test.utils;
+package datadog.opentracing.mock;
 
 import datadog.opentracing.scopemanager.ContextualScopeManager;
 import datadog.trace.api.Tracer;

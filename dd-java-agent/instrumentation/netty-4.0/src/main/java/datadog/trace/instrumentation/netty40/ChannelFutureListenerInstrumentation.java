@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.netty40;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -39,6 +40,7 @@ public class ChannelFutureListenerInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
+      "datadog.trace.instrumentation.utils.URLUtil",
       packageName + ".AttributeKeys",
       // server helpers
       packageName + ".server.NettyRequestExtractAdapter",

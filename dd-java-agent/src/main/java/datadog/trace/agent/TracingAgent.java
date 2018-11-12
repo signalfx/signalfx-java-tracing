@@ -1,3 +1,4 @@
+// Modified by SignalFx
 /*
  * Copyright 2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -49,9 +50,12 @@ public class TracingAgent {
     if (!inited) {
       final File toolingJar =
           extractToTmpFile(
+              TracingAgent.class.getClassLoader(), "agent-tooling.jar.zip", "agent-tooling.jar");
+      final File instrumentationJar =
+          extractToTmpFile(
               TracingAgent.class.getClassLoader(),
-              "agent-tooling-and-instrumentation.jar.zip",
-              "agent-tooling-and-instrumentation.jar");
+              "agent-instrumentation.jar.zip",
+              "agent-instrumentation.jar");
       final File jmxFetchJar =
           extractToTmpFile(
               TracingAgent.class.getClassLoader(), "agent-jmxfetch.jar.zip", "agent-jmxfetch.jar");
@@ -63,8 +67,10 @@ public class TracingAgent {
 
       // bootstrap jar must be appended before agent classloader is created.
       inst.appendToBootstrapClassLoaderSearch(new JarFile(bootstrapJar));
-      final ClassLoader agentClassLoader = createDatadogClassLoader(bootstrapJar, toolingJar);
-      final ClassLoader jmxFetchClassLoader = createDatadogClassLoader(bootstrapJar, jmxFetchJar);
+      final ClassLoader agentClassLoader =
+          createDatadogClassLoader(bootstrapJar, toolingJar, instrumentationJar);
+      final ClassLoader jmxFetchClassLoader =
+          createDatadogClassLoader(bootstrapJar, jmxFetchJar, null);
 
       final ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
       try {
@@ -115,7 +121,8 @@ public class TracingAgent {
    * @return Datadog Classloader
    */
   private static ClassLoader createDatadogClassLoader(
-      final File bootstrapJar, final File toolingJar) throws Exception {
+      final File bootstrapJar, final File toolingJar, final File instrumentationJar)
+      throws Exception {
     final ClassLoader agentParent;
     final String javaVersion = System.getProperty("java.version");
     if (javaVersion.startsWith("1.7") || javaVersion.startsWith("1.8")) {
@@ -127,10 +134,15 @@ public class TracingAgent {
     final Class<?> loaderClass =
         ClassLoader.getSystemClassLoader().loadClass("datadog.trace.bootstrap.DatadogClassLoader");
     final Constructor constructor =
-        loaderClass.getDeclaredConstructor(URL.class, URL.class, ClassLoader.class);
+        loaderClass.getDeclaredConstructor(URL.class, URL[].class, ClassLoader.class);
+    if (instrumentationJar != null) {
+      URL[] classPath = new URL[] {toolingJar.toURI().toURL(), instrumentationJar.toURI().toURL()};
+      return (ClassLoader)
+          constructor.newInstance(bootstrapJar.toURI().toURL(), classPath, agentParent);
+    }
     return (ClassLoader)
         constructor.newInstance(
-            bootstrapJar.toURI().toURL(), toolingJar.toURI().toURL(), agentParent);
+            bootstrapJar.toURI().toURL(), new URL[] {toolingJar.toURI().toURL()}, agentParent);
   }
 
   /** Extract sourcePath out of loader to a temporary file named destName. */

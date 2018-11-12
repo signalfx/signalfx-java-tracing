@@ -11,9 +11,11 @@ apply from: "${rootDir}/gradle/publish.gradle"
 minimumBranchCoverage = 0.5
 minimumInstructionCoverage = 0.6
 excludedClassesConverage += [
-  'datadog.trace.common.writer.ListWriter',
   'datadog.trace.common.writer.LoggingWriter',
-  'datadog.trace.common.sampling.PrioritySampling'
+  'datadog.trace.common.sampling.PrioritySampling',
+  'datadog.trace.common.util.Clock',
+  'datadog.opentracing.mock.*',
+  'datadog.opentracing.propagation.TagContext'
 ]
 
 apply plugin: 'org.unbroken-dome.test-sets'

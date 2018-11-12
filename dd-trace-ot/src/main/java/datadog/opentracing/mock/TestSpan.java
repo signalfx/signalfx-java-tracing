@@ -1,4 +1,4 @@
-package datadog.trace.agent.test.utils;
+package datadog.opentracing.mock;
 
 import io.opentracing.Span;
 import io.opentracing.mock.MockSpan;

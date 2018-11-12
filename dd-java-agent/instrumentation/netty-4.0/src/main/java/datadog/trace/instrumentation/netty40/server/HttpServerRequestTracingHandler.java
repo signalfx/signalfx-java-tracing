@@ -1,11 +1,12 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.netty40.server;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.HOST;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.common.util.URLUtil;
 import datadog.trace.context.TraceScope;
 import datadog.trace.instrumentation.netty40.AttributeKeys;
+import datadog.trace.instrumentation.utils.URLUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpRequest;

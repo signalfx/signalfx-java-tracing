@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.http_url_connection;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -8,8 +9,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -66,7 +65,6 @@ public class UrlInstrumentation extends Instrumenter.Default {
             GlobalTracer.get()
                 .buildSpan(protocol + ".request")
                 .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-                .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
                 .startActive(true);
 
         final Span span = scope.span();

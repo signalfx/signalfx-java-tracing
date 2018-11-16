@@ -1,3 +1,4 @@
+// Modified by SignalFx
 def groovyVer = "2.5.2"
 def spockGroovyVer = groovyVer.replaceAll(/\.\d+$/, '')
 
@@ -41,6 +42,10 @@ ext {
       dependencies.create(group: 'com.google.auto', name: 'auto-common', version: '0.8'),
       // These are the last versions that support guava 20.0.  Upgrading has odd interactions with shadow.
       dependencies.create(group: 'com.google.guava', name: 'guava', version: "${versions.guava}"),
+    ],
+    jaeger         : [
+      dependencies.create(group: 'io.jaegertracing', name: 'jaeger-core', version: '0.32.0'),
+      dependencies.create(group: 'io.jaegertracing', name: 'jaeger-thrift', version: '0.32.0')
     ],
 
     // Testing

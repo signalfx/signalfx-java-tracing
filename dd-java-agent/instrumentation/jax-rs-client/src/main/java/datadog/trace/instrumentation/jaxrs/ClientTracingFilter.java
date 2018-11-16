@@ -1,7 +1,7 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jaxrs;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
+import datadog.trace.instrumentation.utils.URLUtil;
 import io.opentracing.Span;
 import io.opentracing.propagation.Format;
 import io.opentracing.tag.Tags;
@@ -18,19 +18,20 @@ import lombok.extern.slf4j.Slf4j;
 @Priority(Priorities.HEADER_DECORATOR)
 public class ClientTracingFilter implements ClientRequestFilter, ClientResponseFilter {
   public static final String SPAN_PROPERTY_NAME = "datadog.trace.jax-rs-client.span";
+  public static final String SPAN_HAS_ERRORED = "ot.trace.jax-rs-client.spanHasErrored";
 
   @Override
   public void filter(final ClientRequestContext requestContext) {
 
     final Span span =
         GlobalTracer.get()
-            .buildSpan("jax-rs.client.call")
+            .buildSpan(
+                URLUtil.deriveOperationName(
+                    requestContext.getMethod(), requestContext.getUri().toString()))
             .withTag(Tags.COMPONENT.getKey(), "jax-rs.client")
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
             .withTag(Tags.HTTP_METHOD.getKey(), requestContext.getMethod())
             .withTag(Tags.HTTP_URL.getKey(), requestContext.getUri().toString())
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
-            .withTag(DDTags.RESOURCE_NAME, requestContext.getMethod() + " jax-rs.client.call")
             .start();
 
     log.debug("{} - client span started", span);
@@ -42,6 +43,7 @@ public class ClientTracingFilter implements ClientRequestFilter, ClientResponseF
             new InjectAdapter(requestContext.getHeaders()));
 
     requestContext.setProperty(SPAN_PROPERTY_NAME, span);
+    requestContext.setProperty(SPAN_HAS_ERRORED, false);
   }
 
   @Override

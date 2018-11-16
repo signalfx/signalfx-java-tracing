@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.api;
 
 /**
@@ -6,11 +7,11 @@ package datadog.trace.api;
  * <p>Intended for use with MDC frameworks.
  */
 public class CorrelationIdentifier {
-  public static String getTraceId() {
+  public static long getTraceId() {
     return GlobalTracer.get().getTraceId();
   }
 
-  public static String getSpanId() {
+  public static long getSpanId() {
     return GlobalTracer.get().getSpanId();
   }
 }

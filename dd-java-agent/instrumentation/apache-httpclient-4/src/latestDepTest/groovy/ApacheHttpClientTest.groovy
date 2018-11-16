@@ -1,8 +1,7 @@
-import datadog.opentracing.DDSpan
+// Modified by SignalFx
+import datadog.opentracing.mock.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.TraceAssert
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.apache.http.HttpResponse
 import org.apache.http.client.ClientProtocolException
@@ -179,9 +178,7 @@ class ApacheHttpClientTest extends AgentTestRunner {
   def parentSpan(TraceAssert trace, int index, Throwable exception = null) {
     trace.span(index) {
       parent()
-      serviceName "unnamed-java-app"
       operationName "parent"
-      resourceName "parent"
       errored exception != null
       tags {
         defaultTags()
@@ -192,12 +189,10 @@ class ApacheHttpClientTest extends AgentTestRunner {
     }
   }
 
-  def successClientSpan(TraceAssert trace, int index, DDSpan parent, status = 200, route = "success", Throwable exception = null) {
+  def successClientSpan(TraceAssert trace, int index, TestSpan parent, status = 200, route = "success", Throwable exception = null) {
     trace.span(index) {
       childOf parent
-      serviceName "unnamed-java-app"
-      operationName "http.request"
-      resourceName "GET /$route"
+      operationName "GET /$route"
       errored exception != null
       tags {
         defaultTags()
@@ -211,7 +206,6 @@ class ApacheHttpClientTest extends AgentTestRunner {
         "$Tags.PEER_PORT.key" server.getAddress().port
         "$Tags.HTTP_METHOD.key" "GET"
         "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-        "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
       }
     }
   }

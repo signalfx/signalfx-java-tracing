@@ -15,4 +15,7 @@ public class AttributeKeys {
 
   public static final AttributeKey<Span> CLIENT_ATTRIBUTE_KEY =
       new AttributeKey<>(HttpServerTracingHandler.class.getName() + ".span");
+
+  public static final AttributeKey<Boolean> HANDLED_KEY =
+      new AttributeKey<>("datadog.trace.instrumentation.netty41.parent.connect.handled");
 }

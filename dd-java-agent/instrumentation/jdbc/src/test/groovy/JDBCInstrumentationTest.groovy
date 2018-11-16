@@ -1,8 +1,8 @@
+// Modified by SignalFx
 import com.mchange.v2.c3p0.ComboPooledDataSource
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDSpanTypes
 import io.opentracing.tag.Tags
 import org.apache.derby.jdbc.EmbeddedDriver
 import org.h2.Driver
@@ -157,9 +157,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         }
         span(1) {
           operationName "${driver}.query"
-          serviceName driver
-          resourceName query
-          spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
           tags {
@@ -167,8 +164,8 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             if (username != null) {
               "db.user" username
             }
+            "$Tags.DB_STATEMENT.key" query
             "span.kind" Tags.SPAN_KIND_CLIENT
-            "span.type" DDSpanTypes.SQL
             "component" "java-jdbc-statement"
             "db.jdbc.url" jdbcUrls.get(driver)
             "span.origin.type" String
@@ -218,9 +215,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         }
         span(1) {
           operationName "${driver}.query"
-          serviceName driver
-          resourceName query
-          spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
           tags {
@@ -228,8 +222,8 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             if (username != null) {
               "db.user" username
             }
+            "$Tags.DB_STATEMENT.key" query
             "span.kind" Tags.SPAN_KIND_CLIENT
-            "span.type" DDSpanTypes.SQL
             "component" "java-jdbc-prepared_statement"
             "db.jdbc.url" jdbcUrls.get(driver)
             "span.origin.type" String
@@ -274,9 +268,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         }
         span(1) {
           operationName "${driver}.query"
-          serviceName driver
-          resourceName query
-          spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
           tags {
@@ -284,8 +275,8 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             if (username != null) {
               "db.user" username
             }
+            "$Tags.DB_STATEMENT.key" query
             "span.kind" Tags.SPAN_KIND_CLIENT
-            "span.type" DDSpanTypes.SQL
             "component" "java-jdbc-prepared_statement"
             "db.jdbc.url" jdbcUrls.get(driver)
             "span.origin.type" String
@@ -330,9 +321,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         }
         span(1) {
           operationName "${driver}.query"
-          serviceName driver
-          resourceName query
-          spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
           tags {
@@ -340,8 +328,8 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             if (username != null) {
               "db.user" username
             }
+            "$Tags.DB_STATEMENT.key" query
             "span.kind" Tags.SPAN_KIND_CLIENT
-            "span.type" DDSpanTypes.SQL
             "component" "java-jdbc-statement"
             "db.jdbc.url" jdbcUrls.get(driver)
             "span.origin.type" String
@@ -389,9 +377,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         }
         span(1) {
           operationName "${driver}.query"
-          serviceName driver
-          resourceName query
-          spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
           tags {
@@ -399,8 +384,8 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             if (username != null) {
               "db.user" username
             }
+            "$Tags.DB_STATEMENT.key" query
             "span.kind" Tags.SPAN_KIND_CLIENT
-            "span.type" DDSpanTypes.SQL
             "component" "java-jdbc-prepared_statement"
             "db.jdbc.url" jdbcUrls.get(driver)
             "span.origin.type" String
@@ -461,13 +446,11 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         }
         span(1) {
           operationName "${driver}.query"
-          serviceName driver
-          resourceName query
-          spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
           tags {
             "db.type" driver
+            "$Tags.DB_STATEMENT.key" query
             if (username != null) {
               "db.user" username
             }
@@ -477,7 +460,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
               "component" "java-jdbc-statement"
             }
             "span.kind" Tags.SPAN_KIND_CLIENT
-            "span.type" DDSpanTypes.SQL
             "db.jdbc.url" jdbcUrls.get(driver)
             "span.origin.type" String
             defaultTags()
@@ -538,16 +520,13 @@ class JDBCInstrumentationTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           operationName "${dbType}.query"
-          serviceName dbType
-          resourceName "CALL USER()"
-          spanType DDSpanTypes.SQL
           errored false
           tags {
             "db.type" "hsqldb"
             "db.user" "SA"
+            "$Tags.DB_STATEMENT.key" "CALL USER()"
             "component" "java-jdbc-statement"
             "span.kind" Tags.SPAN_KIND_CLIENT
-            "span.type" DDSpanTypes.SQL
             "db.jdbc.url" jdbcUrls.get(dbType)
             "span.origin.type" String
             defaultTags()
@@ -558,16 +537,13 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         trace(i, 1) {
           span(0) {
             operationName "${dbType}.query"
-            serviceName dbType
-            resourceName query
-            spanType DDSpanTypes.SQL
             errored false
             tags {
               "db.type" dbType
               "db.user" "SA"
+              "$Tags.DB_STATEMENT.key" query
               "component" "java-jdbc-prepared_statement"
               "span.kind" Tags.SPAN_KIND_CLIENT
-              "span.type" DDSpanTypes.SQL
               "db.jdbc.url" jdbcUrls.get(dbType)
               "span.origin.type" String
               defaultTags()

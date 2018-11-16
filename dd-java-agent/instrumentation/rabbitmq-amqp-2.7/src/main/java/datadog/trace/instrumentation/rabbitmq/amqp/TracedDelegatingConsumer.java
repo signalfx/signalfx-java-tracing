@@ -2,15 +2,15 @@ package datadog.trace.instrumentation.rabbitmq.amqp;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
+import com.google.common.base.Strings;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.ShutdownSignalException;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
+import io.opentracing.Tracer;
 import io.opentracing.noop.NoopScopeManager;
 import io.opentracing.propagation.Format;
 import io.opentracing.tag.Tags;
@@ -80,21 +80,26 @@ public class TracedDelegatingConsumer implements Consumer {
         queueName = "<generated>";
       }
 
-      scope =
+      Tracer.SpanBuilder builder =
           GlobalTracer.get()
-              .buildSpan("amqp.command")
+              .buildSpan("basic.deliver " + queueName)
               .asChildOf(parentContext)
-              .withTag(DDTags.SERVICE_NAME, "rabbitmq")
-              .withTag(DDTags.RESOURCE_NAME, "basic.deliver " + queueName)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_CONSUMER)
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER)
               .withTag(Tags.COMPONENT.getKey(), "rabbitmq-amqp")
               .withTag("amqp.command", "basic.deliver")
-              .withTag("amqp.exchange", envelope.getExchange())
-              .withTag("amqp.routing_key", envelope.getRoutingKey())
               .withTag("message.size", body == null ? 0 : body.length)
-              .withTag("span.origin.type", delegate.getClass().getName())
-              .startActive(true);
+              .withTag("span.origin.type", delegate.getClass().getName());
+
+      String exchange = envelope.getExchange();
+      if (!Strings.isNullOrEmpty(exchange)) {
+        builder = builder.withTag("amqp.exchange", exchange);
+      }
+      String routingKey = envelope.getRoutingKey();
+      if (!Strings.isNullOrEmpty(routingKey)) {
+        builder = builder.withTag("amqp.routing_key", routingKey);
+      }
+
+      scope = builder.startActive(true);
     } finally {
       try {
 

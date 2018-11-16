@@ -22,8 +22,6 @@ import com.rabbitmq.client.Consumer;
 import com.rabbitmq.client.GetResponse;
 import com.rabbitmq.client.MessageProperties;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -110,10 +108,7 @@ public class RabbitChannelInstrumentation extends Instrumenter.Default {
       final Connection connection = channel.getConnection();
 
       return GlobalTracer.get()
-          .buildSpan("amqp.command")
-          .withTag(DDTags.SERVICE_NAME, "rabbitmq")
-          .withTag(DDTags.RESOURCE_NAME, method)
-          .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_CLIENT)
+          .buildSpan(method)
           .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
           .withTag(Tags.COMPONENT.getKey(), "rabbitmq-amqp")
           .withTag(Tags.PEER_HOSTNAME.getKey(), connection.getAddress().getHostName())
@@ -151,11 +146,14 @@ public class RabbitChannelInstrumentation extends Instrumenter.Default {
             routingKey == null || routingKey.isEmpty()
                 ? "<all>"
                 : routingKey.startsWith("amq.gen-") ? "<generated>" : routingKey;
-        span.setTag(DDTags.RESOURCE_NAME, "basic.publish " + exchangeName + " -> " + routing);
-        span.setTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_PRODUCER);
+        span.setOperationName("basic.publish " + exchangeName + " -> " + routing);
         span.setTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_PRODUCER);
-        span.setTag("amqp.exchange", exchange);
-        span.setTag("amqp.routing_key", routingKey);
+        if (exchange != null && exchange.length() > 0) {
+          span.setTag("amqp.exchange", exchange);
+        }
+        if (routingKey != null && routingKey.length() > 0) {
+          span.setTag("amqp.routing_key", routingKey);
+        }
         span.setTag("message.size", body == null ? 0 : body.length);
 
         // This is the internal behavior when props are null.  We're just doing it earlier now.
@@ -245,12 +243,9 @@ public class RabbitChannelInstrumentation extends Instrumenter.Default {
 
       final Span span =
           GlobalTracer.get()
-              .buildSpan("amqp.command")
+              .buildSpan("basic.get " + queueName)
               .withStartTimestamp(TimeUnit.MILLISECONDS.toMicros(startTime))
               .asChildOf(parentContext)
-              .withTag(DDTags.SERVICE_NAME, "rabbitmq")
-              .withTag(DDTags.RESOURCE_NAME, "basic.get " + queueName)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_CONSUMER)
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER)
               .withTag(Tags.COMPONENT.getKey(), "rabbitmq-amqp")
               .withTag("amqp.command", "basic.get")

@@ -1,19 +1,20 @@
+// Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
-import datadog.opentracing.DDSpan
+import datadog.opentracing.mock.TestSpan
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 
 import static TagsAssert.assertTags
 
 class SpanAssert {
-  private final DDSpan span
+  private final TestSpan span
 
   private SpanAssert(span) {
     this.span = span
   }
 
-  static void assertSpan(DDSpan span,
+  static void assertSpan(TestSpan span,
                          @ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.SpanAssert'])
                          @DelegatesTo(value = SpanAssert, strategy = Closure.DELEGATE_FIRST) Closure spec) {
     def asserter = new SpanAssert(span)
@@ -24,55 +25,45 @@ class SpanAssert {
   }
 
   def assertSpanNameContains(String spanName, String... shouldContainArr) {
+    if (spanName == null) {
+      return false
+    }
     for (String shouldContain : shouldContainArr) {
       assert spanName.contains(shouldContain)
     }
   }
 
   def serviceName(String name) {
-    assert span.serviceName == name
+    assert span.getServiceName() == name
   }
 
   def operationName(String name) {
-    assert span.operationName == name
+    assert span.getOperationName() == name
   }
 
   def operationNameContains(String... operationNameParts) {
     assertSpanNameContains(span.operationName, operationNameParts)
   }
 
-  def resourceName(String name) {
-    assert span.resourceName == name
-  }
-
-  def resourceNameContains(String... resourceNameParts) {
-    assertSpanNameContains(span.resourceName, resourceNameParts)
-  }
-
-  def spanType(String type) {
-    assert span.spanType == type
-    assert span.tags["span.type"] == type
-  }
-
   def parent() {
-    assert span.parentId == "0"
+    assert span.parentId() == 0
   }
 
-  def parentId(String parentId) {
-    assert span.parentId == parentId
+  def parentId(long parentId) {
+    assert span.parentId() == parentId
   }
 
-  def traceId(String traceId) {
-    assert span.traceId == traceId
+  def traceId(long traceId) {
+    assert span.context().traceId() == traceId
   }
 
-  def childOf(DDSpan parent) {
-    assert span.parentId == parent.spanId
-    assert span.traceId == parent.traceId
+  def childOf(TestSpan parent) {
+    assert span.parentId() == parent.context().spanId()
+    assert span.context().traceId() == parent.context().traceId()
   }
 
   def errored(boolean errored) {
-    assert span.isError() == errored
+    assert span.tags().get("error", false) == errored
   }
 
   void tags(@ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.TagsAssert'])

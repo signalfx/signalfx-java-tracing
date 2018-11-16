@@ -1,8 +1,7 @@
-import datadog.opentracing.DDSpan
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.api.DDSpanTypes
 import okhttp3.Request
 import play.api.test.TestServer
 import play.test.Helpers
@@ -31,36 +30,37 @@ class Play24Test extends AgentTestRunner {
     setup:
     def request = new Request.Builder()
       .url("http://localhost:$port/helloplay/spock")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("traceid", "123")
+      .header("spanid", "0")
       .get()
       .build()
     def response = client.newCall(request).execute()
-    TEST_WRITER.waitForTraces(1)
-    DDSpan[] playTrace = TEST_WRITER.get(0)
-    DDSpan root = playTrace[0]
 
     expect:
     testServer != null
     response.code() == 200
     response.body().string() == "hello spock"
 
-    // async work is linked to play trace
-    playTrace.size() == 2
-    playTrace[1].operationName == 'TracedWork$.doWork'
-
-    root.traceId == "123"
-    root.parentId == "456"
-    root.serviceName == "unnamed-java-app"
-    root.operationName == "play.request"
-    root.resourceName == "GET /helloplay/:from"
-    root.spanType == DDSpanTypes.HTTP_SERVER
-    !root.context().getErrorFlag()
-    root.context().tags["http.status_code"] == 200
-    root.context().tags["http.url"] == "/helloplay/:from"
-    root.context().tags["http.method"] == "GET"
-    root.context().tags["span.kind"] == "server"
-    root.context().tags["component"] == "play-action"
+    assertTraces(1) {
+      trace(0, 2) {
+        span(1) {
+          operationName 'TracedWork$.doWork'
+        }
+        span(0) {
+          traceId 123
+          parentId 0
+          operationName "GET /helloplay/:from"
+          errored false
+          tags {
+            "http.status_code" 200
+            "http.url" "/helloplay/:from"
+            "http.method" "GET"
+            "span.kind" "server"
+            "component" "play-action"
+          }
+        }
+      }
+    }
   }
 
   def "5xx errors trace"() {
@@ -70,24 +70,27 @@ class Play24Test extends AgentTestRunner {
       .get()
       .build()
     def response = client.newCall(request).execute()
-    TEST_WRITER.waitForTraces(1)
-    DDSpan[] playTrace = TEST_WRITER.get(0)
-    DDSpan root = playTrace[0]
 
     expect:
     testServer != null
     response.code() == 500
 
-    root.serviceName == "unnamed-java-app"
-    root.operationName == "play.request"
-    root.resourceName == "GET /make-error"
-    root.spanType == DDSpanTypes.HTTP_SERVER
-    root.context().getErrorFlag()
-    root.context().tags["http.status_code"] == 500
-    root.context().tags["http.url"] == "/make-error"
-    root.context().tags["http.method"] == "GET"
-    root.context().tags["span.kind"] == "server"
-    root.context().tags["component"] == "play-action"
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          operationName "GET /make-error"
+          errored true
+          tags {
+            "http.status_code" 500
+            "http.url" "/make-error"
+            "http.method" "GET"
+            "span.kind" "server"
+            "component" "play-action"
+            "error" true
+          }
+        }
+      }
+    }
   }
 
   def "error thrown in request"() {
@@ -97,27 +100,27 @@ class Play24Test extends AgentTestRunner {
       .get()
       .build()
     def response = client.newCall(request).execute()
-    TEST_WRITER.waitForTraces(1)
-    DDSpan[] playTrace = TEST_WRITER.get(0)
-    DDSpan root = playTrace[0]
 
     expect:
     testServer != null
     response.code() == 500
 
-    root.context().getErrorFlag()
-    root.context().tags["error.msg"] == "oh no"
-    root.context().tags["error.type"] == RuntimeException.getName()
-
-    root.serviceName == "unnamed-java-app"
-    root.operationName == "play.request"
-    root.resourceName == "GET /exception"
-    root.spanType == DDSpanTypes.HTTP_SERVER
-    root.context().tags["http.status_code"] == 500
-    root.context().tags["http.url"] == "/exception"
-    root.context().tags["http.method"] == "GET"
-    root.context().tags["span.kind"] == "server"
-    root.context().tags["component"] == "play-action"
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          errored true
+          operationName "GET /exception"
+          tags {
+            "http.status_code" 500
+            "http.url" "/exception"
+            "http.method" "GET"
+            "span.kind" "server"
+            "component" "play-action"
+            "error" true
+          }
+        }
+      }
+    }
   }
 
   def "4xx errors trace"() {
@@ -127,23 +130,25 @@ class Play24Test extends AgentTestRunner {
       .get()
       .build()
     def response = client.newCall(request).execute()
-    TEST_WRITER.waitForTraces(1)
-    DDSpan[] playTrace = TEST_WRITER.get(0)
-    DDSpan root = playTrace[0]
 
     expect:
     testServer != null
     response.code() == 404
 
-    root.serviceName == "unnamed-java-app"
-    root.operationName == "play.request"
-    root.resourceName == "404"
-    root.spanType == DDSpanTypes.HTTP_SERVER
-    !root.context().getErrorFlag()
-    root.context().tags["http.status_code"] == 404
-    root.context().tags["http.url"] == null
-    root.context().tags["http.method"] == "GET"
-    root.context().tags["span.kind"] == "server"
-    root.context().tags["component"] == "play-action"
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          errored false
+          operationName "GET /nowhere"
+          tags {
+            "http.status_code" 404
+            "http.url" "/nowhere"
+            "http.method" "GET"
+            "span.kind" "server"
+            "component" "play-action"
+          }
+        }
+      }
+    }
   }
 }

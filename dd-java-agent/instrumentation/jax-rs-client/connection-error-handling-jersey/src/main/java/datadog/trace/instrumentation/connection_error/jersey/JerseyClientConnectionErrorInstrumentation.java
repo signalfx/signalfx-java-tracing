@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.connection_error.jersey;
 
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
@@ -61,13 +62,16 @@ public final class JerseyClientConnectionErrorInstrumentation extends Instrument
         @Advice.FieldValue("requestContext") final ClientRequest context,
         @Advice.Thrown final Throwable throwable) {
       if (throwable != null) {
-
         final Object prop = context.getProperty(ClientTracingFilter.SPAN_PROPERTY_NAME);
+        final Object hasErrored = context.getProperty(ClientTracingFilter.SPAN_HAS_ERRORED);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          Tags.ERROR.set(span, true);
-          span.log(Collections.singletonMap(Fields.ERROR_OBJECT, throwable));
-          span.finish();
+          if (!Boolean.TRUE.equals(hasErrored)) {
+            context.setProperty(ClientTracingFilter.SPAN_HAS_ERRORED, Boolean.TRUE);
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, throwable));
+            span.finish();
+          }
         }
       }
     }
@@ -116,11 +120,15 @@ public final class JerseyClientConnectionErrorInstrumentation extends Instrument
         return wrapped.get();
       } catch (final ExecutionException e) {
         final Object prop = context.getProperty(ClientTracingFilter.SPAN_PROPERTY_NAME);
+        final Object hasErrored = context.getProperty(ClientTracingFilter.SPAN_HAS_ERRORED);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          Tags.ERROR.set(span, true);
-          span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
-          span.finish();
+          if (!Boolean.TRUE.equals(hasErrored)) {
+            context.setProperty(ClientTracingFilter.SPAN_HAS_ERRORED, Boolean.TRUE);
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
+            span.finish();
+          }
         }
         throw e;
       }
@@ -133,11 +141,15 @@ public final class JerseyClientConnectionErrorInstrumentation extends Instrument
         return wrapped.get(timeout, unit);
       } catch (final ExecutionException e) {
         final Object prop = context.getProperty(ClientTracingFilter.SPAN_PROPERTY_NAME);
+        final Object hasErrored = context.getProperty(ClientTracingFilter.SPAN_HAS_ERRORED);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          Tags.ERROR.set(span, true);
-          span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
-          span.finish();
+          if (!Boolean.TRUE.equals(hasErrored)) {
+            context.setProperty(ClientTracingFilter.SPAN_HAS_ERRORED, Boolean.TRUE);
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
+            span.finish();
+          }
         }
         throw e;
       }

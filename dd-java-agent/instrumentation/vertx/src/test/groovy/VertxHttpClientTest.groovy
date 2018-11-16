@@ -1,7 +1,6 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.netty.channel.AbstractChannel
 import io.opentracing.tag.Tags
 import io.vertx.core.Vertx
@@ -66,15 +65,11 @@ class VertxHttpClientTest extends AgentTestRunner {
       message == expectedMessage
     }
 
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][0])
-      trace(1, 1) {
+    assertTraces(1) {
+      trace(0, 2) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
-          operationName "netty.client.request"
-          resourceName "GET /$route"
-          spanType DDSpanTypes.HTTP_CLIENT
+          operationName "GET localhost/$route"
           errored expectedError
           tags {
             defaultTags()
@@ -84,12 +79,16 @@ class VertxHttpClientTest extends AgentTestRunner {
             "$Tags.PEER_PORT.key" server.address.port
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "netty-client"
             if (expectedError) {
               "$Tags.ERROR.key" true
             }
           }
+        }
+        span(1) {
+          operationName "test-http-server"
+          errored false
+          childOf(span(0))
         }
       }
     }
@@ -137,7 +136,6 @@ class VertxHttpClientTest extends AgentTestRunner {
         }
         span(1) {
           operationName "netty.connect"
-          resourceName "netty.connect"
           childOf span(0)
           errored true
           tags {

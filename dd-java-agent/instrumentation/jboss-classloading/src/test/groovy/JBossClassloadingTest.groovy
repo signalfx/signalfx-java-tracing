@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 
 class JBossClassloadingTest extends AgentTestRunner {

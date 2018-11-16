@@ -1,12 +1,13 @@
+// Modified by SignalFx
 package datadog.trace.agent.integration;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import datadog.opentracing.DDSpan;
-import datadog.opentracing.DDTracer;
+import datadog.opentracing.mock.ListWriter;
+import datadog.opentracing.mock.TestSpan;
+import datadog.opentracing.mock.TestTracer;
 import datadog.trace.agent.test.IntegrationTestUtils;
-import datadog.trace.common.writer.ListWriter;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
@@ -32,7 +33,7 @@ public class MongoClientInstrumentationTest {
 
   private static MongoClient client;
   private static final ListWriter writer = new ListWriter();
-  private static final DDTracer tracer = new DDTracer(writer);
+  private static final TestTracer tracer = new TestTracer(writer);
 
   public static void startLocalMongo() throws Exception {
     final MongodStarter starter = MongodStarter.getDefaultInstance();
@@ -98,11 +99,10 @@ public class MongoClientInstrumentationTest {
 
     final String createCollectionQuery =
         "{ \"create\" : \"testCollection\", \"autoIndexId\" : \"?\", \"capped\" : \"?\" }";
-    final DDSpan trace0 = writer.get(0).get(0);
-    Assert.assertEquals("mongo.query", trace0.getOperationName());
-    Assert.assertEquals(createCollectionQuery, trace0.getResourceName());
-    Assert.assertEquals("mongodb", trace0.getType());
-    Assert.assertEquals("mongo", trace0.getServiceName());
+    final TestSpan trace0 = writer.get(0).get(0);
+    Assert.assertEquals("mongo.create", trace0.span.operationName());
+    Assert.assertEquals(createCollectionQuery, trace0.getDBStatement());
+    Assert.assertEquals("java-mongo", trace0.getComponent());
 
     Assert.assertEquals("java-mongo", trace0.getTags().get(Tags.COMPONENT.getKey()));
     Assert.assertEquals(createCollectionQuery, trace0.getTags().get(Tags.DB_STATEMENT.getKey()));

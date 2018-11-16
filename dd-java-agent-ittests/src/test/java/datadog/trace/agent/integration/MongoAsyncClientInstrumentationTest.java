@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.integration;
 
 import static datadog.trace.agent.integration.MongoClientInstrumentationTest.MONGO_DB_NAME;
@@ -8,10 +9,10 @@ import com.mongodb.async.SingleResultCallback;
 import com.mongodb.async.client.MongoClient;
 import com.mongodb.async.client.MongoClients;
 import com.mongodb.async.client.MongoDatabase;
-import datadog.opentracing.DDSpan;
-import datadog.opentracing.DDTracer;
+import datadog.opentracing.mock.ListWriter;
+import datadog.opentracing.mock.TestSpan;
+import datadog.opentracing.mock.TestTracer;
 import datadog.trace.agent.test.IntegrationTestUtils;
-import datadog.trace.common.writer.ListWriter;
 import io.opentracing.tag.Tags;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.bson.Document;
@@ -23,7 +24,7 @@ import org.junit.Test;
 public class MongoAsyncClientInstrumentationTest {
   private static MongoClient client;
   private static final ListWriter writer = new ListWriter();
-  private static final DDTracer tracer = new DDTracer(writer);
+  private static final TestTracer tracer = new TestTracer(writer);
 
   @BeforeClass
   public static void setup() throws Exception {
@@ -101,11 +102,10 @@ public class MongoAsyncClientInstrumentationTest {
 
     final String createCollectionQuery =
         "{ \"create\" : \"asyncCollection\", \"autoIndexId\" : \"?\", \"capped\" : \"?\" }";
-    final DDSpan trace0 = writer.get(0).get(0);
-    Assert.assertEquals("mongo.query", trace0.getOperationName());
-    Assert.assertEquals(createCollectionQuery, trace0.getResourceName());
-    Assert.assertEquals("mongodb", trace0.getType());
-    Assert.assertEquals("mongo", trace0.getServiceName());
+    final TestSpan trace0 = writer.get(0).get(0);
+    Assert.assertEquals("mongo.create", trace0.getOperationName());
+    Assert.assertEquals(createCollectionQuery, trace0.getDBStatement());
+    Assert.assertEquals("mongo", trace0.getDBType());
 
     Assert.assertEquals("java-mongo", trace0.getTags().get(Tags.COMPONENT.getKey()));
     Assert.assertEquals(createCollectionQuery, trace0.getTags().get(Tags.DB_STATEMENT.getKey()));

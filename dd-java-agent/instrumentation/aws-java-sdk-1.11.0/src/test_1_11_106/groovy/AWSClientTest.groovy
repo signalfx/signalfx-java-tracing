@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.amazonaws.AmazonWebServiceClient
 import com.amazonaws.SDKGlobalConfiguration
 import com.amazonaws.auth.AWSStaticCredentialsProvider
@@ -12,8 +13,6 @@ import com.amazonaws.services.rds.model.DeleteOptionGroupRequest
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import spock.lang.AutoCleanup
 import spock.lang.Shared
@@ -105,8 +104,7 @@ class AWSClientTest extends AgentTestRunner {
     assertTraces(2) {
       trace(0, 1) {
         span(0) {
-          operationName "http.request"
-          resourceName "$method /$url"
+          operationName "$method /$url"
           errored false
           parent() // FIXME: This should be a child of the aws.http call.
           tags {
@@ -117,16 +115,13 @@ class AWSClientTest extends AgentTestRunner {
             "$Tags.PEER_PORT.key" server.address.port
             "$Tags.HTTP_METHOD.key" "$method"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             defaultTags()
           }
         }
       }
       trace(1, 1) {
         span(0) {
-          serviceName "java-aws-sdk"
-          operationName "aws.http"
-          resourceName "$service.$operation"
+          operationName "$service.$operation"
           errored false
           parent()
           tags {
@@ -135,7 +130,6 @@ class AWSClientTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "$method"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "aws.service" String
             "aws.endpoint" "$server.address"
             "aws.operation" "${operation}Request"
@@ -146,8 +140,8 @@ class AWSClientTest extends AgentTestRunner {
       }
     }
     // Not sure why these are children of the aws.http span:
-    server.lastRequest.headers.get("x-datadog-trace-id") == TEST_WRITER[1][0].traceId
-    server.lastRequest.headers.get("x-datadog-parent-id") == TEST_WRITER[1][0].spanId
+    Long.valueOf(server.lastRequest.headers.get("traceid")) == TEST_WRITER[1][0].traceId
+    Long.valueOf(server.lastRequest.headers.get("spanid")) == TEST_WRITER[1][0].spanId
 
     where:
     service | operation           | method | url                  | handlerCount | call                                                                   | body               | client

@@ -1,6 +1,6 @@
+// Modified by SignalFx
 package datadog.trace.agent
 
-import datadog.opentracing.DDTraceOTInfo
 import datadog.trace.api.DDTraceApiInfo
 
 class DDInfoTest {
@@ -11,9 +11,6 @@ class DDInfoTest {
     DDTraceApiInfo.VERSION != null
     DDTraceApiInfo.VERSION != ""
     DDTraceApiInfo.VERSION != "unknown"
-    DDTraceOTInfo.VERSION != null
-    DDTraceOTInfo.VERSION != ""
-    DDTraceOTInfo.VERSION != "unknown"
   }
 
   def "info accessible from agent"() {

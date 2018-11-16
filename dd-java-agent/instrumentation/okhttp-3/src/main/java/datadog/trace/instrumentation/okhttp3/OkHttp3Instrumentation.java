@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.okhttp3;
 
 import static datadog.trace.instrumentation.okhttp3.OkHttpClientSpanDecorator.STANDARD_TAGS;
@@ -32,6 +33,7 @@ public class OkHttp3Instrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
+      "datadog.trace.instrumentation.utils.URLUtil",
       "datadog.trace.instrumentation.okhttp3.OkHttpClientSpanDecorator",
       "datadog.trace.instrumentation.okhttp3.OkHttpClientSpanDecorator$1",
       "datadog.trace.instrumentation.okhttp3.RequestBuilderInjectAdapter",

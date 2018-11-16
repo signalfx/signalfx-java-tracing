@@ -1,9 +1,8 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.lettuce.rx;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.instrumentation.lettuce.LettuceInstrumentationUtil;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -47,19 +46,14 @@ public class LettuceMonoDualConsumer<R, T, U extends Throwable>
   public void accept(final R r) {
     final Scope scope =
         GlobalTracer.get()
-            .buildSpan(LettuceInstrumentationUtil.SERVICE_NAME + ".query")
+            .buildSpan(this.commandName)
             .startActive(finishSpanOnClose);
     this.span = scope.span();
 
     Tags.DB_TYPE.set(this.span, LettuceInstrumentationUtil.SERVICE_NAME);
     Tags.SPAN_KIND.set(this.span, Tags.SPAN_KIND_CLIENT);
     Tags.COMPONENT.set(this.span, LettuceInstrumentationUtil.COMPONENT_NAME);
-
-    // should be command name only, but use workaround to prepend string to agent crashing commands
-    this.span.setTag(
-        DDTags.RESOURCE_NAME, LettuceInstrumentationUtil.getCommandResourceName(this.commandName));
-    this.span.setTag(DDTags.SERVICE_NAME, LettuceInstrumentationUtil.SERVICE_NAME);
-    this.span.setTag(DDTags.SPAN_TYPE, DDSpanTypes.REDIS);
+    Tags.DB_STATEMENT.set(this.span, this.commandName);
     scope.close();
   }
 }

@@ -1,7 +1,7 @@
+// Modified by SignalFx
 import datadog.opentracing.scopemanager.ContextualScopeManager
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.api.DDSpanTypes
 import datadog.trace.instrumentation.ratpack.impl.RatpackScopeManager
 import io.opentracing.Scope
 import io.opentracing.util.GlobalTracer
@@ -43,23 +43,21 @@ class RatpackTest extends AgentTestRunner {
     resp.code() == 200
     resp.body.string() == "success"
 
-    TEST_WRITER.size() == 1
-    def trace = TEST_WRITER.firstTrace()
-    trace.size() == 1
-    def span = trace[0]
-
-    span.context().serviceName == "unnamed-java-app"
-    span.context().operationName == "ratpack.handler"
-    span.context().resourceName == "GET /"
-    span.context().tags["component"] == "handler"
-    span.context().spanType == DDSpanTypes.HTTP_SERVER
-    !span.context().getErrorFlag()
-    span.context().tags["http.url"] == "/"
-    span.context().tags["http.method"] == "GET"
-    span.context().tags["span.kind"] == "server"
-    span.context().tags["http.status_code"] == 200
-    span.context().tags["thread.name"] != null
-    span.context().tags["thread.id"] != null
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          operationName "ratpack.handler"
+          errored false
+          tags {
+            "component" "handler"
+            "http.url" "/"
+            "http.method" "GET"
+            "span.kind" "server"
+            "http.status_code" 200
+          }
+        }
+      }
+    }
   }
 
   def "test path with bindings call"() {
@@ -83,23 +81,21 @@ class RatpackTest extends AgentTestRunner {
     resp.code() == 200
     resp.body.string() == ":foo/:bar?/baz"
 
-    TEST_WRITER.size() == 1
-    def trace = TEST_WRITER.firstTrace()
-    trace.size() == 1
-    def span = trace[0]
-
-    span.context().serviceName == "unnamed-java-app"
-    span.context().operationName == "ratpack.handler"
-    span.context().resourceName == "GET /:foo/:bar?/baz"
-    span.context().tags["component"] == "handler"
-    span.context().spanType == DDSpanTypes.HTTP_SERVER
-    !span.context().getErrorFlag()
-    span.context().tags["http.url"] == "/a/b/baz"
-    span.context().tags["http.method"] == "GET"
-    span.context().tags["span.kind"] == "server"
-    span.context().tags["http.status_code"] == 200
-    span.context().tags["thread.name"] != null
-    span.context().tags["thread.id"] != null
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          operationName "ratpack.handler"
+          errored false
+          tags {
+            "component" "handler"
+            "http.url" "/a/b/baz"
+            "http.method" "GET"
+            "span.kind" "server"
+            "http.status_code" 200
+          }
+        }
+      }
+    }
   }
 
   def "test error response"() {
@@ -120,23 +116,22 @@ class RatpackTest extends AgentTestRunner {
     then:
     resp.code() == 500
 
-    TEST_WRITER.size() == 1
-    def trace = TEST_WRITER.firstTrace()
-    trace.size() == 1
-    def span = trace[0]
-
-    span.context().getErrorFlag()
-    span.context().serviceName == "unnamed-java-app"
-    span.context().operationName == "ratpack.handler"
-    span.context().resourceName == "GET /"
-    span.context().tags["component"] == "handler"
-    span.context().spanType == DDSpanTypes.HTTP_SERVER
-    span.context().tags["http.url"] == "/"
-    span.context().tags["http.method"] == "GET"
-    span.context().tags["span.kind"] == "server"
-    span.context().tags["http.status_code"] == 500
-    span.context().tags["thread.name"] != null
-    span.context().tags["thread.id"] != null
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          operationName "ratpack.handler"
+          errored true
+          tags {
+            "component" "handler"
+            "http.url" "/"
+            "http.method" "GET"
+            "span.kind" "server"
+            "error" true
+            "http.status_code" 500
+          }
+        }
+      }
+    }
   }
 
   def "test path call using ratpack http client"() {
@@ -179,86 +174,66 @@ class RatpackTest extends AgentTestRunner {
     resp.code() == 200
     resp.body().string() == "success"
 
-    // 3rd is the three traces, ratpack, http client 2 and http client 1
-    // 2nd is nested2 from the external server (the result of the 2nd internal http client call)
-    // 1st is nested from the external server (the result of the 1st internal http client call)
-    TEST_WRITER.size() == 3
-    def trace = TEST_WRITER.get(2)
-    trace.size() == 3
-    def span = trace[0]
+    assertTraces(1) {
+      trace(0, 5) {
+        span(0) {
+          operationName "ratpack.handler"
+          errored false
+          tags {
+            "component" "handler"
+            "http.url" "/"
+            "http.method" "GET"
+            "span.kind" "server"
+            "http.status_code" 200
+          }
+        }
+        span(1) {
+          operationName "ratpack.client-request"
+          errored false
+          tags {
+            "component" "httpclient"
+            "http.url" "${external.address}nested2"
+            "http.method" "GET"
+            "span.kind" "client"
+            "http.status_code" 200
+          }
+        }
+        span(2) {
+          operationName "ratpack.handler"
+          errored false
+          tags {
+            "component" "handler"
+            "http.url" "/nested2"
+            "http.method" "GET"
+            "span.kind" "server"
+            "http.status_code" 200
+          }
+        }
+        span(3) {
+          operationName "ratpack.client-request"
+          errored false
+          tags {
+            "component" "httpclient"
+            "http.url" "${external.address}nested"
+            "http.method" "GET"
+            "span.kind" "client"
+            "http.status_code" 200
+          }
+        }
+        span(4) {
+          operationName "ratpack.handler"
+          errored false
+          tags {
+            "component" "handler"
+            "http.url" "/nested"
+            "http.method" "GET"
+            "span.kind" "server"
+            "http.status_code" 200
+          }
+        }
+      }
+    }
 
-    span.context().serviceName == "unnamed-java-app"
-    span.context().operationName == "ratpack.handler"
-    span.context().resourceName == "GET /"
-    span.context().tags["component"] == "handler"
-    span.context().spanType == DDSpanTypes.HTTP_SERVER
-    !span.context().getErrorFlag()
-    span.context().tags["http.url"] == "/"
-    span.context().tags["http.method"] == "GET"
-    span.context().tags["span.kind"] == "server"
-    span.context().tags["http.status_code"] == 200
-    span.context().tags["thread.name"] != null
-    span.context().tags["thread.id"] != null
-
-    def clientTrace1 = trace[1] // Second http client call that receives the 'ess' of Success
-
-    clientTrace1.context().serviceName == "unnamed-java-app"
-    clientTrace1.context().operationName == "ratpack.client-request"
-    clientTrace1.context().tags["component"] == "httpclient"
-    !clientTrace1.context().getErrorFlag()
-    clientTrace1.context().tags["http.url"] == "${external.address}nested2"
-    clientTrace1.context().tags["http.method"] == "GET"
-    clientTrace1.context().tags["span.kind"] == "client"
-    clientTrace1.context().tags["http.status_code"] == 200
-    clientTrace1.context().tags["thread.name"] != null
-    clientTrace1.context().tags["thread.id"] != null
-
-    def clientTrace2 = trace[2] // First http client call that receives the 'Succ' of Success
-
-    clientTrace2.context().serviceName == "unnamed-java-app"
-    clientTrace2.context().operationName == "ratpack.client-request"
-    clientTrace2.context().tags["component"] == "httpclient"
-    !clientTrace2.context().getErrorFlag()
-    clientTrace2.context().tags["http.url"] == "${external.address}nested"
-    clientTrace2.context().tags["http.method"] == "GET"
-    clientTrace2.context().tags["span.kind"] == "client"
-    clientTrace2.context().tags["http.status_code"] == 200
-    clientTrace2.context().tags["thread.name"] != null
-    clientTrace2.context().tags["thread.id"] != null
-
-    def nestedTrace = TEST_WRITER.get(1)
-    nestedTrace.size() == 1
-    def nestedSpan = nestedTrace[0] // simulated external system, second call
-
-    nestedSpan.context().serviceName == "unnamed-java-app"
-    nestedSpan.context().operationName == "ratpack.handler"
-    nestedSpan.context().resourceName == "GET /nested2"
-    nestedSpan.context().tags["component"] == "handler"
-    nestedSpan.context().spanType == DDSpanTypes.HTTP_SERVER
-    !nestedSpan.context().getErrorFlag()
-    nestedSpan.context().tags["http.url"] == "/nested2"
-    nestedSpan.context().tags["http.method"] == "GET"
-    nestedSpan.context().tags["span.kind"] == "server"
-    nestedSpan.context().tags["http.status_code"] == 200
-    nestedSpan.context().tags["thread.name"] != null
-    nestedSpan.context().tags["thread.id"] != null
-
-    def nestedTrace2 = TEST_WRITER.get(0)
-    nestedTrace2.size() == 1
-    def nestedSpan2 = nestedTrace2[0] // simulated external system, first call
-
-    nestedSpan2.context().serviceName == "unnamed-java-app"
-    nestedSpan2.context().operationName == "ratpack.handler"
-    nestedSpan2.context().resourceName == "GET /nested"
-    nestedSpan2.context().tags["component"] == "handler"
-    nestedSpan2.context().spanType == DDSpanTypes.HTTP_SERVER
-    !nestedSpan2.context().getErrorFlag()
-    nestedSpan2.context().tags["http.url"] == "/nested"
-    nestedSpan2.context().tags["http.method"] == "GET"
-    nestedSpan2.context().tags["span.kind"] == "server"
-    nestedSpan2.context().tags["http.status_code"] == 200
-    nestedSpan2.context().tags["thread.name"] != null
-    nestedSpan2.context().tags["thread.id"] != null
   }
 
   def "forked executions inherit parent scope"() {

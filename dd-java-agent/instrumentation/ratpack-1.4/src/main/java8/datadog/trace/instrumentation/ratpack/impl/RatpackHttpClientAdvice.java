@@ -56,13 +56,13 @@ public class RatpackHttpClientAdvice {
       if (span == null) {
         return;
       }
-      span.finish();
       if (result.isError()) {
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, result.getThrowable()));
       } else {
         Tags.HTTP_STATUS.set(span, result.getValue().getStatusCode());
       }
+      span.finish();
     }
   }
 

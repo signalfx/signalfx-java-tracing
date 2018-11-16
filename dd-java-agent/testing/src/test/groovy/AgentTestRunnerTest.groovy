@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.google.common.reflect.ClassPath
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.SpockRunner
@@ -54,7 +55,6 @@ class AgentTestRunnerTest extends AgentTestRunner {
     !AGENT_INSTALLED_IN_CLINIT
     getTestTracer() == TestUtils.getUnderlyingGlobalTracer()
     getAgentTransformer() != null
-    TestUtils.getUnderlyingGlobalTracer() == datadog.trace.api.GlobalTracer.get()
     bootstrapClassesIncorrectlyLoaded == []
   }
 

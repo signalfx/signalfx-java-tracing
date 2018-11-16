@@ -1,13 +1,14 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jetty8;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
+import com.google.common.base.Strings;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
+import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
@@ -31,16 +32,20 @@ public class JettyHandlerAdvice {
     final SpanContext extractedContext =
         GlobalTracer.get()
             .extract(Format.Builtin.HTTP_HEADERS, new HttpServletRequestExtractAdapter(req));
-    final String resourceName = req.getMethod() + " " + source.getClass().getName();
-    final Scope scope =
+    final String operationName = req.getMethod() + " " + source.getClass().getName();
+
+    Tracer.SpanBuilder builder =
         GlobalTracer.get()
-            .buildSpan("jetty.request")
+            .buildSpan(operationName)
             .asChildOf(extractedContext)
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_SERVER)
-            .withTag("servlet.context", req.getContextPath())
-            .withTag("span.origin.type", source.getClass().getName())
-            .startActive(false);
+            .withTag("span.origin.type", source.getClass().getName());
+
+    if (!Strings.isNullOrEmpty(req.getContextPath())) {
+      builder = builder.withTag("servlet.context", req.getContextPath());
+    }
+
+    final Scope scope = builder.startActive(false);
 
     if (scope instanceof TraceScope) {
       ((TraceScope) scope).setAsyncPropagation(true);
@@ -50,7 +55,6 @@ public class JettyHandlerAdvice {
     Tags.COMPONENT.set(span, "jetty-handler");
     Tags.HTTP_METHOD.set(span, req.getMethod());
     Tags.HTTP_URL.set(span, req.getRequestURL().toString());
-    span.setTag(DDTags.RESOURCE_NAME, resourceName);
     if (req.getUserPrincipal() != null) {
       span.setTag("user.principal", req.getUserPrincipal().getName());
     }

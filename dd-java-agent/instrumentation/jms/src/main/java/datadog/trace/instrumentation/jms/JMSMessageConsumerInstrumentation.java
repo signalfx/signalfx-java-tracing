@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jms;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -11,8 +12,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -74,23 +73,19 @@ public final class JMSMessageConsumerInstrumentation extends Instrumenter.Defaul
         @Advice.Origin final Method method,
         @Advice.Return final Message message,
         @Advice.Thrown final Throwable throwable) {
+      final String operationName =
+          (message == null)
+              ? "JMS " + method.getName()
+              : "Consume from " + toResourceName(message, null);
       Tracer.SpanBuilder spanBuilder =
           GlobalTracer.get()
-              .buildSpan("jms.consume")
-              .withTag(DDTags.SERVICE_NAME, "jms")
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_CONSUMER)
+              .buildSpan(operationName)
               .withTag(Tags.COMPONENT.getKey(), "jms")
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER)
               .withTag("span.origin.type", consumer.getClass().getName())
               .withStartTimestamp(TimeUnit.MILLISECONDS.toMicros(startTime));
 
-      if (message == null) {
-        spanBuilder = spanBuilder.withTag(DDTags.RESOURCE_NAME, "JMS " + method.getName());
-      } else {
-        spanBuilder =
-            spanBuilder.withTag(
-                DDTags.RESOURCE_NAME, "Consumed from " + toResourceName(message, null));
-
+      if (message != null) {
         final SpanContext extractedContext =
             GlobalTracer.get()
                 .extract(Format.Builtin.TEXT_MAP, new MessagePropertyTextMap(message));

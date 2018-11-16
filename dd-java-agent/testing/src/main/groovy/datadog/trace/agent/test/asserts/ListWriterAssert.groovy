@@ -1,7 +1,8 @@
+// Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
-import datadog.opentracing.DDSpan
-import datadog.trace.common.writer.ListWriter
+import datadog.opentracing.mock.ListWriter
+import datadog.opentracing.mock.TestSpan
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 import org.codehaus.groovy.runtime.powerassert.PowerAssertionError
@@ -53,7 +54,7 @@ class ListWriterAssert {
     }
   }
 
-  List<DDSpan> trace(int index) {
+  List<TestSpan> trace(int index) {
     return writer.get(index)
   }
 

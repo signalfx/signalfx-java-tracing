@@ -1,13 +1,15 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.servlet3;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
+import com.google.common.base.Strings;
 import datadog.trace.context.TraceScope;
+import datadog.trace.instrumentation.utils.URLUtil;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
+import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
@@ -36,18 +38,25 @@ public class Servlet3Advice {
                 Format.Builtin.HTTP_HEADERS,
                 new HttpServletRequestExtractAdapter(httpServletRequest));
 
-    final Scope scope =
+    Tracer.SpanBuilder builder =
         GlobalTracer.get()
-            .buildSpan("servlet.request")
+            .buildSpan(
+                URLUtil.deriveOperationName(
+                    httpServletRequest.getMethod(),
+                    httpServletRequest.getRequestURL().toString(),
+                    false))
             .asChildOf(extractedContext)
             .withTag(Tags.COMPONENT.getKey(), "java-web-servlet")
             .withTag(Tags.HTTP_METHOD.getKey(), httpServletRequest.getMethod())
             .withTag(Tags.HTTP_URL.getKey(), httpServletRequest.getRequestURL().toString())
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.WEB_SERVLET)
-            .withTag("span.origin.type", servlet.getClass().getName())
-            .withTag("servlet.context", httpServletRequest.getContextPath())
-            .startActive(false);
+            .withTag("span.origin.type", servlet.getClass().getName());
+
+    String contextPath = httpServletRequest.getContextPath();
+    if (!Strings.isNullOrEmpty(contextPath)) {
+      builder = builder.withTag("servlet.context", contextPath);
+    }
+    final Scope scope = builder.startActive(false);
 
     if (scope instanceof TraceScope) {
       ((TraceScope) scope).setAsyncPropagation(true);
@@ -90,7 +99,13 @@ public class Servlet3Advice {
           req.getAsyncContext().addListener(new TagSettingAsyncListener(activated, span));
           scope.close();
         } else {
-          Tags.HTTP_STATUS.set(span, resp.getStatus());
+          int status = resp.getStatus();
+          Tags.HTTP_STATUS.set(span, status);
+          if (status == 404) {
+            span.setOperationName("404");
+          } else if (status >= 500 && status < 600) {
+            Tags.ERROR.set(span, Boolean.TRUE);
+          }
           if (scope instanceof TraceScope) {
             ((TraceScope) scope).setAsyncPropagation(false);
           }

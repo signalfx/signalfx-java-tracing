@@ -1,7 +1,7 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.ListWriterAssert
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
+import datadog.trace.agent.test.asserts.TraceAssert
 import io.opentracing.tag.Tags
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.apache.activemq.ActiveMQMessageConsumer
@@ -47,25 +47,21 @@ class JMS1Test extends AgentTestRunner {
 
     expect:
     receivedMessage.text == messageText
-    assertTraces(2) {
-      producerTrace(it, 0, jmsResourceName)
-      trace(1, 1) { // Consumer trace
+    assertTraces(1) {
+      trace(0, 4) { // Consumer trace
         span(0) {
-          childOf TEST_WRITER.firstTrace().get(2)
-          serviceName "jms"
-          operationName "jms.consume"
-          resourceName "Consumed from $jmsResourceName"
-          spanType DDSpanTypes.MESSAGE_PRODUCER
+          childOf span(3)
+          operationName "Consume from $jmsResourceName"
           errored false
 
           tags {
             defaultTags(true)
-            "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
             "${Tags.COMPONENT.key}" "jms"
             "${Tags.SPAN_KIND.key}" "consumer"
             "span.origin.type" ActiveMQMessageConsumer.name
           }
         }
+        producerSpans(it, 1, jmsResourceName)
       }
     }
 
@@ -98,26 +94,31 @@ class JMS1Test extends AgentTestRunner {
     producer.send(message)
     lock.countDown()
 
+    // Race condition for consumer span
+    for (int i = 0; i < 1000; i++) {
+      TEST_WRITER.waitForTraces(1)
+      if (TEST_WRITER.get(0).size() == 4) {
+        break
+      }
+      sleep(1)
+    }
+
     expect:
-    assertTraces(2) {
-      producerTrace(it, 0, jmsResourceName)
-      trace(1, 1) { // Consumer trace
+    assertTraces(1) {
+      trace(0, 4) {
         span(0) {
-          childOf TEST_WRITER.firstTrace().get(2)
-          serviceName "jms"
-          operationName "jms.onMessage"
-          resourceName "Received from $jmsResourceName"
-          spanType DDSpanTypes.MESSAGE_PRODUCER
+          childOf span(3)
+          operationName "Receive from $jmsResourceName"
           errored false
 
           tags {
             defaultTags(true)
-            "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
             "${Tags.COMPONENT.key}" "jms"
             "${Tags.SPAN_KIND.key}" "consumer"
             "span.origin.type" { t -> t.contains("JMS1Test") }
           }
         }
+        producerSpans(it, 1, jmsResourceName)
       }
     }
     // This check needs to go after all traces have been accounted for
@@ -148,15 +149,11 @@ class JMS1Test extends AgentTestRunner {
       trace(0, 1) { // Consumer trace
         span(0) {
           parent()
-          serviceName "jms"
-          operationName "jms.consume"
-          resourceName "JMS receiveNoWait"
-          spanType DDSpanTypes.MESSAGE_PRODUCER
+          operationName "JMS receiveNoWait"
           errored false
 
           tags {
             defaultTags()
-            "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
             "${Tags.COMPONENT.key}" "jms"
             "${Tags.SPAN_KIND.key}" "consumer"
             "span.origin.type" ActiveMQMessageConsumer.name
@@ -187,15 +184,11 @@ class JMS1Test extends AgentTestRunner {
       trace(0, 1) { // Consumer trace
         span(0) {
           parent()
-          serviceName "jms"
-          operationName "jms.consume"
-          resourceName "JMS receive"
-          spanType DDSpanTypes.MESSAGE_PRODUCER
+          operationName "JMS receive"
           errored false
 
           tags {
             defaultTags()
-            "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
             "${Tags.COMPONENT.key}" "jms"
             "${Tags.SPAN_KIND.key}" "consumer"
             "span.origin.type" ActiveMQMessageConsumer.name
@@ -235,19 +228,15 @@ class JMS1Test extends AgentTestRunner {
     // write properties in MessagePropertyTextMap when readOnlyProperties = true.
     // The consumer span will also not be linked to the parent.
     assertTraces(2) {
-      producerTrace(it, 0, jmsResourceName)
+      producerTrace(it, 0, 0, jmsResourceName)
       trace(1, 1) { // Consumer trace
         span(0) {
           parent()
-          serviceName "jms"
-          operationName "jms.consume"
-          resourceName "Consumed from $jmsResourceName"
-          spanType DDSpanTypes.MESSAGE_PRODUCER
+          operationName "Consume from $jmsResourceName"
           errored false
 
           tags {
             defaultTags()
-            "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
             "${Tags.COMPONENT.key}" "jms"
             "${Tags.SPAN_KIND.key}" "consumer"
             "span.origin.type" ActiveMQMessageConsumer.name
@@ -268,72 +257,65 @@ class JMS1Test extends AgentTestRunner {
     session.createTemporaryTopic()   | "Temporary Topic"
   }
 
-  def producerTrace(ListWriterAssert writer, int index, String jmsResourceName) {
-    writer.trace(index, 3) {
-      span(0) {
+  def producerTrace(ListWriterAssert writer, int traceIndex, int spanIndex, String jmsResourceName) {
+    writer.trace(traceIndex, 3) {
+      producerSpans(it, spanIndex, jmsResourceName)
+    }
+  }
+
+  def producerSpans(TraceAssert traceAssert, int spanIndex, String jmsResourceName) {
+    def innerProducerSpans = {
+      span(spanIndex) {
         parent()
-        serviceName "jms"
-        operationName "jms.produce"
-        resourceName "Produced for $jmsResourceName"
-        spanType DDSpanTypes.MESSAGE_PRODUCER
+        operationName "Produce for $jmsResourceName"
         errored false
 
         tags {
           defaultTags()
-          "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_PRODUCER
           "${Tags.COMPONENT.key}" "jms"
           "${Tags.SPAN_KIND.key}" "producer"
           "span.origin.type" ActiveMQMessageProducer.name
         }
       }
-      span(1) {
-        childOf span(0)
-        serviceName "jms"
-        operationName "jms.produce"
-        resourceName "Produced for $jmsResourceName"
-        spanType DDSpanTypes.MESSAGE_PRODUCER
+      span(spanIndex + 1) {
+        childOf span(spanIndex)
+        operationName "Produce for $jmsResourceName"
         errored false
 
         tags {
           defaultTags()
-          "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_PRODUCER
           "${Tags.COMPONENT.key}" "jms"
           "${Tags.SPAN_KIND.key}" "producer"
           "span.origin.type" ActiveMQMessageProducer.name
         }
       }
-      span(2) {
-        childOf span(1)
-        serviceName "jms"
-        operationName "jms.produce"
-        resourceName "Produced for $jmsResourceName"
-        spanType DDSpanTypes.MESSAGE_PRODUCER
+      span(spanIndex + 2) {
+        childOf span(spanIndex + 1)
+        operationName "Produce for $jmsResourceName"
         errored false
 
         tags {
           defaultTags()
-          "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_PRODUCER
           "${Tags.COMPONENT.key}" "jms"
           "${Tags.SPAN_KIND.key}" "producer"
           "span.origin.type" ActiveMQMessageProducer.name
         }
       }
     }
+    innerProducerSpans.delegate = traceAssert
+    innerProducerSpans.resolveStrategy = Closure.DELEGATE_FIRST
+    return innerProducerSpans()
   }
 
   def consumerTrace(ListWriterAssert writer, int index, String jmsResourceName, origin) {
-    writer.trace(index, 1) {
+    writer.trace(index, 2) {
       span(0) {
         childOf TEST_WRITER.firstTrace().get(2)
-        serviceName "jms"
-        operationName "jms.onMessage"
-        resourceName "Received from $jmsResourceName"
-        spanType DDSpanTypes.MESSAGE_PRODUCER
+        operationName "Receive from $jmsResourceName"
         errored false
 
         tags {
           defaultTags()
-          "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
           "${Tags.COMPONENT.key}" "jms"
           "${Tags.SPAN_KIND.key}" "consumer"
           "span.origin.type" origin

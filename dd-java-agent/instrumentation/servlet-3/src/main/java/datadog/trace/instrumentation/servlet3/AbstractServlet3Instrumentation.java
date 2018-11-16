@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.servlet3;
 
 import datadog.trace.agent.tooling.Instrumenter;
@@ -11,6 +12,7 @@ public abstract class AbstractServlet3Instrumentation extends Instrumenter.Defau
   @Override
   public String[] helperClassNames() {
     return new String[] {
+      "datadog.trace.instrumentation.utils.URLUtil",
       "datadog.trace.instrumentation.servlet3.HttpServletRequestExtractAdapter",
       "datadog.trace.instrumentation.servlet3.HttpServletRequestExtractAdapter$MultivaluedMapFlatIterator",
       "datadog.trace.instrumentation.servlet3.TagSettingAsyncListener"

@@ -1,21 +1,23 @@
+// Modified by SignalFx
 package datadog.trace.agent.test;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import com.google.common.collect.Sets;
-import datadog.opentracing.DDSpan;
-import datadog.opentracing.DDTracer;
+import datadog.opentracing.mock.ListWriter;
+import datadog.opentracing.mock.TestSpan;
+import datadog.opentracing.mock.TestTracer;
+import datadog.opentracing.mock.Writer;
 import datadog.trace.agent.test.asserts.ListWriterAssert;
 import datadog.trace.agent.tooling.AgentInstaller;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.GlobalTracer;
-import datadog.trace.common.writer.ListWriter;
-import datadog.trace.common.writer.Writer;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.SimpleType;
+import io.opentracing.Span;
 import io.opentracing.Tracer;
+import io.opentracing.util.GlobalTracer;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.util.List;
@@ -83,14 +85,15 @@ public abstract class AgentTestRunner extends Specification {
     TEST_WRITER =
         new ListWriter() {
           @Override
-          public boolean add(final List<DDSpan> trace) {
+          public boolean add(final List<TestSpan> trace) {
             final boolean result = super.add(trace);
             return result;
           }
         };
-    TEST_TRACER = new DDTracer(TEST_WRITER);
+    TEST_TRACER = new TestTracer(TEST_WRITER);
     TestUtils.registerOrReplaceGlobalTracer((Tracer) TEST_TRACER);
-    GlobalTracer.registerIfAbsent((datadog.trace.api.Tracer) TEST_TRACER);
+    GlobalTracer.register((Tracer) TEST_TRACER);
+    datadog.trace.api.GlobalTracer.registerIfAbsent((datadog.trace.api.Tracer) TEST_TRACER);
   }
 
   protected static Tracer getTestTracer() {
@@ -142,7 +145,8 @@ public abstract class AgentTestRunner extends Specification {
     TEST_WRITER.start();
     INSTRUMENTATION_ERROR_COUNT.set(0);
     ERROR_LISTENER.activateTest(this);
-    assert getTestTracer().activeSpan() == null : "Span is active before test has started";
+    Span active = getTestTracer().activeSpan();
+    assert active == null : "Span is active before test has started: " + active.toString();
   }
 
   @After

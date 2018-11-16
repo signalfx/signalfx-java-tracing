@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.elasticsearch6;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -9,8 +10,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -80,10 +79,7 @@ public class Elasticsearch6TransportClientInstrumentation extends Instrumenter.D
 
       final Scope scope =
           GlobalTracer.get()
-              .buildSpan("elasticsearch.query")
-              .withTag(DDTags.SERVICE_NAME, "elasticsearch")
-              .withTag(DDTags.RESOURCE_NAME, action.getClass().getSimpleName())
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.ELASTICSEARCH)
+              .buildSpan(action.getClass().getSimpleName())
               .withTag(Tags.COMPONENT.getKey(), "elasticsearch-java")
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
               .withTag("elasticsearch.action", action.getClass().getSimpleName())

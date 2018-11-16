@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.tooling;
 
 import datadog.trace.bootstrap.DatadogClassLoader;
@@ -20,9 +21,13 @@ public class Utils {
   };
 
   public static final String[] AGENT_PACKAGE_PREFIXES = {
+    // stripping slf4j from the agent-tooling jar seems to break lombok in instrumentations
+    "datadog.slf4j",
     "datadog.trace.common",
     "datadog.trace.agent",
     "datadog.trace.instrumentation",
+    // jaeger
+    "datadog.trace.jaeger",
     // guava
     "com.google.auto",
     "com.google.common",

@@ -1,10 +1,9 @@
+// Modified by SignalFx
 import akka.NotUsed
 import akka.stream.javadsl.Source
 import akka.stream.testkit.TestSubscriber.Probe
 import akka.stream.testkit.javadsl.TestSink
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import play.inject.guice.GuiceApplicationBuilder
 import spock.lang.Shared
@@ -63,9 +62,7 @@ class LagomTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET ws://?/echo"
+          operationName "GET /echo"
           errored false
           tags {
             defaultTags()
@@ -73,7 +70,6 @@ class LagomTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "ws://localhost:${server.port()}/echo"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.COMPONENT.key" "akka-http-server"
           }
         }
@@ -101,9 +97,7 @@ class LagomTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET ws://?/error"
+          operationName "GET /error"
           errored true
           tags {
             defaultTags()
@@ -111,7 +105,6 @@ class LagomTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "ws://localhost:${server.port()}/error"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.COMPONENT.key" "akka-http-server"
             "$Tags.ERROR.key" true
           }

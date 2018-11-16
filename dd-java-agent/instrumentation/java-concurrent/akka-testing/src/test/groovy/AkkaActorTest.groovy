@@ -1,4 +1,5 @@
-import datadog.opentracing.DDSpan
+// Modified by SignalFx
+import datadog.opentracing.mock.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 
 class AkkaActorTest extends AgentTestRunner {
@@ -9,13 +10,13 @@ class AkkaActorTest extends AgentTestRunner {
     akkaTester."$testMethod"()
 
     TEST_WRITER.waitForTraces(1)
-    List<DDSpan> trace = TEST_WRITER.get(0)
+    List<TestSpan> trace = TEST_WRITER.get(0)
 
     expect:
     TEST_WRITER.size() == 1
     trace.size() == 2
     trace[0].getOperationName() == "AkkaActors.$testMethod"
-    findSpan(trace, "$expectedGreeting, Akka").context().getParentId() == trace[0].getSpanId()
+    findSpan(trace, "$expectedGreeting, Akka").parentId == trace[0].spanId
 
     where:
     testMethod     | expectedGreeting
@@ -24,8 +25,8 @@ class AkkaActorTest extends AgentTestRunner {
     "basicForward" | "Hello"
   }
 
-  private DDSpan findSpan(List<DDSpan> trace, String opName) {
-    for (DDSpan span : trace) {
+  private TestSpan findSpan(List<TestSpan> trace, String opName) {
+    for (TestSpan span : trace) {
       if (span.getOperationName() == opName) {
         return span
       }

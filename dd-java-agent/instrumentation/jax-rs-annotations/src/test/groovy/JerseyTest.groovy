@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import io.dropwizard.testing.junit.ResourceTestRule
 import org.junit.ClassRule
@@ -25,7 +26,7 @@ class JerseyTest extends AgentTestRunner {
 
     def trace = TEST_WRITER.firstTrace()
     def span = trace[0]
-    span.resourceName == "POST /test/hello/{name}"
+    span.operationName == "POST /test/hello/{name}"
     span.tags["component"] == "jax-rs"
   }
 }

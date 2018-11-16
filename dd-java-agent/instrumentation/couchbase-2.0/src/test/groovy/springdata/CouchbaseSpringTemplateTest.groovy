@@ -1,9 +1,9 @@
+// Modified by SignalFx
 package springdata
 
 
 import com.couchbase.client.java.Bucket
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
+import io.opentracing.tag.Tags
 import org.springframework.data.couchbase.core.CouchbaseTemplate
 import spock.lang.Shared
 import util.AbstractCouchbaseTest
@@ -42,13 +42,11 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
     assertTraces(4) {
       trace(0, 1) {
         span(0) {
-          serviceName "couchbase"
-          resourceName "Bucket.upsert"
-          operationName "couchbase.call"
+          operationName "Bucket.upsert"
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
+            "$Tags.COMPONENT.key" "couchbase"
             "bucket" name
             defaultTags()
           }
@@ -56,13 +54,11 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
       }
       trace(1, 1) {
         span(0) {
-          serviceName "couchbase"
-          resourceName "Bucket.get"
-          operationName "couchbase.call"
+          operationName "Bucket.get"
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
+            "$Tags.COMPONENT.key" "couchbase"
             "bucket" name
             defaultTags()
           }
@@ -70,13 +66,11 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
       }
       trace(2, 1) {
         span(0) {
-          serviceName "couchbase"
-          resourceName "Bucket.remove"
-          operationName "couchbase.call"
+          operationName "Bucket.remove"
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
+            "$Tags.COMPONENT.key" "couchbase"
             "bucket" name
             defaultTags()
           }
@@ -84,13 +78,11 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
       }
       trace(3, 1) {
         span(0) {
-          serviceName "couchbase"
-          resourceName "Bucket.get"
-          operationName "couchbase.call"
+          operationName "Bucket.get"
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
+            "$Tags.COMPONENT.key" "couchbase"
             "bucket" name
             defaultTags()
           }

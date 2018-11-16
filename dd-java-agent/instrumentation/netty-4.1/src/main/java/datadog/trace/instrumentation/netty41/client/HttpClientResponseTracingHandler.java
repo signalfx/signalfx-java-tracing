@@ -46,7 +46,11 @@ public class HttpClientResponseTracingHandler extends ChannelInboundHandlerAdapt
       }
 
       if (finishSpan) {
-        Tags.HTTP_STATUS.set(span, ((HttpResponse) msg).status().code());
+        int code = ((HttpResponse) msg).status().code();
+        Tags.HTTP_STATUS.set(span, code);
+        if (code >= 500 && code < 600) {
+          Tags.ERROR.set(span, true);
+        }
         span.finish(); // Finish the span manually since finishSpanOnClose was false
       }
     }

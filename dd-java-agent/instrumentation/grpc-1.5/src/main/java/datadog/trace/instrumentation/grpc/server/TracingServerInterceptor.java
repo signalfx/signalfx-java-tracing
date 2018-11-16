@@ -1,9 +1,8 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.grpc.server;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.context.TraceScope;
 import io.grpc.ForwardingServerCallListener;
 import io.grpc.Metadata;
@@ -47,9 +46,7 @@ public class TracingServerInterceptor implements ServerInterceptor {
 
     final Tracer.SpanBuilder spanBuilder =
         tracer
-            .buildSpan("grpc.server")
-            .withTag(DDTags.RESOURCE_NAME, call.getMethodDescriptor().getFullMethodName())
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.RPC)
+            .buildSpan(call.getMethodDescriptor().getFullMethodName())
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER);
     if (spanContext != null) {
       spanBuilder.asChildOf(spanContext);
@@ -86,6 +83,7 @@ public class TracingServerInterceptor implements ServerInterceptor {
       extends ForwardingServerCallListener.SimpleForwardingServerCallListener<ReqT> {
     final Tracer tracer;
     final Span span;
+    private boolean spanErrored = false;
 
     TracingServerCallListener(
         final Tracer tracer, final Span span, final ServerCall.Listener<ReqT> delegate) {
@@ -101,7 +99,6 @@ public class TracingServerInterceptor implements ServerInterceptor {
               .buildSpan("grpc.message")
               .asChildOf(span)
               .withTag("message.type", message.getClass().getName())
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.RPC)
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
               .startActive(true);
       if (scope instanceof TraceScope) {
@@ -136,7 +133,7 @@ public class TracingServerInterceptor implements ServerInterceptor {
       } catch (final RuntimeException | Error e) {
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, e));
-        span.finish();
+        spanErrored = true;
         throw e;
       }
     }
@@ -154,9 +151,11 @@ public class TracingServerInterceptor implements ServerInterceptor {
           ((TraceScope) scope).setAsyncPropagation(false);
         }
       } catch (final RuntimeException | Error e) {
-        Tags.ERROR.set(span, true);
+        // onHalfClose may already have error tagged span
+        if (!spanErrored) {
+          Tags.ERROR.set(span, true);
+        }
         span.log(Collections.singletonMap(ERROR_OBJECT, e));
-        span.finish();
         throw e;
       }
     }
@@ -173,9 +172,11 @@ public class TracingServerInterceptor implements ServerInterceptor {
           ((TraceScope) scope).setAsyncPropagation(false);
         }
       } catch (final RuntimeException | Error e) {
-        Tags.ERROR.set(span, true);
+        // onHalfClose may already have error tagged span
+        if (!spanErrored) {
+          Tags.ERROR.set(span, true);
+        }
         span.log(Collections.singletonMap(ERROR_OBJECT, e));
-        span.finish();
         throw e;
       }
     }
@@ -193,7 +194,6 @@ public class TracingServerInterceptor implements ServerInterceptor {
       } catch (final RuntimeException | Error e) {
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, e));
-        span.finish();
         throw e;
       }
     }

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.kafka_streams;
 
 import static datadog.trace.agent.tooling.ClassLoaderMatcher.classLoaderHasClasses;
@@ -11,8 +12,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -77,11 +76,8 @@ public class KafkaStreamsProcessorInstrumentation {
                     Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(record.value.headers()));
 
         GlobalTracer.get()
-            .buildSpan("kafka.consume")
+            .buildSpan("Consume Topic " + record.topic())
             .asChildOf(extractedContext)
-            .withTag(DDTags.SERVICE_NAME, "kafka")
-            .withTag(DDTags.RESOURCE_NAME, "Consume Topic " + record.topic())
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_CONSUMER)
             .withTag(Tags.COMPONENT.getKey(), "java-kafka")
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER)
             .withTag("partition", record.partition())

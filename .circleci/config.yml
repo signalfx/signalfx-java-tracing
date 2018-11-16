@@ -25,7 +25,7 @@ jobs:
 
     - run:
         name: Build Project
-        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx1G -Xms64M" ./gradlew clean :dd-java-agent:shadowJar compileTestGroovy compileTestScala compileTestJava --build-cache --parallel --stacktrace --no-daemon --max-workers=8
+        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx1G -Xms64M" ./gradlew clean :dd-java-agent:shadowJar compileTestGroovy compileTestScala compileTestJava --build-cache --parallel --stacktrace --no-daemon --max-workers=1
 
     - run:
         name: Collect Libs
@@ -66,7 +66,7 @@ jobs:
 
     - run:
         name: Run Tests
-        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2G -Xms512M" ./gradlew $TEST_TASK --build-cache --parallel --stacktrace --no-daemon --max-workers=6
+        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2G -Xms512M" ./gradlew $TEST_TASK --build-cache --parallel --stacktrace --no-daemon --max-workers=1
 
     - run:
         name: Collect Reports
@@ -110,44 +110,6 @@ jobs:
     environment:
     - TEST_TASK: testJava11
 
-  agent_integration_tests:
-    <<: *defaults
-    docker:
-    - image: *default_container
-    - image: datadog/docker-dd-agent
-      environment:
-      - DD_APM_ENABLED=true
-      - DD_BIND_HOST=0.0.0.0
-      - DD_API_KEY=invalid_key_but_this_is_fine
-    steps:
-    - checkout
-
-    - attach_workspace:
-        at: .
-
-    - restore_cache:
-        <<: *cache_keys
-
-    - run:
-        name: Run Trace Agent Tests
-        command: ./gradlew traceAgentTest --build-cache --parallel --stacktrace --no-daemon --max-workers=8
-
-    - run:
-        name: Collect Reports
-        when: on_fail
-        command: .circleci/collect_reports.sh
-
-    - store_artifacts:
-        path: ./reports
-
-    - run:
-        name: Collect Test Results
-        when: always
-        command: .circleci/collect_results.sh
-
-    - store_test_results:
-        path: ./results
-
   check:
     <<: *defaults
 
@@ -162,7 +124,7 @@ jobs:
 
     - run:
         name: Build Project
-        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx1G -Xms64M" ./gradlew check -PskipTests --build-cache --parallel --stacktrace --no-daemon --max-workers=8
+        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx1G -Xms64M" ./gradlew check -PskipTests --build-cache --parallel --stacktrace --no-daemon --max-workers=1
 
     - run:
         name: Collect Reports
@@ -184,7 +146,7 @@ jobs:
 
     - run:
         name: Verify Version Scan
-        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx4G -Xms64M" ./gradlew verifyVersionScan --parallel --stacktrace --no-daemon --max-workers=8
+        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx4G -Xms64M" ./gradlew verifyVersionScan --parallel --stacktrace --no-daemon --max-workers=1
 
     - save_cache:
         key: dd-trace-java-version-scan-{{ checksum "dd-trace-java.gradle" }}
@@ -276,13 +238,6 @@ workflows:
           tags:
             only: /.*/
 
-    - agent_integration_tests:
-        requires:
-        - build
-        filters:
-          tags:
-            only: /.*/
-
     - check:
         requires:
         - build
@@ -311,7 +266,6 @@ workflows:
         - test_9
         - test_10
         - test_11
-        - agent_integration_tests
         - check
         filters:
           branches:
@@ -326,7 +280,6 @@ workflows:
         - test_9
         - test_10
         - test_11
-        - agent_integration_tests
         - check
         filters:
           branches:

@@ -1,5 +1,5 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.Config
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.KafkaStreams
@@ -52,7 +52,7 @@ class KafkaStreamsTest extends AgentTestRunner {
       void onMessage(ConsumerRecord<String, String> record) {
         // ensure consistent ordering of traces
         // this is the last processing step so we should see 2 traces here
-        TEST_WRITER.waitForTraces(2)
+        TEST_WRITER.waitForTraces(1)
         getTestTracer().activeSpan().setTag("testing", 123)
         records.add(record)
       }
@@ -94,101 +94,59 @@ class KafkaStreamsTest extends AgentTestRunner {
     received.value() == greeting.toLowerCase()
     received.key() == null
 
-    TEST_WRITER.waitForTraces(3)
-    TEST_WRITER.size() == 3
+    TEST_WRITER.waitForTraces(1)
+    TEST_WRITER.size() == 1
+    def trace = TEST_WRITER.get(0)
+    trace.size() == 4
 
-    def t1 = TEST_WRITER.get(0)
-    t1.size() == 1
-    def t2 = TEST_WRITER.get(1)
-    t2.size() == 2
-    def t3 = TEST_WRITER.get(2)
-    t3.size() == 1
+    def consumeProcessed = trace[0]
+    def produceProcessed = trace[1]
+    def consumePending = trace[2]
+    def producePending = trace[3]
 
-    and: // PRODUCER span 0
-    def t1span1 = t1[0]
+    producePending.operationName == "Produce Topic $STREAM_PENDING"
+    producePending.parentId == 0
 
-    t1span1.context().operationName == "kafka.produce"
-    t1span1.serviceName == "kafka"
-    t1span1.resourceName == "Produce Topic $STREAM_PENDING"
-    t1span1.type == "queue"
-    !t1span1.context().getErrorFlag()
-    t1span1.context().parentId == "0"
+    def producePendingTags = producePending.tags()
+    producePendingTags["component"] == "java-kafka"
+    producePendingTags["span.kind"] == "producer"
+    producePendingTags.size() == 2
 
-    def t1tags1 = t1span1.context().tags
-    t1tags1["component"] == "java-kafka"
-    t1tags1["span.kind"] == "producer"
-    t1tags1["span.type"] == "queue"
-    t1tags1["thread.name"] != null
-    t1tags1["thread.id"] != null
-    t1tags1[Config.RUNTIME_ID_TAG] == Config.get().runtimeId
-    t1tags1.size() == 6
+    produceProcessed.operationName == "Produce Topic $STREAM_PROCESSED"
 
-    and: // STREAMING span 0
-    def t2span1 = t2[0]
+    def produceProcessedTags = produceProcessed.tags()
+    produceProcessedTags["component"] == "java-kafka"
+    produceProcessedTags["span.kind"] == "producer"
+    produceProcessedTags.size() == 2
 
-    t2span1.context().operationName == "kafka.produce"
-    t2span1.serviceName == "kafka"
-    t2span1.resourceName == "Produce Topic $STREAM_PROCESSED"
-    t2span1.type == "queue"
-    !t2span1.context().getErrorFlag()
+    produceProcessed.parentId == consumePending.spanId
 
-    def t2tags1 = t2span1.context().tags
-    t2tags1["component"] == "java-kafka"
-    t2tags1["span.kind"] == "producer"
-    t2tags1["span.type"] == "queue"
-    t2tags1["thread.name"] != null
-    t2tags1["thread.id"] != null
-    t2tags1.size() == 5
+    consumePending.operationName == "Consume Topic $STREAM_PENDING"
+    consumePending.parentId == producePending.spanId
 
-    and: // STREAMING span 1
-    def t2span2 = t2[1]
-    t2span1.context().parentId == t2span2.context().spanId
+    def consumePendingTags = consumePending.tags()
+    consumePendingTags["component"] == "java-kafka"
+    consumePendingTags["span.kind"] == "consumer"
+    consumePendingTags["partition"] >= 0
+    consumePendingTags["offset"] == 0
+    consumePendingTags["asdf"] == "testing"
+    consumePendingTags.size() == 5
 
-    t2span2.context().operationName == "kafka.consume"
-    t2span2.serviceName == "kafka"
-    t2span2.resourceName == "Consume Topic $STREAM_PENDING"
-    t2span2.type == "queue"
-    !t2span2.context().getErrorFlag()
-    t2span2.context().parentId == t1span1.context().spanId
+    consumeProcessed.operationName == "Consume Topic $STREAM_PROCESSED"
+    consumeProcessed.parentId == produceProcessed.spanId
 
-    def t2tags2 = t2span2.context().tags
-    t2tags2["component"] == "java-kafka"
-    t2tags2["span.kind"] == "consumer"
-    t2tags2["span.type"] == "queue"
-    t2tags2["partition"] >= 0
-    t2tags2["offset"] == 0
-    t2tags2["thread.name"] != null
-    t2tags2["thread.id"] != null
-    t2tags2[Config.RUNTIME_ID_TAG] == Config.get().runtimeId
-    t2tags2["asdf"] == "testing"
-    t2tags2.size() == 9
-
-    and: // CONSUMER span 0
-    def t3span1 = t3[0]
-
-    t3span1.context().operationName == "kafka.consume"
-    t3span1.serviceName == "kafka"
-    t3span1.resourceName == "Consume Topic $STREAM_PROCESSED"
-    t3span1.type == "queue"
-    !t3span1.context().getErrorFlag()
-    t3span1.context().parentId == t2span1.context().spanId
-
-    def t3tags1 = t3span1.context().tags
-    t3tags1["component"] == "java-kafka"
-    t3tags1["span.kind"] == "consumer"
-    t3tags1["span.type"] == "queue"
-    t3tags1["partition"] >= 0
-    t3tags1["offset"] == 0
-    t3tags1["thread.name"] != null
-    t3tags1["thread.id"] != null
-    t3tags1[Config.RUNTIME_ID_TAG] == Config.get().runtimeId
-    t3tags1["testing"] == 123
-    t3tags1.size() == 9
+    def consumeProcessedTags = consumeProcessed.tags()
+    consumeProcessedTags["component"] == "java-kafka"
+    consumeProcessedTags["span.kind"] == "consumer"
+    consumeProcessedTags["partition"] >= 0
+    consumeProcessedTags["offset"] == 0
+    consumeProcessedTags["testing"] == 123
+    consumeProcessedTags.size() == 5
 
     def headers = received.headers()
     headers.iterator().hasNext()
-    new String(headers.headers("x-datadog-trace-id").iterator().next().value()) == "$t2span1.traceId"
-    new String(headers.headers("x-datadog-parent-id").iterator().next().value()) == "$t2span1.spanId"
+    new String(headers.headers("traceid").iterator().next().value()) == "$produceProcessed.traceId"
+    new String(headers.headers("spanid").iterator().next().value()) == "$produceProcessed.spanId"
 
 
     cleanup:

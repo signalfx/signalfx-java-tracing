@@ -1,8 +1,7 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -40,8 +39,8 @@ class Netty40ServerTest extends AgentTestRunner {
 
     def request = new Request.Builder()
       .url("http://localhost:$port/")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("traceid", tid.toString())
+      .header("spanid", "0")
       .get()
       .build()
     def response = client.newCall(request).execute()
@@ -54,12 +53,9 @@ class Netty40ServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          traceId "123"
-          parentId "456"
-          serviceName "unnamed-java-app"
-          operationName "netty.request"
-          resourceName "GET /"
-          spanType DDSpanTypes.HTTP_SERVER
+          traceId tid
+          parentId 0
+          operationName "GET /"
           errored false
           tags {
             "$Tags.COMPONENT.key" "netty"
@@ -69,7 +65,6 @@ class Netty40ServerTest extends AgentTestRunner {
             "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             defaultTags(true)
           }
         }
@@ -80,9 +75,9 @@ class Netty40ServerTest extends AgentTestRunner {
     eventLoopGroup.shutdownGracefully()
 
     where:
-    handlers                                              | _
-    [new HttpServerCodec()]                               | _
-    [new HttpRequestDecoder(), new HttpResponseEncoder()] | _
+    handlers                                              | tid
+    [new HttpServerCodec()]                               | 123
+    [new HttpRequestDecoder(), new HttpResponseEncoder()] | 124
   }
 
   def "test #responseCode response handling"() {
@@ -102,10 +97,7 @@ class Netty40ServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
-          operationName "netty.request"
-          resourceName name
-          spanType DDSpanTypes.HTTP_SERVER
+          operationName name
           errored error
           tags {
             "$Tags.COMPONENT.key" "netty"
@@ -115,7 +107,6 @@ class Netty40ServerTest extends AgentTestRunner {
             "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             if (error) {
               tag("error", true)
             }
@@ -131,7 +122,7 @@ class Netty40ServerTest extends AgentTestRunner {
     where:
     responseCode                             | name    | error
     HttpResponseStatus.OK                    | "GET /" | false
-    HttpResponseStatus.NOT_FOUND             | "404"   | false
+    HttpResponseStatus.NOT_FOUND             | "GET /" | false
     HttpResponseStatus.INTERNAL_SERVER_ERROR | "GET /" | true
   }
 

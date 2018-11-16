@@ -1,8 +1,8 @@
-import datadog.opentracing.DDSpan
+// Modified by SignalFx
+
+import datadog.opentracing.mock.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.TraceAssert
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.apache.http.HttpResponse
 import org.apache.http.client.HttpClient
@@ -62,12 +62,14 @@ class ApacheHttpClientTest extends AgentTestRunner {
 
     then:
     response == "Hello."
-    // one trace on the server, one trace on the client
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][1])
-      trace(1, 2) {
+    assertTraces(1) {
+      trace(0, 3) {
         parentSpan(it, 0)
         successClientSpan(it, 1, span(0))
+        span(2) {
+          operationName "test-http-server"
+          childOf(span(1))
+        }
       }
     }
 
@@ -99,9 +101,7 @@ class ApacheHttpClientTest extends AgentTestRunner {
   def parentSpan(TraceAssert trace, int index, Throwable exception = null) {
     trace.span(index) {
       parent()
-      serviceName "unnamed-java-app"
       operationName "parent"
-      resourceName "parent"
       errored exception != null
       tags {
         defaultTags()
@@ -112,12 +112,10 @@ class ApacheHttpClientTest extends AgentTestRunner {
     }
   }
 
-  def successClientSpan(TraceAssert trace, int index, DDSpan parent, status = 200, route = "success", Throwable exception = null) {
+  def successClientSpan(TraceAssert trace, int index, TestSpan parent, status = 200, route = "success", Throwable exception = null) {
     trace.span(index) {
       childOf parent
-      serviceName "unnamed-java-app"
-      operationName "http.request"
-      resourceName "GET /$route"
+      operationName "GET /$route"
       errored exception != null
       tags {
         defaultTags()
@@ -131,7 +129,6 @@ class ApacheHttpClientTest extends AgentTestRunner {
         "$Tags.PEER_PORT.key" server.address.port
         "$Tags.HTTP_METHOD.key" "GET"
         "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-        "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
       }
     }
   }

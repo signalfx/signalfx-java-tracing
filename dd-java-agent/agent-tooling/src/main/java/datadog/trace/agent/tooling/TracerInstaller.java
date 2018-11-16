@@ -1,6 +1,4 @@
-/**
- * Modified by SignalFx to use Jaeger Tracer instead of DDTracer
- */
+/** Modified by SignalFx to use Jaeger Tracer instead of DDTracer */
 package datadog.trace.agent.tooling;
 
 import io.jaegertracing.Configuration;

@@ -1,10 +1,11 @@
+// Modified by SignalFx
 package server
 
-import datadog.opentracing.DDTracer
+import datadog.opentracing.mock.TestTracer
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.ListWriterAssert
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.common.writer.ListWriter
+import datadog.opentracing.mock.ListWriter
 import okhttp3.MultipartBody
 import okhttp3.Request
 import spock.lang.Shared
@@ -301,7 +302,7 @@ class ServerTest extends AgentTestRunner {
       }
     }
     def writer = new ListWriter()
-    server.tracer = new DDTracer(writer)
+    server.tracer = new TestTracer(writer)
 
     when:
     def request = new Request.Builder()

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 /*
  * Copyright 2017-2018 The OpenTracing Authors
  *
@@ -32,8 +33,6 @@ import com.datastax.driver.core.Statement;
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
@@ -261,8 +260,7 @@ class TracingSession implements Session {
     final Tracer.SpanBuilder spanBuilder =
         tracer
             .buildSpan("cassandra.execute")
-            .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.CASSANDRA);
+            .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT);
 
     final Span span = spanBuilder.start();
 

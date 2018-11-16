@@ -1,7 +1,6 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.netty.channel.AbstractChannel
 import io.opentracing.tag.Tags
 import org.asynchttpclient.AsyncHttpClient
@@ -47,10 +46,7 @@ class Netty41ClientTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          serviceName "unnamed-java-app"
-          operationName "netty.client.request"
-          resourceName "GET /"
-          spanType DDSpanTypes.HTTP_CLIENT
+          operationName "GET localhost/"
           childOf span(1)
           errored false
           tags {
@@ -61,7 +57,6 @@ class Netty41ClientTest extends AgentTestRunner {
             "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             defaultTags()
           }
         }
@@ -73,8 +68,8 @@ class Netty41ClientTest extends AgentTestRunner {
     }
 
     and:
-    server.lastRequest.headers.get("x-datadog-trace-id") == "${TEST_WRITER.get(0).get(0).traceId}"
-    server.lastRequest.headers.get("x-datadog-parent-id") == "${TEST_WRITER.get(0).get(0).spanId}"
+    server.lastRequest.headers.get("traceid") == "${TEST_WRITER.get(0).get(0).traceId}"
+    server.lastRequest.headers.get("spanid") == "${TEST_WRITER.get(0).get(0).spanId}"
   }
 
   def "test connection failure"() {
@@ -99,17 +94,16 @@ class Netty41ClientTest extends AgentTestRunner {
           operationName "parent"
           parent()
         }
-        span(1) {
-          operationName "netty.connect"
-          resourceName "netty.connect"
-          childOf span(0)
-          errored true
-          tags {
-            "$Tags.COMPONENT.key" "netty"
-            errorTags AbstractChannel.AnnotatedConnectException, "Connection refused: localhost/127.0.0.1:$invalidPort"
-            defaultTags()
+          span(1) {
+            operationName "netty.connect"
+            childOf span(0)
+            errored true
+            tags {
+              "$Tags.COMPONENT.key" "netty"
+              errorTags AbstractChannel.AnnotatedConnectException, "Connection refused: localhost/127.0.0.1:$invalidPort"
+              defaultTags()
+            }
           }
-        }
       }
     }
   }

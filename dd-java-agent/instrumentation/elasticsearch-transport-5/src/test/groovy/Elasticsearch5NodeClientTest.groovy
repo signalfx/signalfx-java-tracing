@@ -1,8 +1,7 @@
+// Modified by SignalFx
 import com.anotherchrisberry.spock.extensions.retry.RetryOnFailure
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest
 import org.elasticsearch.common.io.FileSystemUtils
@@ -80,14 +79,10 @@ class Elasticsearch5NodeClientTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "elasticsearch"
-          resourceName "ClusterHealthAction"
-          operationName "elasticsearch.query"
-          spanType DDSpanTypes.ELASTICSEARCH
+          operationName "ClusterHealthAction"
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "ClusterHealthAction"
             "elasticsearch.request" "ClusterHealthRequest"
             defaultTags()
@@ -108,15 +103,11 @@ class Elasticsearch5NodeClientTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "elasticsearch"
-          resourceName "GetAction"
-          operationName "elasticsearch.query"
-          spanType DDSpanTypes.ELASTICSEARCH
+          operationName "GetAction"
           errored true
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "GetAction"
             "elasticsearch.request" "GetRequest"
             "elasticsearch.request.indices" indexName
@@ -174,7 +165,7 @@ class Elasticsearch5NodeClientTest extends AgentTestRunner {
     and:
     // IndexAction and PutMappingAction run in separate threads and order in which
     // these spans are closed is not defined. So we force the order if it is wrong.
-    if (TEST_WRITER[3][0].resourceName == "IndexAction") {
+    if (TEST_WRITER[3][0].getOperationName() == "IndexAction") {
       def tmp = TEST_WRITER[3]
       TEST_WRITER[3] = TEST_WRITER[4]
       TEST_WRITER[4] = tmp
@@ -182,14 +173,10 @@ class Elasticsearch5NodeClientTest extends AgentTestRunner {
     assertTraces(6) {
       trace(0, 1) {
         span(0) {
-          serviceName "elasticsearch"
-          resourceName "CreateIndexAction"
-          operationName "elasticsearch.query"
-          spanType DDSpanTypes.ELASTICSEARCH
+          operationName "CreateIndexAction"
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "CreateIndexAction"
             "elasticsearch.request" "CreateIndexRequest"
             "elasticsearch.request.indices" indexName
@@ -199,14 +186,10 @@ class Elasticsearch5NodeClientTest extends AgentTestRunner {
       }
       trace(1, 1) {
         span(0) {
-          serviceName "elasticsearch"
-          resourceName "ClusterHealthAction"
-          operationName "elasticsearch.query"
-          spanType DDSpanTypes.ELASTICSEARCH
+          operationName "ClusterHealthAction"
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "ClusterHealthAction"
             "elasticsearch.request" "ClusterHealthRequest"
             defaultTags()
@@ -215,14 +198,10 @@ class Elasticsearch5NodeClientTest extends AgentTestRunner {
       }
       trace(2, 1) {
         span(0) {
-          serviceName "elasticsearch"
-          resourceName "GetAction"
-          operationName "elasticsearch.query"
-          spanType DDSpanTypes.ELASTICSEARCH
+          operationName "GetAction"
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "GetAction"
             "elasticsearch.request" "GetRequest"
             "elasticsearch.request.indices" indexName
@@ -235,14 +214,10 @@ class Elasticsearch5NodeClientTest extends AgentTestRunner {
       }
       trace(3, 1) {
         span(0) {
-          serviceName "elasticsearch"
-          resourceName "PutMappingAction"
-          operationName "elasticsearch.query"
-          spanType DDSpanTypes.ELASTICSEARCH
+          operationName "PutMappingAction"
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "PutMappingAction"
             "elasticsearch.request" "PutMappingRequest"
             defaultTags()
@@ -251,14 +226,10 @@ class Elasticsearch5NodeClientTest extends AgentTestRunner {
       }
       trace(4, 1) {
         span(0) {
-          serviceName "elasticsearch"
-          resourceName "IndexAction"
-          operationName "elasticsearch.query"
-          spanType DDSpanTypes.ELASTICSEARCH
+          operationName "IndexAction"
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "IndexAction"
             "elasticsearch.request" "IndexRequest"
             "elasticsearch.request.indices" indexName
@@ -273,14 +244,10 @@ class Elasticsearch5NodeClientTest extends AgentTestRunner {
       }
       trace(5, 1) {
         span(0) {
-          serviceName "elasticsearch"
-          resourceName "GetAction"
-          operationName "elasticsearch.query"
-          spanType DDSpanTypes.ELASTICSEARCH
+          operationName "GetAction"
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "GetAction"
             "elasticsearch.request" "GetRequest"
             "elasticsearch.request.indices" indexName

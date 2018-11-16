@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.netty40;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -39,6 +40,7 @@ public class ChannelFutureListenerInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
+      "datadog.trace.instrumentation.utils.URLUtil",
       packageName + ".AttributeKeys",
       // server helpers
       packageName + ".server.NettyRequestExtractAdapter",
@@ -65,7 +67,8 @@ public class ChannelFutureListenerInstrumentation extends Instrumenter.Default {
       final TraceScope.Continuation continuation =
           future.channel().attr(AttributeKeys.PARENT_CONNECT_CONTINUATION_ATTRIBUTE_KEY).get();
 
-      if (continuation == null) {
+      if (future.channel().attr(AttributeKeys.HANDLED_KEY).get() == Boolean.TRUE
+          || continuation == null) {
         return null;
       }
       final TraceScope scope = continuation.activate();
@@ -81,6 +84,8 @@ public class ChannelFutureListenerInstrumentation extends Instrumenter.Default {
         errorSpan.log(Collections.singletonMap(ERROR_OBJECT, cause));
         errorSpan.finish();
       }
+
+      future.channel().attr(AttributeKeys.HANDLED_KEY).set(Boolean.TRUE);
 
       return scope;
     }

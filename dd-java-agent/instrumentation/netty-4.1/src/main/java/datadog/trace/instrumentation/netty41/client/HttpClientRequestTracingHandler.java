@@ -1,11 +1,11 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.netty41.client;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.HOST;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.instrumentation.netty41.AttributeKeys;
+import datadog.trace.instrumentation.utils.URLUtil;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
@@ -32,16 +32,16 @@ public class HttpClientRequestTracingHandler extends ChannelOutboundHandlerAdapt
     if (request.headers().contains(HOST)) {
       url = "http://" + request.headers().get(HOST) + url;
     }
+
     final Span span =
         GlobalTracer.get()
-            .buildSpan("netty.client.request")
+            .buildSpan(URLUtil.deriveOperationName(request.method().name(), url))
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
             .withTag(Tags.PEER_HOSTNAME.getKey(), remoteAddress.getHostName())
             .withTag(Tags.PEER_PORT.getKey(), remoteAddress.getPort())
             .withTag(Tags.HTTP_METHOD.getKey(), request.method().name())
             .withTag(Tags.HTTP_URL.getKey(), url)
             .withTag(Tags.COMPONENT.getKey(), "netty-client")
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
             .start();
 
     GlobalTracer.get()

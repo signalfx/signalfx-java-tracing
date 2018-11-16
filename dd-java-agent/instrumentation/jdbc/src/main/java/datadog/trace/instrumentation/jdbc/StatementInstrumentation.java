@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jdbc;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -11,8 +12,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
 import datadog.trace.bootstrap.JDBCMaps;
 import io.opentracing.Scope;
@@ -122,10 +121,7 @@ public final class StatementInstrumentation extends Instrumenter.Default {
       Tags.DB_TYPE.set(span, dbInfo.getType());
       Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_CLIENT);
       Tags.COMPONENT.set(span, "java-jdbc-statement");
-
-      span.setTag(DDTags.SERVICE_NAME, dbInfo.getType());
-      span.setTag(DDTags.RESOURCE_NAME, sql);
-      span.setTag(DDTags.SPAN_TYPE, DDSpanTypes.SQL);
+      Tags.DB_STATEMENT.set(span, sql);
       span.setTag("span.origin.type", statement.getClass().getName());
       span.setTag("db.jdbc.url", dbInfo.getUrl());
 

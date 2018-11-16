@@ -1,4 +1,5 @@
-import datadog.opentracing.DDSpan
+// Modified by SignalFx
+import datadog.opentracing.mock.TestSpan
 import datadog.opentracing.scopemanager.ContinuableScope
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Trace
@@ -47,7 +48,7 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
     }.run()
 
     TEST_WRITER.waitForTraces(1)
-    List<DDSpan> trace = TEST_WRITER.get(0)
+    List<TestSpan> trace = TEST_WRITER.get(0)
 
     expect:
     TEST_WRITER.size() == 1

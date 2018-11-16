@@ -1,3 +1,4 @@
+// Modified by SignalFx
 rootProject.name = 'dd-trace-java'
 
 include ':dd-trace-ot'
@@ -57,6 +58,7 @@ include ':dd-java-agent:instrumentation:spring-web'
 include ':dd-java-agent:instrumentation:spring-webflux'
 include ':dd-java-agent:instrumentation:spymemcached-2.12'
 include ':dd-java-agent:instrumentation:trace-annotation'
+include ':dd-java-agent:instrumentation:utils'
 include ':dd-java-agent:instrumentation:vertx'
 
 // benchmark

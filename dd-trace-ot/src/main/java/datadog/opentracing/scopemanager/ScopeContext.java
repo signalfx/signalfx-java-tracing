@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing.scopemanager;
 
 import io.opentracing.ScopeManager;

@@ -2,8 +2,6 @@ package datadog.trace.instrumentation.springwebflux;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -48,7 +46,6 @@ public class RouterFunctionAdvice {
       final Scope activeScope = GlobalTracer.get().scopeManager().active();
       if (activeScope != null) {
         activeScope.span().setTag("request.predicate", predicateString);
-        activeScope.span().setTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_SERVER);
       }
     }
   }

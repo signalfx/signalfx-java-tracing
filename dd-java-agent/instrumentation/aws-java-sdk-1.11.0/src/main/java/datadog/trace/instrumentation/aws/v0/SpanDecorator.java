@@ -1,3 +1,4 @@
+// Modified by SignalFx
 /*
  * Copyright 2017-2018 The OpenTracing Authors
  *
@@ -18,8 +19,6 @@ import static io.opentracing.log.Fields.ERROR_OBJECT;
 import com.amazonaws.AmazonWebServiceResponse;
 import com.amazonaws.Request;
 import com.amazonaws.Response;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
 import java.util.Collections;
@@ -45,11 +44,8 @@ class SpanDecorator {
     span.setTag("aws.operation", awsOperation.getSimpleName());
     span.setTag("aws.endpoint", request.getEndpoint().toString());
 
-    span.setTag(DDTags.SERVICE_NAME, COMPONENT_NAME);
-    span.setTag(
-        DDTags.RESOURCE_NAME,
+    span.setOperationName(
         remapServiceName(awsServiceName) + "." + remapOperationName(awsOperation));
-    span.setTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT);
   }
 
   static void onResponse(final Response response, final Span span) {

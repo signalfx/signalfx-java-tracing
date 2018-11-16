@@ -1,10 +1,10 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.servlet2;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.context.TraceScope;
+import datadog.trace.instrumentation.utils.URLUtil;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -35,13 +35,16 @@ public class Servlet2Advice {
 
     final Scope scope =
         GlobalTracer.get()
-            .buildSpan("servlet.request")
+            .buildSpan(
+                URLUtil.deriveOperationName(
+                    httpServletRequest.getMethod(),
+                    httpServletRequest.getRequestURL().toString(),
+                    false))
             .asChildOf(extractedContext)
             .withTag(Tags.COMPONENT.getKey(), "java-web-servlet")
             .withTag(Tags.HTTP_METHOD.getKey(), httpServletRequest.getMethod())
             .withTag(Tags.HTTP_URL.getKey(), httpServletRequest.getRequestURL().toString())
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.WEB_SERVLET)
             .withTag("span.origin.type", servlet.getClass().getName())
             .withTag("servlet.context", httpServletRequest.getContextPath())
             .startActive(true);

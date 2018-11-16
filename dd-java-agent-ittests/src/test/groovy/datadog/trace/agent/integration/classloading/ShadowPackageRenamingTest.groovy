@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.integration.classloading
 
 import com.google.common.collect.MapMaker
@@ -28,7 +29,7 @@ class ShadowPackageRenamingTest extends Specification {
       ddClass.getProtectionDomain().getCodeSource().getLocation().getFile()
 
     expect:
-    agentSource.matches(".*/agent-tooling-and-instrumentation[^/]*.jar")
+    agentSource.matches(".*/agent-tooling[^/]*.jar")
     agentSource == agentGuavaDep
     agentSource != userGuava
   }
@@ -83,7 +84,9 @@ class ShadowPackageRenamingTest extends Specification {
     final List<String> badAgentPrefixes = []
     for (ClassPath.ClassInfo classInfo : agentClasspath.getAllClasses()) {
       if (bootstrapClasses.contains(classInfo.getName())) {
-        agentDuplicateClassFile.add(classInfo)
+        if (!classInfo.getName().startsWith("datadog.slf4j")) {
+          agentDuplicateClassFile.add(classInfo)
+        }
       }
       boolean goodPrefix = false
       for (int i = 0; i < agentPrefixes.length; ++i) {

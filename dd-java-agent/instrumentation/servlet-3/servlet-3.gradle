@@ -1,3 +1,4 @@
+// Modified by SignalFx
 muzzle {
   pass {
     group = "javax.servlet"
@@ -27,6 +28,7 @@ dependencies {
 
   compile project(':dd-trace-ot')
   compile project(':dd-java-agent:agent-tooling')
+  compile project(':dd-java-agent:instrumentation:utils')
 
   compile deps.bytebuddy
   compile deps.opentracing

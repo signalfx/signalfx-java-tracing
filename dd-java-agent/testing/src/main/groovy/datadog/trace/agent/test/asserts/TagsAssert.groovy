@@ -1,7 +1,7 @@
+// Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
-import datadog.opentracing.DDSpan
-import datadog.trace.api.Config
+import datadog.opentracing.mock.TestSpan
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 
@@ -10,12 +10,12 @@ class TagsAssert {
   private final Map<String, Object> tags
   private final Set<String> assertedTags = new TreeSet<>()
 
-  private TagsAssert(DDSpan span) {
-    this.spanParentId = span.parentId
+  private TagsAssert(TestSpan span) {
+    this.spanParentId = span.parentId()
     this.tags = span.tags
   }
 
-  static void assertTags(DDSpan span,
+  static void assertTags(TestSpan span,
                          @ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.TagsAssert'])
                          @DelegatesTo(value = TagsAssert, strategy = Closure.DELEGATE_FIRST) Closure spec) {
     def asserter = new TagsAssert(span)
@@ -30,17 +30,7 @@ class TagsAssert {
    * @param distributedRootSpan set to true if current span has a parent span but still considered 'root' for current service
    */
   def defaultTags(boolean distributedRootSpan = false) {
-    assertedTags.add("thread.name")
-    assertedTags.add("thread.id")
-    assertedTags.add(Config.RUNTIME_ID_TAG)
-
-    assert tags["thread.name"] != null
-    assert tags["thread.id"] != null
-    if ("0" == spanParentId || distributedRootSpan) {
-      assert tags[Config.RUNTIME_ID_TAG] == Config.get().runtimeId
-    } else {
-      assert tags[Config.RUNTIME_ID_TAG] == null
-    }
+    //assertedTags.add("service")
   }
 
   def errorTags(Class<Throwable> errorType) {
@@ -49,12 +39,6 @@ class TagsAssert {
 
   def errorTags(Class<Throwable> errorType, Object message) {
     methodMissing("error", [true].toArray())
-    methodMissing("error.type", [errorType.name].toArray())
-    methodMissing("error.stack", [String].toArray())
-
-    if (message != null) {
-      methodMissing("error.msg", [message].toArray())
-    }
   }
 
   def tag(String name, value) {
@@ -88,6 +72,6 @@ class TagsAssert {
     // The primary goal is to ensure the set is empty.
     // tags and assertedTags are included via an "always true" comparison
     // so they provide better context in the error message.
-    assert tags.entrySet() != assertedTags && set.isEmpty()
+    assert (assertedTags.size() == 0 || tags.entrySet() != assertedTags) && set.isEmpty()
   }
 }

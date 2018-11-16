@@ -1,7 +1,6 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.apache.cxf.jaxrs.client.spec.ClientBuilderImpl
 import org.glassfish.jersey.client.JerseyClientBuilder
@@ -54,10 +53,7 @@ class JaxRsClientTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
-          resourceName "GET /ping"
-          operationName "jax-rs.client.call"
-          spanType "http"
+          operationName "GET localhost/ping"
           parent()
           errored false
           tags {
@@ -67,15 +63,14 @@ class JaxRsClientTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
             "$Tags.HTTP_URL.key" "$server.address/ping"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             defaultTags()
           }
         }
       }
     }
 
-    server.lastRequest.headers.get("x-datadog-trace-id") == TEST_WRITER[0][0].traceId
-    server.lastRequest.headers.get("x-datadog-parent-id") == TEST_WRITER[0][0].spanId
+    server.lastRequest.headers.get("traceid") == TEST_WRITER[0][0].traceId.toString()
+    server.lastRequest.headers.get("spanid") == TEST_WRITER[0][0].spanId.toString()
 
     where:
     builder                     | async | lib
@@ -105,10 +100,7 @@ class JaxRsClientTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
-          resourceName "GET /ping"
-          operationName "jax-rs.client.call"
-          spanType "http"
+          operationName "GET localhost/ping"
           parent()
           errored true
           tags {
@@ -116,7 +108,6 @@ class JaxRsClientTest extends AgentTestRunner {
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_URL.key" "http://localhost:$emptyPort/ping"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             errorTags ProcessingException, String
             defaultTags()
           }

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.lettuce;
 
 import io.lettuce.core.protocol.RedisCommand;
@@ -34,30 +35,6 @@ public class LettuceInstrumentationUtil {
    */
   public static boolean doFinishSpanEarly(final String commandName) {
     return nonInstrumentingCommands.contains(commandName);
-  }
-
-  // Workaround to keep trace agent from crashing
-  // Currently the commands in AGENT_CRASHING_COMMANDS_WORDS will crash the trace agent and
-  // traces with these commands as the resource name will not be processed by the trace agent
-  // https://github.com/DataDog/datadog-trace-agent/blob/master/quantizer/redis.go#L18 has
-  // list of commands that will currently fail at the trace agent level.
-
-  /**
-   * Workaround to keep trace agent from crashing Currently the commands in
-   * AGENT_CRASHING_COMMANDS_WORDS will crash the trace agent and traces with these commands as the
-   * resource name will not be processed by the trace agent
-   * https://github.com/DataDog/datadog-trace-agent/blob/master/quantizer/redis.go#L18 has list of
-   * commands that will currently fail at the trace agent level.
-   *
-   * @param actualCommandName the actual redis command
-   * @return the redis command with a prefix if it is a command that will crash the trace agent,
-   *     otherwise, the original command is returned.
-   */
-  public static String getCommandResourceName(final String actualCommandName) {
-    if (agentCrashingCommands.contains(actualCommandName)) {
-      return AGENT_CRASHING_COMMAND_PREFIX + actualCommandName;
-    }
-    return actualCommandName;
   }
 
   /**

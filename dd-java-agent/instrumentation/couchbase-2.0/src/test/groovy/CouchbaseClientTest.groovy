@@ -1,9 +1,9 @@
+// Modified by SignalFx
 import com.couchbase.client.java.Bucket
 import com.couchbase.client.java.document.JsonDocument
 import com.couchbase.client.java.document.json.JsonObject
 import com.couchbase.client.java.query.N1qlQuery
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
+import io.opentracing.tag.Tags
 import util.AbstractCouchbaseTest
 
 class CouchbaseClientTest extends AbstractCouchbaseTest {
@@ -16,13 +16,11 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "couchbase"
-          resourceName "ClusterManager.hasBucket"
-          operationName "couchbase.call"
+          operationName "ClusterManager.hasBucket"
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
+            "$Tags.COMPONENT.key" "couchbase"
             defaultTags()
           }
         }
@@ -42,13 +40,11 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "couchbase"
-          resourceName "Bucket.upsert"
-          operationName "couchbase.call"
+          operationName "Bucket.upsert"
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
+            "$Tags.COMPONENT.key" "couchbase"
             "bucket" bkt.name()
             defaultTags()
           }
@@ -68,13 +64,11 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "couchbase"
-          resourceName "Bucket.get"
-          operationName "couchbase.call"
+          operationName "Bucket.get"
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
+            "$Tags.COMPONENT.key" "couchbase"
             "bucket" bkt.name()
             defaultTags()
           }
@@ -110,13 +104,11 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "couchbase"
-          resourceName "Bucket.query"
-          operationName "couchbase.call"
+          operationName "Bucket.query"
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
+            "$Tags.COMPONENT.key" "couchbase"
             "bucket" bkt.name()
             defaultTags()
           }

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.mongo;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
@@ -7,10 +8,8 @@ import com.mongodb.connection.ClusterId;
 import com.mongodb.connection.ConnectionDescription;
 import com.mongodb.connection.ServerId;
 import com.mongodb.event.CommandStartedEvent;
-import datadog.opentracing.DDSpan;
-import datadog.opentracing.DDTracer;
-import datadog.trace.api.DDSpanTypes;
-import io.opentracing.tag.Tags;
+import datadog.opentracing.mock.TestSpan;
+import datadog.opentracing.mock.TestTracer;
 import java.util.Arrays;
 import java.util.List;
 import org.bson.BsonArray;
@@ -29,13 +28,11 @@ public class MongoClientInstrumentationTest {
     final CommandStartedEvent cmd =
         new CommandStartedEvent(1, makeConnection(), "databasename", "query", new BsonDocument());
 
-    final DDSpan span = new DDTracer().buildSpan("foo").start();
-    DDTracingCommandListener.decorate(span, cmd);
-
-    assertThat(span.context().getSpanType()).isEqualTo("mongodb");
-    assertThat(span.context().getResourceName())
-        .isEqualTo(span.context().getTags().get("db.statement"));
-    assertThat(span.getSpanType()).isEqualTo(DDSpanTypes.MONGO);
+    final TestSpan span = new TestSpan(new TestTracer().buildSpan("foo").start());
+    DDTracingCommandListener.decorate(span.span, cmd);
+    assertThat(span.getComponent()).isEqualTo("java-mongo");
+    assertThat(span.getDBStatement()).isEqualTo("{ }");
+    assertThat(span.getDBType()).isEqualTo("mongo");
   }
 
   @Test
@@ -52,12 +49,11 @@ public class MongoClientInstrumentationTest {
       final CommandStartedEvent cmd =
           new CommandStartedEvent(1, makeConnection(), "databasename", "query", query);
 
-      final DDSpan span = new DDTracer().buildSpan("foo").start();
-      DDTracingCommandListener.decorate(span, cmd);
+      final TestSpan span = new TestSpan(new TestTracer().buildSpan("foo").start());
+      DDTracingCommandListener.decorate(span.span, cmd);
 
-      assertThat(span.getSpanType()).isEqualTo(DDSpanTypes.MONGO);
-      assertThat(span.getTags().get(Tags.DB_STATEMENT.getKey()))
-          .isEqualTo(query.toString().replaceAll("secret", "?"));
+      assertThat(span.getComponent()).isEqualTo("java-mongo");
+      assertThat(span.getDBStatement()).isEqualTo(query.toString().replaceAll("secret", "?"));
     }
   }
 }

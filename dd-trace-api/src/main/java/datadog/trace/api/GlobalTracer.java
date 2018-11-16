@@ -1,6 +1,6 @@
+// Modified by SignalFx
 package datadog.trace.api;
 
-import datadog.trace.api.interceptor.TraceInterceptor;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -13,18 +13,13 @@ public class GlobalTracer {
   private static final Tracer NO_OP =
       new Tracer() {
         @Override
-        public String getTraceId() {
-          return "0";
+        public long getTraceId() {
+          return 0;
         }
 
         @Override
-        public String getSpanId() {
-          return "0";
-        }
-
-        @Override
-        public boolean addTraceInterceptor(TraceInterceptor traceInterceptor) {
-          return false;
+        public long getSpanId() {
+          return 0;
         }
       };
   private static final AtomicReference<Tracer> provider = new AtomicReference<>(NO_OP);

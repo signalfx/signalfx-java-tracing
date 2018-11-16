@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import akka.actor.ActorSystem
 import akka.http.javadsl.Http
 import akka.http.javadsl.model.HttpRequest
@@ -8,8 +9,6 @@ import akka.stream.StreamTcpException
 import akka.stream.javadsl.Sink
 import akka.stream.javadsl.Source
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import scala.util.Try
 import spock.lang.AutoCleanup
@@ -69,15 +68,11 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       message == expectedMessage
     }
 
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][0])
-      trace(1, 1) {
+    assertTraces(1) {
+      trace(0, 2) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /$route"
-          spanType DDSpanTypes.HTTP_CLIENT
+          operationName "GET /$route"
           errored expectedError
           tags {
             defaultTags()
@@ -85,11 +80,18 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "${server.address}/$route"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "akka-http-client"
             if (expectedError) {
               "$Tags.ERROR.key" true
             }
+          }
+        }
+        span(1) {
+          operationName "test-http-server"
+          errored false
+          childOf span(0)
+          tags {
+            defaultTags()
           }
         }
       }
@@ -119,17 +121,13 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /test"
-          spanType DDSpanTypes.HTTP_CLIENT
+          operationName "GET /test"
           errored true
           tags {
             defaultTags()
             "$Tags.HTTP_URL.key" url.toString()
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "akka-http-client"
             "$Tags.ERROR.key" true
             errorTags(StreamTcpException, { it.contains("Tcp command") })
@@ -150,15 +148,11 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "akka-http.request"
-          spanType DDSpanTypes.HTTP_CLIENT
           errored true
           tags {
             defaultTags()
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "akka-http-client"
             "$Tags.ERROR.key" true
             errorTags(NullPointerException)
@@ -188,15 +182,11 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       message == expectedMessage
     }
 
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][0])
-      trace(1, 1) {
+    assertTraces(1) {
+      trace(0, 2) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /$route"
-          spanType DDSpanTypes.HTTP_CLIENT
+          operationName "GET /$route"
           errored expectedError
           tags {
             defaultTags()
@@ -204,11 +194,18 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "${server.address}/$route"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "akka-http-client"
             if (expectedError) {
               "$Tags.ERROR.key" true
             }
+          }
+        }
+        span(1) {
+          operationName "test-http-server"
+          errored false
+          childOf span(0)
+          tags {
+            defaultTags()
           }
         }
       }
@@ -239,17 +236,13 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "GET /test"
-          spanType DDSpanTypes.HTTP_CLIENT
+          operationName "GET /test"
           errored true
           tags {
             defaultTags()
             "$Tags.HTTP_URL.key" url.toString()
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "$Tags.COMPONENT.key" "akka-http-client"
             "$Tags.ERROR.key" true
             errorTags(StreamTcpException, { it.contains("Tcp command") })

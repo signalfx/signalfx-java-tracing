@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.test;
 
 import com.google.common.reflect.ClassPath;

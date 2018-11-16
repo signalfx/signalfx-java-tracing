@@ -1,8 +1,9 @@
+// Modified by SignalFx
 package datadog.trace.agent.test.server.http
 
-import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.asserts.ListWriterAssert
+import datadog.opentracing.mock.TestSpan
 import io.opentracing.SpanContext
 import io.opentracing.Tracer
 import io.opentracing.propagation.Format
@@ -93,7 +94,7 @@ class TestHttpServer implements AutoCloseable {
     clone(handlers)
   }
 
-  static distributedRequestTrace(ListWriterAssert traces, int index, DDSpan parentSpan = null) {
+  static distributedRequestTrace(ListWriterAssert traces, int index, TestSpan parentSpan = null) {
     traces.trace(index, 1) {
       span(0) {
         operationName "test-http-server"

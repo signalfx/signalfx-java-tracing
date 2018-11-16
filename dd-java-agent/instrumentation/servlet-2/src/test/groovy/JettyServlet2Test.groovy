@@ -1,7 +1,7 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.api.DDSpanTypes
 import okhttp3.Credentials
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -60,8 +60,8 @@ class JettyServlet2Test extends AgentTestRunner {
       .url("http://localhost:$port/ctx/$path")
       .get()
     if (distributedTracing) {
-      requestBuilder.header("x-datadog-trace-id", "123")
-      requestBuilder.header("x-datadog-parent-id", "456")
+      requestBuilder.header("traceid", tid.toString())
+      requestBuilder.header("spanid", "0")
     }
     if (auth) {
       requestBuilder.header(HttpHeaders.AUTHORIZATION, Credentials.basic("user", "password"))
@@ -75,15 +75,12 @@ class JettyServlet2Test extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           if (distributedTracing) {
-            traceId "123"
-            parentId "456"
+            traceId tid
+            parentId 0
           } else {
             parent()
           }
-          serviceName "ctx"
-          operationName "servlet.request"
-          resourceName "GET /ctx/$path"
-          spanType DDSpanTypes.WEB_SERVLET
+          operationName "GET /ctx/$path"
           errored false
           tags {
             "http.url" "http://localhost:$port/ctx/$path"
@@ -91,7 +88,6 @@ class JettyServlet2Test extends AgentTestRunner {
             "span.kind" "server"
             "component" "java-web-servlet"
             "span.origin.type" "TestServlet2\$Sync"
-            "span.type" DDSpanTypes.WEB_SERVLET
             "servlet.context" "/ctx"
             if (auth) {
               "user.principal" "user"
@@ -103,11 +99,11 @@ class JettyServlet2Test extends AgentTestRunner {
     }
 
     where:
-    path        | expectedResponse | auth  | distributedTracing
-    "sync"      | "Hello Sync"     | false | false
-    "auth/sync" | "Hello Sync"     | true  | false
-    "sync"      | "Hello Sync"     | false | true
-    "auth/sync" | "Hello Sync"     | true  | true
+    path        | expectedResponse | auth  | distributedTracing | tid
+    "sync"      | "Hello Sync"     | false | false              | 123
+    "auth/sync" | "Hello Sync"     | true  | false              | 124
+    "sync"      | "Hello Sync"     | false | true               | 125
+    "auth/sync" | "Hello Sync"     | true  | true               | 126
   }
 
   def "test #path error servlet call"() {
@@ -124,10 +120,7 @@ class JettyServlet2Test extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "ctx"
-          operationName "servlet.request"
-          resourceName "GET /ctx/$path"
-          spanType DDSpanTypes.WEB_SERVLET
+          operationName "GET /ctx/$path"
           errored true
           parent()
           tags {
@@ -135,7 +128,6 @@ class JettyServlet2Test extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.WEB_SERVLET
             "span.origin.type" "TestServlet2\$Sync"
             "servlet.context" "/ctx"
             errorTags(RuntimeException, "some $path error")
@@ -165,10 +157,7 @@ class JettyServlet2Test extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "ctx"
-          operationName "servlet.request"
-          resourceName "GET /ctx/$path"
-          spanType DDSpanTypes.WEB_SERVLET
+          operationName "GET /ctx/$path"
           errored false
           parent()
           tags {
@@ -176,7 +165,6 @@ class JettyServlet2Test extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.WEB_SERVLET
             "span.origin.type" "TestServlet2\$Sync"
             "servlet.context" "/ctx"
             defaultTags()

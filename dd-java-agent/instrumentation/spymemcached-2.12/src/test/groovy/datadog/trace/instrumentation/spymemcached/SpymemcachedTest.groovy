@@ -3,8 +3,6 @@ package datadog.trace.instrumentation.spymemcached
 import com.google.common.util.concurrent.MoreExecutors
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.TraceAssert
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import net.spy.memcached.CASResponse
 import net.spy.memcached.ConnectionFactory
@@ -24,8 +22,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.locks.ReentrantLock
 
 import static CompletionListener.COMPONENT_NAME
-import static CompletionListener.OPERATION_NAME
-import static CompletionListener.SERVICE_NAME
 import static datadog.trace.agent.test.TestUtils.runUnderTrace
 import static net.spy.memcached.ConnectionFactoryBuilder.Protocol.BINARY
 
@@ -623,15 +619,12 @@ class SpymemcachedTest extends AgentTestRunner {
         childOf(trace.span(0))
       }
 
-      serviceName SERVICE_NAME
-      operationName OPERATION_NAME
-      resourceName operation
-      spanType DDSpanTypes.MEMCACHED
+      operationName "memcached." + operation
       errored(error != null && error != "canceled")
 
       tags {
         defaultTags()
-        "${DDTags.SPAN_TYPE}" DDSpanTypes.MEMCACHED
+        "memcached.command" operation
         "${Tags.COMPONENT.key}" COMPONENT_NAME
         "${Tags.SPAN_KIND.key}" Tags.SPAN_KIND_CLIENT
         "${Tags.DB_TYPE.key}" CompletionListener.DB_TYPE

@@ -1,7 +1,6 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.ratpack.impl;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -32,7 +31,6 @@ public final class TracingHandler implements Handler {
             .asChildOf(extractedContext)
             .withTag(Tags.COMPONENT.getKey(), "handler")
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_SERVER)
             .withTag(Tags.HTTP_METHOD.getKey(), request.getMethod().getName())
             .withTag(Tags.HTTP_URL.getKey(), request.getUri())
             .startActive(true);
@@ -41,7 +39,6 @@ public final class TracingHandler implements Handler {
         .beforeSend(
             response -> {
               final Span span = scope.span();
-              span.setTag(DDTags.RESOURCE_NAME, getResourceName(ctx));
               final Status status = response.getStatus();
               if (status != null) {
                 if (status.is5xx()) {

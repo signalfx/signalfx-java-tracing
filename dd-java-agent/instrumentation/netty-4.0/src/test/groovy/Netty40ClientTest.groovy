@@ -1,7 +1,6 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.asynchttpclient.AsyncHttpClient
 import org.asynchttpclient.DefaultAsyncHttpClientConfig
@@ -46,10 +45,7 @@ class Netty40ClientTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          serviceName "unnamed-java-app"
-          operationName "netty.client.request"
-          resourceName "GET /"
-          spanType DDSpanTypes.HTTP_CLIENT
+          operationName "GET localhost/"
           childOf span(1)
           errored false
           tags {
@@ -60,7 +56,6 @@ class Netty40ClientTest extends AgentTestRunner {
             "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             defaultTags()
           }
         }
@@ -72,8 +67,8 @@ class Netty40ClientTest extends AgentTestRunner {
     }
 
     and:
-    server.lastRequest.headers.get("x-datadog-trace-id") == "${TEST_WRITER.get(0).get(0).traceId}"
-    server.lastRequest.headers.get("x-datadog-parent-id") == "${TEST_WRITER.get(0).get(0).spanId}"
+    server.lastRequest.headers.get("traceid") == "${TEST_WRITER.get(0).get(0).traceId}"
+    server.lastRequest.headers.get("spanid") == "${TEST_WRITER.get(0).get(0).spanId}"
   }
 
   def "test connection failure"() {
@@ -100,7 +95,6 @@ class Netty40ClientTest extends AgentTestRunner {
         }
         span(1) {
           operationName "netty.connect"
-          resourceName "netty.connect"
           childOf span(0)
           errored true
           tags {

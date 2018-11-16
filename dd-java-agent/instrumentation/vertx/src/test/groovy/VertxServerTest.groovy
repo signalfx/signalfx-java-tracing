@@ -1,8 +1,7 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.opentracing.tag.Tags
 import io.vertx.core.Vertx
@@ -33,8 +32,8 @@ class VertxServerTest extends AgentTestRunner {
     setup:
     def request = new Request.Builder()
       .url("http://localhost:$port/test")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("traceid", "123")
+      .header("spanid", "0")
       .get()
       .build()
     def response = client.newCall(request).execute()
@@ -47,12 +46,9 @@ class VertxServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          traceId "123"
-          parentId "456"
-          serviceName "unnamed-java-app"
-          operationName "netty.request"
-          resourceName "GET /test"
-          spanType DDSpanTypes.HTTP_SERVER
+          traceId 123
+          parentId 0
+          operationName "GET /test"
           errored false
           tags {
             "$Tags.COMPONENT.key" "netty"
@@ -62,7 +58,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             defaultTags(true)
           }
         }
@@ -86,10 +81,7 @@ class VertxServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
-          operationName "netty.request"
-          resourceName name
-          spanType DDSpanTypes.HTTP_SERVER
+          operationName name
           errored error
           tags {
             "$Tags.COMPONENT.key" "netty"
@@ -99,7 +91,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             if (error) {
               tag("error", true)
             }
@@ -110,9 +101,9 @@ class VertxServerTest extends AgentTestRunner {
     }
 
     where:
-    responseCode                             | name         | path           | error
-    HttpResponseStatus.OK                    | "GET /"      | ""            | false
-    HttpResponseStatus.NOT_FOUND             | "404"        | "doesnt-exit" | false
-    HttpResponseStatus.INTERNAL_SERVER_ERROR | "GET /error" | "error"       | true
+    responseCode                             | name               | path           | error
+    HttpResponseStatus.OK                    | "GET /"            | ""            | false
+    HttpResponseStatus.NOT_FOUND             | "GET /doesnt-exit" | "doesnt-exit" | false
+    HttpResponseStatus.INTERNAL_SERVER_ERROR | "GET /error"       | "error"       | true
   }
 }

@@ -1,6 +1,6 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.connection_error.resteasy;
 
-import static io.opentracing.log.Fields.ERROR_OBJECT;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -63,11 +63,17 @@ public final class ResteasyClientConnectionErrorInstrumentation extends Instrume
         @Advice.Thrown final Throwable throwable) {
       if (throwable != null) {
         final Object prop = context.getProperty(ClientTracingFilter.SPAN_PROPERTY_NAME);
+        final Object hasErrored = context.getProperty(ClientTracingFilter.SPAN_HAS_ERRORED);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          Tags.ERROR.set(span, true);
-          span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
-          span.finish();
+          if (!Boolean.TRUE.equals(hasErrored)) {
+            Map<String, Object> contextProperties = new HashMap<>();
+            contextProperties.put(ClientTracingFilter.SPAN_HAS_ERRORED, Boolean.TRUE);
+            context.setProperties(contextProperties);
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, throwable));
+            span.finish();
+          }
         }
       }
     }
@@ -116,11 +122,17 @@ public final class ResteasyClientConnectionErrorInstrumentation extends Instrume
         return wrapped.get();
       } catch (final ExecutionException e) {
         final Object prop = context.getProperty(ClientTracingFilter.SPAN_PROPERTY_NAME);
+        final Object hasErrored = context.getProperty(ClientTracingFilter.SPAN_HAS_ERRORED);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          Tags.ERROR.set(span, true);
-          span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
-          span.finish();
+          if (!Boolean.TRUE.equals(hasErrored)) {
+            final Map<String, Object> contextProperties = new HashMap<>();
+            contextProperties.put(ClientTracingFilter.SPAN_HAS_ERRORED, Boolean.TRUE);
+            context.setProperties(contextProperties);
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
+            span.finish();
+          }
         }
         throw e;
       }
@@ -133,11 +145,17 @@ public final class ResteasyClientConnectionErrorInstrumentation extends Instrume
         return wrapped.get(timeout, unit);
       } catch (final ExecutionException e) {
         final Object prop = context.getProperty(ClientTracingFilter.SPAN_PROPERTY_NAME);
+        final Object hasErrored = context.getProperty(ClientTracingFilter.SPAN_HAS_ERRORED);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          Tags.ERROR.set(span, true);
-          span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
-          span.finish();
+          if (!Boolean.TRUE.equals(hasErrored)) {
+            final Map<String, Object> contextProperties = new HashMap<>();
+            contextProperties.put(ClientTracingFilter.SPAN_HAS_ERRORED, Boolean.TRUE);
+            context.setProperties(contextProperties);
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
+            span.finish();
+          }
         }
         throw e;
       }

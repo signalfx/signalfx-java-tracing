@@ -1,7 +1,8 @@
+// Modified by SignalFx
 package datadog.trace;
 
-import datadog.opentracing.DDTracer;
-import datadog.trace.common.writer.ListWriter;
+import datadog.opentracing.mock.ListWriter;
+import datadog.opentracing.mock.TestTracer;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -13,7 +14,7 @@ public class DDTraceBenchmark {
   @State(org.openjdk.jmh.annotations.Scope.Thread)
   public static class TraceState {
     public ListWriter traceCollector = new ListWriter();
-    public Tracer tracer = new DDTracer(traceCollector);
+    public Tracer tracer = new TestTracer(traceCollector);
     // TODO: this will need to be fixed if we want backwards compatibility for older versions...
     public io.opentracing.Scope scope = tracer.buildSpan(SPAN_NAME).startActive(true);
   }

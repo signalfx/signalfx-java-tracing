@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.apachehttpclient;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -10,8 +11,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -89,13 +88,13 @@ public class ApacheHttpClientInstrumentation extends Instrumenter.Default {
         return null;
       }
       final Tracer tracer = GlobalTracer.get();
+      final String method = request.getRequestLine().getMethod();
       final Scope scope =
           tracer
-              .buildSpan("http.request")
+              .buildSpan(method + " " + request.getURI().getPath())
               .withTag(Tags.COMPONENT.getKey(), "apache-httpclient")
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
-              .withTag(Tags.HTTP_METHOD.getKey(), request.getRequestLine().getMethod())
+              .withTag(Tags.HTTP_METHOD.getKey(), method)
               .withTag(Tags.HTTP_URL.getKey(), request.getRequestLine().getUri())
               .startActive(true);
 

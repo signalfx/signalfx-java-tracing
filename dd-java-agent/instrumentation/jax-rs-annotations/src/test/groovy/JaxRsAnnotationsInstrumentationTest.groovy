@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import io.opentracing.tag.Tags
 
@@ -23,8 +24,7 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          operationName "test"
-          resourceName name
+          operationName name
           parent()
           tags {
             "$Tags.COMPONENT.key" "jax-rs"
@@ -33,7 +33,6 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
         }
         span(1) {
           operationName "${className}.call"
-          resourceName "${className}.call"
           childOf span(0)
           tags {
             "$Tags.COMPONENT.key" "jax-rs-controller"
@@ -97,7 +96,6 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           operationName "test"
-          resourceName "test"
           tags {
             defaultTags()
           }

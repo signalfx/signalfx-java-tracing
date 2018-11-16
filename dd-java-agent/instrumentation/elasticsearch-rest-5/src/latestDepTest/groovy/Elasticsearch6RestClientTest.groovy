@@ -1,8 +1,7 @@
+// Modified by SignalFx
 import com.anotherchrisberry.spock.extensions.retry.RetryOnFailure
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import groovy.json.JsonSlurper
 import io.opentracing.tag.Tags
 import org.apache.http.HttpHost
@@ -81,15 +80,11 @@ class Elasticsearch6RestClientTest extends AgentTestRunner {
     assertTraces(2) {
       trace(0, 1) {
         span(0) {
-          serviceName "elasticsearch"
-          resourceName "ClusterHealthAction"
-          operationName "elasticsearch.query"
-          spanType DDSpanTypes.ELASTICSEARCH
+          operationName "ClusterHealthAction"
           parent()
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "elasticsearch.action" "ClusterHealthAction"
             "elasticsearch.request" "ClusterHealthRequest"
             defaultTags()
@@ -98,15 +93,11 @@ class Elasticsearch6RestClientTest extends AgentTestRunner {
       }
       trace(1, 1) {
         span(0) {
-          serviceName "elasticsearch"
-          resourceName "GET _cluster/health"
-          operationName "elasticsearch.rest.query"
-          spanType DDSpanTypes.ELASTICSEARCH
+          operationName "GET _cluster/health"
           parent()
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.ELASTICSEARCH
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_URL.key" "_cluster/health"
             "$Tags.PEER_HOSTNAME.key" "localhost"

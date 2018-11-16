@@ -1,7 +1,5 @@
 package datadog.trace.instrumentation.okhttp3;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
@@ -49,10 +47,8 @@ public class TracingCallFactory implements Call.Factory {
     try {
       scope =
           tracer
-              .buildSpan("http.request")
+              .buildSpan("okhttp.http")
               .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)
-              .withTag(DDTags.SERVICE_NAME, COMPONENT_NAME)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
               .startActive(false);
 
       /** In case of exception network interceptor is not called */
@@ -112,9 +108,8 @@ public class TracingCallFactory implements Call.Factory {
     public Response intercept(final Chain chain) throws IOException {
       try (final Scope networkScope =
           tracer
-              .buildSpan("http.request")
+              .buildSpan("okhttp.http")
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
               .asChildOf(parentContext)
               .startActive(true)) {
 

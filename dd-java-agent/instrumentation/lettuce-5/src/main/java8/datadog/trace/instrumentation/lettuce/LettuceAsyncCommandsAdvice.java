@@ -1,9 +1,8 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.lettuce;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import io.lettuce.core.protocol.AsyncCommand;
 import io.lettuce.core.protocol.RedisCommand;
 import io.opentracing.Scope;
@@ -21,18 +20,14 @@ public class LettuceAsyncCommandsAdvice {
 
     final Scope scope =
         GlobalTracer.get()
-            .buildSpan(LettuceInstrumentationUtil.SERVICE_NAME + ".query")
+            .buildSpan(commandName)
             .startActive(LettuceInstrumentationUtil.doFinishSpanEarly(commandName));
 
     final Span span = scope.span();
     Tags.DB_TYPE.set(span, LettuceInstrumentationUtil.SERVICE_NAME);
     Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_CLIENT);
     Tags.COMPONENT.set(span, LettuceInstrumentationUtil.COMPONENT_NAME);
-
-    span.setTag(
-        DDTags.RESOURCE_NAME, LettuceInstrumentationUtil.getCommandResourceName(commandName));
-    span.setTag(DDTags.SERVICE_NAME, LettuceInstrumentationUtil.SERVICE_NAME);
-    span.setTag(DDTags.SPAN_TYPE, DDSpanTypes.REDIS);
+    Tags.DB_STATEMENT.set(span, commandName);
 
     return scope;
   }

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.opentracing.scopemanager.ContextualScopeManager
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
@@ -48,7 +49,6 @@ class RatpackTest extends AgentTestRunner {
           operationName "ratpack.handler"
           errored false
           tags {
-            "resource.name" "GET /"
             "component" "handler"
             "http.url" "/"
             "http.method" "GET"
@@ -87,7 +87,6 @@ class RatpackTest extends AgentTestRunner {
           operationName "ratpack.handler"
           errored false
           tags {
-            "resource.name" "GET /:foo/:bar?/baz"
             "component" "handler"
             "http.url" "/a/b/baz"
             "http.method" "GET"
@@ -123,7 +122,6 @@ class RatpackTest extends AgentTestRunner {
           operationName "ratpack.handler"
           errored true
           tags {
-            "resource.name" "GET /"
             "component" "handler"
             "http.url" "/"
             "http.method" "GET"
@@ -182,7 +180,6 @@ class RatpackTest extends AgentTestRunner {
           operationName "ratpack.handler"
           errored false
           tags {
-            "resource.name" "GET /"
             "component" "handler"
             "http.url" "/"
             "http.method" "GET"
@@ -205,7 +202,6 @@ class RatpackTest extends AgentTestRunner {
           operationName "ratpack.handler"
           errored false
           tags {
-            "resource.name" "GET /nested2"
             "component" "handler"
             "http.url" "/nested2"
             "http.method" "GET"
@@ -228,7 +224,6 @@ class RatpackTest extends AgentTestRunner {
           operationName "ratpack.handler"
           errored false
           tags {
-            "resource.name" "GET /nested"
             "component" "handler"
             "http.url" "/nested"
             "http.method" "GET"

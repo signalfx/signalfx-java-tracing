@@ -2,8 +2,6 @@
 import com.google.common.io.Files
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.ListWriterAssert
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.hornetq.api.core.TransportConfiguration
 import org.hornetq.api.core.client.HornetQClient
@@ -87,14 +85,11 @@ class JMS2Test extends AgentTestRunner {
       trace(1, 1) { // Consumer trace
         span(0) {
           childOf TEST_WRITER.firstTrace().get(0)
-          serviceName "jms"
           operationName "Consumed from $jmsResourceName"
-          spanType DDSpanTypes.MESSAGE_PRODUCER
           errored false
 
           tags {
             defaultTags(true)
-            "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
             "${Tags.COMPONENT.key}" "jms"
             "${Tags.SPAN_KIND.key}" "consumer"
             "span.origin.type" HornetQMessageConsumer.name
@@ -138,14 +133,11 @@ class JMS2Test extends AgentTestRunner {
       trace(1, 1) { // Consumer trace
         span(0) {
           childOf TEST_WRITER.firstTrace().get(0)
-          serviceName "jms"
           operationName "Received from $jmsResourceName"
-          spanType DDSpanTypes.MESSAGE_PRODUCER
           errored false
 
           tags {
             defaultTags(true)
-            "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
             "${Tags.COMPONENT.key}" "jms"
             "${Tags.SPAN_KIND.key}" "consumer"
             "span.origin.type" { t -> t.contains("JMS2Test") }
@@ -181,14 +173,11 @@ class JMS2Test extends AgentTestRunner {
       trace(0, 1) { // Consumer trace
         span(0) {
           parent()
-          serviceName "jms"
           operationName "JMS receiveNoWait"
-          spanType DDSpanTypes.MESSAGE_PRODUCER
           errored false
 
           tags {
             defaultTags()
-            "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
             "${Tags.COMPONENT.key}" "jms"
             "${Tags.SPAN_KIND.key}" "consumer"
             "span.origin.type" HornetQMessageConsumer.name
@@ -219,14 +208,11 @@ class JMS2Test extends AgentTestRunner {
       trace(0, 1) { // Consumer trace
         span(0) {
           parent()
-          serviceName "jms"
           operationName "JMS receive"
-          spanType DDSpanTypes.MESSAGE_PRODUCER
           errored false
 
           tags {
             defaultTags()
-            "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
             "${Tags.COMPONENT.key}" "jms"
             "${Tags.SPAN_KIND.key}" "consumer"
             "span.origin.type" HornetQMessageConsumer.name
@@ -248,14 +234,11 @@ class JMS2Test extends AgentTestRunner {
     writer.trace(index, 1) {
       span(0) {
         parent()
-        serviceName "jms"
         operationName "Produced for $jmsResourceName"
-        spanType DDSpanTypes.MESSAGE_PRODUCER
         errored false
 
         tags {
           defaultTags()
-          "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_PRODUCER
           "${Tags.COMPONENT.key}" "jms"
           "${Tags.SPAN_KIND.key}" "producer"
           "span.origin.type" HornetQMessageProducer.name
@@ -268,14 +251,11 @@ class JMS2Test extends AgentTestRunner {
     writer.trace(index, 1) {
       span(0) {
         childOf TEST_WRITER.firstTrace().get(2)
-        serviceName "jms"
         operationName "Received from $jmsResourceName"
-        spanType DDSpanTypes.MESSAGE_PRODUCER
         errored false
 
         tags {
           defaultTags()
-          "${DDTags.SPAN_TYPE}" DDSpanTypes.MESSAGE_CONSUMER
           "${Tags.COMPONENT.key}" "jms"
           "${Tags.SPAN_KIND.key}" "consumer"
           "span.origin.type" origin

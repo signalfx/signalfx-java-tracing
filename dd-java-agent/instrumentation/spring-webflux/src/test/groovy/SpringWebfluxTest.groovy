@@ -40,7 +40,6 @@ class SpringWebfluxTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceNameContains(SPRING_APP_CLASS_ANON_NESTED_CLASS_PREFIX, ".handle")
           operationNameContains(SPRING_APP_CLASS_ANON_NESTED_CLASS_PREFIX, ".handle")
           childOf(span(1))
           tags {
@@ -283,7 +282,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceNameContains(SPRING_APP_CLASS_ANON_NESTED_CLASS_PREFIX, ".handle")
           operationNameContains(SPRING_APP_CLASS_ANON_NESTED_CLASS_PREFIX, ".handle")
           childOf(span(0))
           errored true
@@ -343,7 +341,6 @@ class SpringWebfluxTest extends AgentTestRunner {
       }
       trace(1, 2) {
         span(0) {
-          resourceNameContains(SpringWebFluxTestApplication.getSimpleName() + "\$", ".handle")
           operationNameContains(SpringWebFluxTestApplication.getSimpleName() + "\$", ".handle")
           childOf(span(1))
           tags {
@@ -389,7 +386,6 @@ class SpringWebfluxTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceNameContains(SPRING_APP_CLASS_ANON_NESTED_CLASS_PREFIX, ".handle")
           operationNameContains(SPRING_APP_CLASS_ANON_NESTED_CLASS_PREFIX, ".handle")
           childOf(span(1))
           tags {

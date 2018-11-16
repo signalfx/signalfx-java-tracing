@@ -2,7 +2,6 @@ package datadog.opentracing.mock;
 
 import datadog.opentracing.scopemanager.ContextualScopeManager;
 import datadog.trace.api.Tracer;
-import datadog.trace.api.interceptor.TraceInterceptor;
 import io.opentracing.Span;
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
@@ -58,10 +57,5 @@ public class TestTracer extends MockTracer implements Tracer {
       return ((MockSpan) activeSpan).context().spanId();
     }
     return 0;
-  }
-
-  @Override
-  public boolean addTraceInterceptor(TraceInterceptor traceInterceptor) {
-    return false;
   }
 }

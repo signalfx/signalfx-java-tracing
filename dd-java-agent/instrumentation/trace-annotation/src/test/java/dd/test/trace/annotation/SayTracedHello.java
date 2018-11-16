@@ -1,8 +1,8 @@
+// Modified by SignalFx
 package dd.test.trace.annotation;
 
-import datadog.trace.api.DDTags;
 import datadog.trace.api.Trace;
-import io.opentracing.tag.StringTag;
+import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import java.util.concurrent.Callable;
 
@@ -15,7 +15,7 @@ public class SayTracedHello {
 
   @Trace(operationName = "SAY_HA")
   public static String sayHA() {
-    new StringTag(DDTags.SPAN_TYPE).set(GlobalTracer.get().scopeManager().active().span(), "DB");
+    Tags.SPAN_KIND.set(GlobalTracer.get().scopeManager().active().span(), "DB");
     return "HA!!";
   }
 

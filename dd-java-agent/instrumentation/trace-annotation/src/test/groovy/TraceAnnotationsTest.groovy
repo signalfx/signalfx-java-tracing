@@ -2,6 +2,7 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Trace
 import dd.test.trace.annotation.SayTracedHello
+import io.opentracing.tag.Tags
 
 import java.util.concurrent.Callable
 
@@ -52,7 +53,7 @@ class TraceAnnotationsTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "span.type" "DB"
+            "$Tags.SPAN_KIND.key" "DB"
             defaultTags()
           }
         }

@@ -2,7 +2,6 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.api.DDSpanTypes
 import okhttp3.Request
 import play.api.test.TestServer
 import play.test.Helpers
@@ -51,7 +50,6 @@ class Play26Test extends AgentTestRunner {
           parentId "456"
           serviceName "unnamed-java-app"
           operationName "GET /helloplay/:from"
-          spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
             defaultTags(true)
@@ -59,21 +57,18 @@ class Play26Test extends AgentTestRunner {
             "http.url" "http://localhost:$port/helloplay/spock"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" DDSpanTypes.HTTP_SERVER
             "component" "akka-http-server"
           }
         }
         span(1) {
           childOf span(0)
           operationName "GET /helloplay/:from"
-          spanType DDSpanTypes.HTTP_SERVER
           tags {
             defaultTags()
             "http.status_code" 200
             "http.url" "/helloplay/:from"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" DDSpanTypes.HTTP_SERVER
             "component" "play-action"
           }
         }
@@ -100,7 +95,6 @@ class Play26Test extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "GET /make-error"
-          spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
             defaultTags()
@@ -108,7 +102,6 @@ class Play26Test extends AgentTestRunner {
             "http.url" "http://localhost:$port/make-error"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" DDSpanTypes.HTTP_SERVER
             "component" "akka-http-server"
             "error" true
           }
@@ -116,7 +109,6 @@ class Play26Test extends AgentTestRunner {
         span(1) {
           childOf span(0)
           operationName "GET /make-error"
-          spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
             defaultTags()
@@ -124,7 +116,6 @@ class Play26Test extends AgentTestRunner {
             "http.url" "/make-error"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" DDSpanTypes.HTTP_SERVER
             "component" "play-action"
             "error" true
           }
@@ -149,7 +140,6 @@ class Play26Test extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "GET /exception"
-          spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
             defaultTags()
@@ -157,7 +147,6 @@ class Play26Test extends AgentTestRunner {
             "http.url" "http://localhost:$port/exception"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" DDSpanTypes.HTTP_SERVER
             "component" "akka-http-server"
             "error" true
           }
@@ -165,7 +154,6 @@ class Play26Test extends AgentTestRunner {
         span(1) {
           childOf span(0)
           operationName "GET /exception"
-          spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
             defaultTags()
@@ -173,7 +161,6 @@ class Play26Test extends AgentTestRunner {
             "http.url" "/exception"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" DDSpanTypes.HTTP_SERVER
             "component" "play-action"
             "error" true
             "error.msg" "oh no"
@@ -202,7 +189,6 @@ class Play26Test extends AgentTestRunner {
           serviceName "unnamed-java-app"
           operationName "akka-http.request"
           operationName "404"
-          spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
             defaultTags()
@@ -210,7 +196,6 @@ class Play26Test extends AgentTestRunner {
             "http.url" "http://localhost:$port/nowhere"
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" DDSpanTypes.HTTP_SERVER
             "component" "akka-http-server"
           }
         }
@@ -218,14 +203,12 @@ class Play26Test extends AgentTestRunner {
           childOf span(0)
           operationName "play.request"
           operationName "404"
-          spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
             defaultTags()
             "http.status_code" 404
             "http.method" "GET"
             "span.kind" "server"
-            "span.type" DDSpanTypes.HTTP_SERVER
             "component" "play-action"
           }
         }

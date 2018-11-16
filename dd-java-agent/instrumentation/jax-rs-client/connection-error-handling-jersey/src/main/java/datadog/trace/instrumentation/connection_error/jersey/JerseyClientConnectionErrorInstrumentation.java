@@ -66,14 +66,11 @@ public final class JerseyClientConnectionErrorInstrumentation extends Instrument
         final Object hasErrored = context.getProperty(ClientTracingFilter.SPAN_HAS_ERRORED);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          if (hasErrored instanceof Boolean) {
-            final Boolean spanHasErrored = (Boolean) hasErrored;
-            if (!spanHasErrored) {
-              context.setProperty(ClientTracingFilter.SPAN_HAS_ERRORED, true);
-              Tags.ERROR.set(span, true);
-              span.log(Collections.singletonMap(Fields.ERROR_OBJECT, throwable));
-              span.finish();
-            }
+          if (!Boolean.TRUE.equals(hasErrored)) {
+            context.setProperty(ClientTracingFilter.SPAN_HAS_ERRORED, Boolean.TRUE);
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, throwable));
+            span.finish();
           }
         }
       }
@@ -126,14 +123,11 @@ public final class JerseyClientConnectionErrorInstrumentation extends Instrument
         final Object hasErrored = context.getProperty(ClientTracingFilter.SPAN_HAS_ERRORED);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          if (hasErrored instanceof Boolean) {
-            final Boolean spanHasErrored = (Boolean) hasErrored;
-            if (!spanHasErrored) {
-              context.setProperty(ClientTracingFilter.SPAN_HAS_ERRORED, true);
-              Tags.ERROR.set(span, true);
-              span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
-              span.finish();
-            }
+          if (!Boolean.TRUE.equals(hasErrored)) {
+            context.setProperty(ClientTracingFilter.SPAN_HAS_ERRORED, Boolean.TRUE);
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
+            span.finish();
           }
         }
         throw e;
@@ -150,14 +144,11 @@ public final class JerseyClientConnectionErrorInstrumentation extends Instrument
         final Object hasErrored = context.getProperty(ClientTracingFilter.SPAN_HAS_ERRORED);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          if (hasErrored instanceof Boolean) {
-            final Boolean spanHasErrored = (Boolean) hasErrored;
-            if (!spanHasErrored) {
-              context.setProperty(ClientTracingFilter.SPAN_HAS_ERRORED, true);
-              Tags.ERROR.set(span, true);
-              span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
-              span.finish();
-            }
+          if (!Boolean.TRUE.equals(hasErrored)) {
+            context.setProperty(ClientTracingFilter.SPAN_HAS_ERRORED, Boolean.TRUE);
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
+            span.finish();
           }
         }
         throw e;

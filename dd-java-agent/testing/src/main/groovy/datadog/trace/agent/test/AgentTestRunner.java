@@ -90,7 +90,8 @@ public abstract class AgentTestRunner extends Specification {
             return result;
           }
         };
-    TEST_TRACER = new TestTracer(TEST_WRITER);
+    TestTracer testTracer = new TestTracer(TEST_WRITER);
+    TEST_TRACER = TestTracer.configureTestTracer(testTracer);
     TestUtils.registerOrReplaceGlobalTracer((Tracer) TEST_TRACER);
     GlobalTracer.register((Tracer) TEST_TRACER);
     datadog.trace.api.GlobalTracer.registerIfAbsent((datadog.trace.api.Tracer) TEST_TRACER);

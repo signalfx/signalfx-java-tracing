@@ -15,6 +15,7 @@ import ratpack.http.HttpUrlBuilder
 import ratpack.http.client.HttpClient
 import ratpack.path.PathBinding
 import ratpack.test.exec.ExecHarness
+import spock.lang.IgnoreIf
 
 class RatpackTest extends AgentTestRunner {
   static {
@@ -236,6 +237,7 @@ class RatpackTest extends AgentTestRunner {
 
   }
 
+  @IgnoreIf({ System.getProperty("mock.tracer.composite") != null })
   def "forked executions inherit parent scope"() {
     when:
     def result = ExecHarness.yieldSingle({ spec ->

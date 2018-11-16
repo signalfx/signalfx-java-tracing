@@ -19,6 +19,7 @@ dependencies {
   testCompile deps.opentracingMock
   testCompile deps.testLogging
   testCompile deps.guava
+  compile deps.jaeger
 
   testCompile group: 'org.mongodb', name: 'mongo-java-driver', version: '3.4.2'
   testCompile group: 'org.mongodb', name: 'mongodb-driver-async', version: '3.4.2'
@@ -38,9 +39,13 @@ tasks.withType(Test) {
     // Defining here to allow jacoco to be first on the command line.
     jvmArgs "-javaagent:${project(':dd-java-agent').tasks.shadowJar.archivePath}"
   }
-  environment "JAEGER_SERVICE_NAME", "IntegrationTest"
+  environment "JAEGER_SERVICE_NAME", "Java-Agent-Testing (ittests)"
   environment "JAEGER_SAMPLER_TYPE", "const"
   environment "JAEGER_SAMPLER_PARAM", "1.0"
+  environment "JAEGER_ENDPOINT", "https://ingest.signalfx.com/v1/trace"
+  environment "JAEGER_USER", "auth"
+  environment "JAEGER_REPORTER_FLUSH_INTERVAL", "1000"
+  systemProperties["mock.tracer.composite"] = "1"
   testLogging {
     events "started"
   }

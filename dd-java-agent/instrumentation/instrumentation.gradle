@@ -33,6 +33,16 @@ subprojects { subProj ->
         }
       }
     }
+
+    subProj.tasks.withType(Test) {
+      environment "JAEGER_SERVICE_NAME", "Java-Agent-Testing (${subProj.name})"
+      environment "JAEGER_SAMPLER_TYPE", "const"
+      environment "JAEGER_SAMPLER_PARAM", "1.0"
+      environment "JAEGER_ENDPOINT", "https://ingest.signalfx.com/v1/trace"
+      environment "JAEGER_USER", "auth"
+      environment "JAEGER_REPORTER_FLUSH_INTERVAL", "1000"
+      systemProperties["mock.tracer.composite"] = "1"
+    }
   }
 
   instr_project.dependencies {

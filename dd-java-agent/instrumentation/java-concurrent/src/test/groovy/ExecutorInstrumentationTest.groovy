@@ -1,8 +1,8 @@
 // Modified by SignalFx
 import datadog.opentracing.mock.TestSpan
-import datadog.opentracing.scopemanager.ContinuableScope
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Trace
+import datadog.trace.context.TraceScope
 import io.opentracing.util.GlobalTracer
 import spock.lang.Shared
 
@@ -39,7 +39,7 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
       @Override
       @Trace(operationName = "parent")
       void run() {
-        ((ContinuableScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(true)
+        ((TraceScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(true)
         // this child will have a span
         m.invoke(pool, new AsyncChild())
         // this child won't
@@ -81,7 +81,7 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
       @Override
       @Trace(operationName = "parent")
       void run() {
-        ((ContinuableScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(true)
+        ((TraceScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(true)
         try {
           for (int i = 0; i < 20; ++i) {
             Future f = pool.submit((Callable) child)

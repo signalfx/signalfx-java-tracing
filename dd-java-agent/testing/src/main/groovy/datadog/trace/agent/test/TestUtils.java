@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.test;
 
 import static com.google.common.base.StandardSystemProperty.JAVA_CLASS_PATH;

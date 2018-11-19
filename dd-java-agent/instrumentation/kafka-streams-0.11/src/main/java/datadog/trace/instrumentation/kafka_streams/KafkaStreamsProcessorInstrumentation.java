@@ -76,7 +76,7 @@ public class KafkaStreamsProcessorInstrumentation {
                     Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(record.value.headers()));
 
         GlobalTracer.get()
-            .buildSpan("Consume Topic " + record.topic())
+            .buildSpan("consume." + record.topic())
             .asChildOf(extractedContext)
             .withTag(Tags.COMPONENT.getKey(), "java-kafka")
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER)

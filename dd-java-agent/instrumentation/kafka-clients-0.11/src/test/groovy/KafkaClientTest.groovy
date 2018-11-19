@@ -79,7 +79,7 @@ class KafkaClientTest extends AgentTestRunner {
     def produceSpan = t1[1]
     def consumeSpan = t1[0]
 
-    produceSpan.operationName == "Produce Topic $SHARED_TOPIC"
+    produceSpan.operationName == "produce.$SHARED_TOPIC"
     produceSpan.parentId == 0
 
     def produceTags = produceSpan.tags()
@@ -87,7 +87,7 @@ class KafkaClientTest extends AgentTestRunner {
     produceTags["span.kind"] == "producer"
     produceTags.size() == 2
 
-    consumeSpan.operationName == "Consume Topic $SHARED_TOPIC"
+    consumeSpan.operationName == "consume.$SHARED_TOPIC"
     consumeSpan.parentId == produceSpan.spanId
 
     def consumeTags = consumeSpan.tags()

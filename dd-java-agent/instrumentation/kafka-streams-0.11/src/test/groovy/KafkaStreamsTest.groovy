@@ -104,7 +104,7 @@ class KafkaStreamsTest extends AgentTestRunner {
     def consumePending = trace[2]
     def producePending = trace[3]
 
-    producePending.operationName == "Produce Topic $STREAM_PENDING"
+    producePending.operationName == "produce.$STREAM_PENDING"
     producePending.parentId == 0
 
     def producePendingTags = producePending.tags()
@@ -112,7 +112,7 @@ class KafkaStreamsTest extends AgentTestRunner {
     producePendingTags["span.kind"] == "producer"
     producePendingTags.size() == 2
 
-    produceProcessed.operationName == "Produce Topic $STREAM_PROCESSED"
+    produceProcessed.operationName == "produce.$STREAM_PROCESSED"
 
     def produceProcessedTags = produceProcessed.tags()
     produceProcessedTags["component"] == "java-kafka"
@@ -121,7 +121,7 @@ class KafkaStreamsTest extends AgentTestRunner {
 
     produceProcessed.parentId == consumePending.spanId
 
-    consumePending.operationName == "Consume Topic $STREAM_PENDING"
+    consumePending.operationName == "consume.$STREAM_PENDING"
     consumePending.parentId == producePending.spanId
 
     def consumePendingTags = consumePending.tags()
@@ -132,7 +132,7 @@ class KafkaStreamsTest extends AgentTestRunner {
     consumePendingTags["asdf"] == "testing"
     consumePendingTags.size() == 5
 
-    consumeProcessed.operationName == "Consume Topic $STREAM_PROCESSED"
+    consumeProcessed.operationName == "consume.$STREAM_PROCESSED"
     consumeProcessed.parentId == produceProcessed.spanId
 
     def consumeProcessedTags = consumeProcessed.tags()

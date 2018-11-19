@@ -97,7 +97,7 @@ public final class KafkaConsumerInstrumentation extends Instrumenter.Default {
     public SpanBuilder buildSpan(final ConsumerRecord record) {
       final Tracer tracer = GlobalTracer.get();
       final String topic = record.topic() == null ? "kafka" : record.topic();
-      final Tracer.SpanBuilder spanBuilder = tracer.buildSpan("Consume Topic " + topic);
+      final Tracer.SpanBuilder spanBuilder = tracer.buildSpan("consume." + topic);
       final SpanContext spanContext =
           tracer.extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(record.headers()));
       spanBuilder

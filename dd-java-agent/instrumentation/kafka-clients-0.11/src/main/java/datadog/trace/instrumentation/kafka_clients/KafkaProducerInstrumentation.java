@@ -80,7 +80,7 @@ public final class KafkaProducerInstrumentation extends Instrumenter.Default {
       Tags.COMPONENT.set(span, COMPONENT_NAME);
       Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_PRODUCER);
 
-      span.setOperationName("Produce Topic " + topic);
+      span.setOperationName("produce." + topic);
 
       try {
         GlobalTracer.get()

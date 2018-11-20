@@ -74,6 +74,7 @@ jar {
 
 shadowJar {
   classifier null
+  archiveName "signalfx-tracing.jar"
 
   mergeServiceFiles()
 

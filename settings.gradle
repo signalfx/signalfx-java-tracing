@@ -1,4 +1,5 @@
-rootProject.name = 'dd-trace-java'
+// Modified by SignalFx
+rootProject.name = 'signalfx-trace-java'
 
 // core tracing projects
 include ':dd-trace-api'

@@ -1,7 +1,7 @@
 version: 2
 
 defaults: &defaults
-  working_directory: ~/dd-trace-java
+  working_directory: ~/signalfx-trace-java
   resource_class: xlarge
   docker:
   - image: &default_container datadog/dd-trace-java-docker-build:latest
@@ -9,9 +9,9 @@ defaults: &defaults
 cache_keys: &cache_keys
   # Reset the cache approx every release
   keys:
-  - dd-trace-java-{{ checksum "dd-trace-java.gradle" }}-{{ .Branch }}-{{ .Revision }}
-  - dd-trace-java-{{ checksum "dd-trace-java.gradle" }}-{{ .Branch }}
-  - dd-trace-java-{{ checksum "dd-trace-java.gradle" }}
+  - signalfx-trace-java-{{ checksum "signalfx-trace-java.gradle" }}-{{ .Branch }}-{{ .Revision }}
+  - signalfx-trace-java-{{ checksum "signalfx-trace-java.gradle" }}-{{ .Branch }}
+  - signalfx-trace-java-{{ checksum "signalfx-trace-java.gradle" }}
 
 jobs:
   build:
@@ -41,7 +41,7 @@ jobs:
         - workspace
 
     - save_cache:
-        key: dd-trace-java-{{ checksum "dd-trace-java.gradle" }}-{{ .Branch }}-{{ .Revision }}
+        key: signalfx-trace-java-{{ checksum "signalfx-trace-java.gradle" }}-{{ .Branch }}-{{ .Revision }}
         paths: ~/.gradle
 
 
@@ -185,7 +185,7 @@ jobs:
     - restore_cache:
         # Reset the cache approx every release
         keys:
-        - dd-trace-java-muzzle-{{ checksum "dd-trace-java.gradle" }}
+        - signalfx-trace-java-version-scan-{{ checksum "signalfx-trace-java.gradle" }}
 
     - run:
         name: Verify Muzzle
@@ -195,7 +195,7 @@ jobs:
         command: SKIP_BUILDSCAN="true" GRADLE_OPTS="-Dorg.gradle.jvmargs='-Xmx8G -Xms64M' -Ddatadog.forkedMaxHeapSize=4G -Ddatadog.forkedMinHeapSize=64M" ./gradlew muzzle --parallel --stacktrace --no-daemon
 
     - save_cache:
-        key: dd-trace-java-muzzle-{{ checksum "dd-trace-java.gradle" }}
+        key: signalfx-trace-java-version-scan-{{ checksum "signalfx-trace-java.gradle" }}
         paths: ~/.gradle
 
   publish: &publish

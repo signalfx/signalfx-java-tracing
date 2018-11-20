@@ -72,15 +72,11 @@ jar {
 
 shadowJar {
   classifier null
+  archiveName "signalfx-tracing.jar"
 
   mergeServiceFiles()
 
   dependencies {
     exclude(dependency("org.projectlombok:lombok:$versions.lombok"))
   }
-}
-
-// We don't want bundled dependencies to show up in the pom.
-modifyPom {
-  dependencies.removeAll { true }
 }

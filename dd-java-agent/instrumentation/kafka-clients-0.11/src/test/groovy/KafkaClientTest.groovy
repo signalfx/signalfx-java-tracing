@@ -85,7 +85,8 @@ class KafkaClientTest extends AgentTestRunner {
     def produceTags = produceSpan.tags()
     produceTags["component"] == "java-kafka"
     produceTags["span.kind"] == "producer"
-    produceTags.size() == 2
+    produceTags["topic"] == SHARED_TOPIC
+    produceTags.size() == 3
 
     consumeSpan.operationName == "consume.$SHARED_TOPIC"
     consumeSpan.parentId == produceSpan.spanId
@@ -93,9 +94,10 @@ class KafkaClientTest extends AgentTestRunner {
     def consumeTags = consumeSpan.tags()
     consumeTags["component"] == "java-kafka"
     consumeTags["span.kind"] == "consumer"
+    consumeTags["topic"] == SHARED_TOPIC
     consumeTags["partition"] >= 0
     consumeTags["offset"] == 0
-    consumeTags.size() == 4
+    consumeTags.size() == 5
 
     def headers = received.headers()
     headers.iterator().hasNext()

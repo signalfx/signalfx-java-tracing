@@ -102,6 +102,7 @@ public final class KafkaConsumerInstrumentation extends Instrumenter.Default {
           tracer.extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(record.headers()));
       spanBuilder
           .asChildOf(spanContext)
+          .withTag("topic", topic)
           .withTag(Tags.COMPONENT.getKey(), "java-kafka")
           .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER)
           .withTag("partition", record.partition())

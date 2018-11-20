@@ -32,7 +32,6 @@ public final class KafkaProducerInstrumentation extends Instrumenter.Default {
         KafkaProducerInstrumentation.class.getName() + "$ProducerCallback"
       };
 
-  private static final String OPERATION = "kafka.produce";
   private static final String COMPONENT_NAME = "java-kafka";
 
   public KafkaProducerInstrumentation() {
@@ -68,18 +67,18 @@ public final class KafkaProducerInstrumentation extends Instrumenter.Default {
     public static Scope startSpan(
         @Advice.Argument(value = 0, readOnly = false) ProducerRecord record,
         @Advice.Argument(value = 1, readOnly = false) Callback callback) {
-      final Scope scope = GlobalTracer.get().buildSpan(OPERATION).startActive(false);
+      final String topic = record.topic() == null ? "kafka" : record.topic();
+      final Scope scope = GlobalTracer.get().buildSpan("produce." + topic).startActive(false);
       callback = new ProducerCallback(callback, scope);
 
       final Span span = scope.span();
-      final String topic = record.topic() == null ? "kafka" : record.topic();
       if (record.partition() != null) {
         span.setTag("kafka.partition", record.partition());
       }
 
       Tags.COMPONENT.set(span, COMPONENT_NAME);
       Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_PRODUCER);
-
+      span.setTag("topic", topic);
       span.setOperationName("produce." + topic);
 
       try {

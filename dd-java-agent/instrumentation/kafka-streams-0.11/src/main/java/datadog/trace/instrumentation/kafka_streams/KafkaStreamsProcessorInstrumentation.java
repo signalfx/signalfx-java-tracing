@@ -80,6 +80,7 @@ public class KafkaStreamsProcessorInstrumentation {
             .asChildOf(extractedContext)
             .withTag(Tags.COMPONENT.getKey(), "java-kafka")
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CONSUMER)
+            .withTag("topic", record.topic())
             .withTag("partition", record.partition())
             .withTag("offset", record.offset())
             .startActive(true);

@@ -110,14 +110,16 @@ class KafkaStreamsTest extends AgentTestRunner {
     def producePendingTags = producePending.tags()
     producePendingTags["component"] == "java-kafka"
     producePendingTags["span.kind"] == "producer"
-    producePendingTags.size() == 2
+    producePendingTags["topic"] == STREAM_PENDING
+    producePendingTags.size() == 3
 
     produceProcessed.operationName == "produce.$STREAM_PROCESSED"
 
     def produceProcessedTags = produceProcessed.tags()
     produceProcessedTags["component"] == "java-kafka"
     produceProcessedTags["span.kind"] == "producer"
-    produceProcessedTags.size() == 2
+    produceProcessedTags["topic"] == STREAM_PROCESSED
+    produceProcessedTags.size() == 3
 
     produceProcessed.parentId == consumePending.spanId
 
@@ -127,10 +129,11 @@ class KafkaStreamsTest extends AgentTestRunner {
     def consumePendingTags = consumePending.tags()
     consumePendingTags["component"] == "java-kafka"
     consumePendingTags["span.kind"] == "consumer"
+    consumePendingTags["topic"] == STREAM_PENDING
     consumePendingTags["partition"] >= 0
     consumePendingTags["offset"] == 0
     consumePendingTags["asdf"] == "testing"
-    consumePendingTags.size() == 5
+    consumePendingTags.size() == 6
 
     consumeProcessed.operationName == "consume.$STREAM_PROCESSED"
     consumeProcessed.parentId == produceProcessed.spanId
@@ -138,10 +141,11 @@ class KafkaStreamsTest extends AgentTestRunner {
     def consumeProcessedTags = consumeProcessed.tags()
     consumeProcessedTags["component"] == "java-kafka"
     consumeProcessedTags["span.kind"] == "consumer"
+    consumeProcessedTags["topic"] == STREAM_PROCESSED
     consumeProcessedTags["partition"] >= 0
     consumeProcessedTags["offset"] == 0
     consumeProcessedTags["testing"] == 123
-    consumeProcessedTags.size() == 5
+    consumeProcessedTags.size() == 6
 
     def headers = received.headers()
     headers.iterator().hasNext()

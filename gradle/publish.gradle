@@ -41,6 +41,7 @@ if (!isRoot) {
         from components.java
         pom {
           name = project.name
+          artifactId = project.name.replaceAll('dd-', 'signalfx-')
           description = project.description
           url = "https://github.com/signalfx/signalfx-trace-java"
           licenses {
@@ -71,18 +72,20 @@ if (!isRoot) {
 
     repositories {
       maven {
-        name = 'ossrh'
+        def ossrhUsername = project.findProperty("ossrhUsername") ?: null
+        def ossrhPassword = project.findProperty("ossrhPassword") ?: null
+
+        credentials(PasswordCredentials) {
+          username ossrhUsername
+          password ossrhPassword
+        }
+
         def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
         def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
-        url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        def isSnapshot = version.endsWith('SNAPSHOT')
+        name = isSnapshot ? 'OssrhSnapshot' : 'ossrhRelease'
+        url = isSnapshot ? snapshotsRepoUrl : releasesRepoUrl
 
-        def username = project.findProperty("ossrhUsername") ?: null
-        def password = project.findProperty("ossrhPassword") ?: null
-
-        credentials {
-          username = username
-          password = password
-        }
       }
     }
   }

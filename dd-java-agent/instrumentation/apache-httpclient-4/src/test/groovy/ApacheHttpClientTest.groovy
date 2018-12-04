@@ -115,7 +115,7 @@ class ApacheHttpClientTest extends AgentTestRunner {
   def successClientSpan(TraceAssert trace, int index, TestSpan parent, status = 200, route = "success", Throwable exception = null) {
     trace.span(index) {
       childOf parent
-      operationName "GET /$route"
+      operationName "GET"
       errored exception != null
       tags {
         defaultTags()

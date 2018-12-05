@@ -14,6 +14,13 @@ public class TracerInstaller {
     if (!io.opentracing.util.GlobalTracer.isRegistered()) {
       Configuration conf = Configuration.fromEnv();
 
+      Configuration.SenderConfiguration senderConf = conf.getReporter().getSenderConfiguration();
+      if (Strings.isNullOrEmpty(senderConf.getAuthUsername())
+          && !Strings.isNullOrEmpty(senderConf.getAuthPassword())) {
+        // This builder updates in place
+        senderConf.withAuthUsername("auth");
+      }
+
       if (Strings.isNullOrEmpty(conf.getSampler().getType())) {
         // Send all traces out by default since sampling happens downstream
         conf =

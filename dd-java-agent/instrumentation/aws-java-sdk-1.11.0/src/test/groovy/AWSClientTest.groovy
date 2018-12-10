@@ -75,7 +75,7 @@ class AWSClientTest extends AgentTestRunner {
     assertTraces(2) {
       trace(0, 1) {
         span(0) {
-          operationName "$method /$url"
+          operationName "$method"
           errored false
           parent() // FIXME: This should be a child of the aws.http call.
           tags {

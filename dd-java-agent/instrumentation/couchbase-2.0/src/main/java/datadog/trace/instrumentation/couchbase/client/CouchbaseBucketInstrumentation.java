@@ -113,7 +113,7 @@ public class CouchbaseBucketInstrumentation extends Instrumenter.Default {
       spanRef.set(
           GlobalTracer.get()
               .buildSpan(operationName)
-              .withTag(Tags.COMPONENT.getKey(), "couchbase")
+              .withTag(Tags.COMPONENT.getKey(), "couchbase-client")
               .withTag("bucket", bucket)
               .start());
     }

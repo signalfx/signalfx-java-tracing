@@ -99,7 +99,7 @@ public class TracingCallFactory implements Call.Factory {
         final Tracer tracer,
         final SpanContext spanContext,
         final List<OkHttpClientSpanDecorator> decorators) {
-      this.parentContext = spanContext;
+      parentContext = spanContext;
       this.tracer = tracer;
       this.decorators = decorators;
     }
@@ -110,6 +110,7 @@ public class TracingCallFactory implements Call.Factory {
           tracer
               .buildSpan("okhttp.http")
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
+              .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME + "-network")
               .asChildOf(parentContext)
               .startActive(true)) {
 

@@ -12,6 +12,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.bootstrap.CallDepthThreadLocalMap;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.propagation.Format;
@@ -65,6 +66,11 @@ public final class JMSMessageProducerInstrumentation extends Instrumenter.Defaul
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Scope startSpan(
         @Advice.Argument(0) final Message message, @Advice.This final MessageProducer producer) {
+      final int callDepth = CallDepthThreadLocalMap.incrementCallDepth(MessageProducer.class);
+      if (callDepth > 0) {
+        return null;
+      }
+
       Destination defaultDestination;
       try {
         defaultDestination = producer.getDestination();
@@ -97,6 +103,7 @@ public final class JMSMessageProducerInstrumentation extends Instrumenter.Defaul
           span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
         }
         scope.close();
+        CallDepthThreadLocalMap.reset(MessageProducer.class);
       }
     }
   }
@@ -108,6 +115,11 @@ public final class JMSMessageProducerInstrumentation extends Instrumenter.Defaul
         @Advice.Argument(0) final Destination destination,
         @Advice.Argument(1) final Message message,
         @Advice.This final MessageProducer producer) {
+      final int callDepth = CallDepthThreadLocalMap.incrementCallDepth(MessageProducer.class);
+      if (callDepth > 0) {
+        return null;
+      }
+
       final Scope scope =
           GlobalTracer.get()
               .buildSpan("Produce for " + toResourceName(message, destination))
@@ -134,6 +146,7 @@ public final class JMSMessageProducerInstrumentation extends Instrumenter.Defaul
           span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
         }
         scope.close();
+        CallDepthThreadLocalMap.reset(MessageProducer.class);
       }
     }
   }

@@ -25,7 +25,7 @@ jobs:
 
     - run:
         name: Build Project
-        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx1G -Xms64M" ./gradlew clean :dd-java-agent:shadowJar compileTestGroovy compileTestScala compileTestJava --build-cache --parallel --stacktrace --no-daemon --max-workers=1
+        command: GRADLE_OPTS="-Dorg.gradle.jvmargs='-Xmx1G -Xms64M' -Ddatadog.forkedMaxHeapSize=1G -Ddatadog.forkedMinHeapSize=64M" ./gradlew clean :dd-java-agent:shadowJar compileTestGroovy compileTestScala compileTestJava --build-cache --parallel --stacktrace --no-daemon --max-workers=8
 
     - run:
         name: Collect Libs
@@ -66,7 +66,7 @@ jobs:
 
     - run:
         name: Run Tests
-        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx2G -Xms512M" ./gradlew $TEST_TASK --build-cache --parallel --stacktrace --no-daemon --max-workers=1
+        command: GRADLE_OPTS="-Ddatadog.forkedMaxHeapSize=4G -Ddatadog.forkedMinHeapSize=64M" ./gradlew $TEST_TASK --build-cache --parallel --stacktrace --no-daemon --max-workers=6
 
     - run:
         name: Collect Reports
@@ -94,6 +94,11 @@ jobs:
     environment:
     # We are building on Java8, this is our default JVM so no need to set more homes
     - TEST_TASK: test latestDepTest jacocoTestReport jacocoTestCoverageVerification
+
+  test_ibm8:
+    <<: *default_test_job
+    environment:
+      - TEST_TASK: testJavaIBM8
 
   test_9:
     <<: *default_test_job
@@ -124,7 +129,7 @@ jobs:
 
     - run:
         name: Build Project
-        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx1G -Xms64M" ./gradlew check -PskipTests --build-cache --parallel --stacktrace --no-daemon --max-workers=1
+        command: GRADLE_OPTS="-Ddatadog.forkedMaxHeapSize=4G -Ddatadog.forkedMinHeapSize=64M" ./gradlew check -PskipTests --build-cache --parallel --stacktrace --no-daemon --max-workers=8
 
     - run:
         name: Collect Reports
@@ -133,24 +138,6 @@ jobs:
 
     - store_artifacts:
         path: ./reports
-
-  scan_versions:
-    <<: *defaults
-    steps:
-    - checkout
-
-    - restore_cache:
-        # Reset the cache approx every release
-        keys:
-        - signalfx-trace-java-version-scan-{{ checksum "signalfx-trace-java.gradle" }}
-
-    - run:
-        name: Verify Version Scan
-        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx4G -Xms64M" ./gradlew verifyVersionScan --parallel --stacktrace --no-daemon --max-workers=1
-
-    - save_cache:
-        key: signalfx-trace-java-version-scan-{{ checksum "signalfx-trace-java.gradle" }}
-        paths: ~/.gradle
 
   muzzle:
     <<: *defaults
@@ -167,7 +154,7 @@ jobs:
         # Note: we do not have `--max-workers` here to have number of workers (threads) equal to number of CPUs (32 currently).
         # This should speed things up slightly because muzzle may do a lot of IO bound work: reading off disk and downloading
         # dependencies.
-        command: GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx12G -Xms64M" ./gradlew muzzle --parallel --stacktrace --no-daemon
+        command: SKIP_BUILDSCAN="true" GRADLE_OPTS="-Dorg.gradle.jvmargs='-Xmx8G -Xms64M' -Ddatadog.forkedMaxHeapSize=4G -Ddatadog.forkedMinHeapSize=64M" ./gradlew muzzle --parallel --stacktrace --no-daemon
 
     - save_cache:
         key: signalfx-trace-java-version-scan-{{ checksum "signalfx-trace-java.gradle" }}
@@ -219,6 +206,12 @@ workflows:
         filters:
           tags:
             only: /.*/
+    - test_ibm8:
+        requires:
+          - build
+        filters:
+          tags:
+            only: /.*/
     - test_9:
         requires:
         - build
@@ -245,13 +238,6 @@ workflows:
           tags:
             only: /.*/
 
-    - scan_versions:
-        requires:
-        - build
-        filters:
-          branches:
-            ignore: master
-
     - muzzle:
         requires:
         - build
@@ -263,6 +249,7 @@ workflows:
         requires:
         - test_7
         - test_8
+        - test_ibm8
         - test_9
         - test_10
         - test_11
@@ -277,6 +264,7 @@ workflows:
         requires:
         - test_7
         - test_8
+        - test_ibm8
         - test_9
         - test_10
         - test_11

@@ -1,6 +1,7 @@
 // Modified by SignalFx
+
+import datadog.opentracing.mock.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.agent.test.asserts.ListWriterAssert
 import datadog.trace.agent.test.asserts.TraceAssert
 import io.opentracing.tag.Tags
 import org.apache.activemq.ActiveMQConnectionFactory
@@ -20,6 +21,8 @@ import java.util.concurrent.atomic.AtomicReference
 
 class JMS1Test extends AgentTestRunner {
   @Shared
+  EmbeddedActiveMQBroker broker = new EmbeddedActiveMQBroker()
+  @Shared
   String messageText = "a message"
   @Shared
   Session session
@@ -27,13 +30,16 @@ class JMS1Test extends AgentTestRunner {
   ActiveMQTextMessage message = session.createTextMessage(messageText)
 
   def setupSpec() {
-    EmbeddedActiveMQBroker broker = new EmbeddedActiveMQBroker()
     broker.start()
     final ActiveMQConnectionFactory connectionFactory = broker.createConnectionFactory()
 
     final Connection connection = connectionFactory.createConnection()
     connection.start()
     session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+  }
+
+  def cleanupSpec() {
+    broker.stop()
   }
 
   def "sending a message to #jmsResourceName generates spans"() {
@@ -48,20 +54,9 @@ class JMS1Test extends AgentTestRunner {
     expect:
     receivedMessage.text == messageText
     assertTraces(1) {
-      trace(0, 4) { // Consumer trace
-        span(0) {
-          childOf span(3)
-          operationName "Consume from $jmsResourceName"
-          errored false
-
-          tags {
-            defaultTags(true)
-            "${Tags.COMPONENT.key}" "jms"
-            "${Tags.SPAN_KIND.key}" "consumer"
-            "span.origin.type" ActiveMQMessageConsumer.name
-          }
-        }
-        producerSpans(it, 1, jmsResourceName)
+      trace(0, 2) {
+        producerSpan(it, 1, jmsResourceName)
+        consumerSpan(it, 0, jmsResourceName, false, ActiveMQMessageConsumer, span(1))
       }
     }
 
@@ -105,20 +100,9 @@ class JMS1Test extends AgentTestRunner {
 
     expect:
     assertTraces(1) {
-      trace(0, 4) {
-        span(0) {
-          childOf span(3)
-          operationName "Receive from $jmsResourceName"
-          errored false
-
-          tags {
-            defaultTags(true)
-            "${Tags.COMPONENT.key}" "jms"
-            "${Tags.SPAN_KIND.key}" "consumer"
-            "span.origin.type" { t -> t.contains("JMS1Test") }
-          }
-        }
-        producerSpans(it, 1, jmsResourceName)
+      trace(0, 2) {
+        producerSpan(it, 1, jmsResourceName)
+        consumerSpan(it, 0, jmsResourceName, true, consumer.messageListener.class, span(1))
       }
     }
     // This check needs to go after all traces have been accounted for
@@ -228,8 +212,10 @@ class JMS1Test extends AgentTestRunner {
     // write properties in MessagePropertyTextMap when readOnlyProperties = true.
     // The consumer span will also not be linked to the parent.
     assertTraces(2) {
-      producerTrace(it, 0, 0, jmsResourceName)
-      trace(1, 1) { // Consumer trace
+      trace(0, 1) { // Consumer trace
+        producerSpan(it, 0, jmsResourceName)
+      }
+      trace(1, 1) {
         span(0) {
           parent()
           operationName "Consume from $jmsResourceName"
@@ -257,69 +243,36 @@ class JMS1Test extends AgentTestRunner {
     session.createTemporaryTopic()   | "Temporary Topic"
   }
 
-  def producerTrace(ListWriterAssert writer, int traceIndex, int spanIndex, String jmsResourceName) {
-    writer.trace(traceIndex, 3) {
-      producerSpans(it, spanIndex, jmsResourceName)
+  static producerSpan(TraceAssert trace, int index, String jmsResourceName) {
+    trace.span(index) {
+      operationName "Produce for ${jmsResourceName}"
+      errored false
+      parent()
+
+      tags {
+        defaultTags()
+        "${Tags.COMPONENT.key}" "jms"
+        "${Tags.SPAN_KIND.key}" "producer"
+        "span.origin.type" ActiveMQMessageProducer.name
+      }
     }
   }
 
-  def producerSpans(TraceAssert traceAssert, int spanIndex, String jmsResourceName) {
-    def innerProducerSpans = {
-      span(spanIndex) {
-        parent()
-        operationName "Produce for $jmsResourceName"
-        errored false
-
-        tags {
-          defaultTags()
-          "${Tags.COMPONENT.key}" "jms"
-          "${Tags.SPAN_KIND.key}" "producer"
-          "span.origin.type" ActiveMQMessageProducer.name
-        }
+  static consumerSpan(TraceAssert trace, int index, String jmsResourceName, boolean messageListener, Class origin, TestSpan parentSpan = TEST_WRITER[0][0]) {
+    trace.span(index) {
+      if (messageListener) {
+        operationName "Receive from ${jmsResourceName}"
+      } else {
+        operationName "Consume from ${jmsResourceName}"
       }
-      span(spanIndex + 1) {
-        childOf span(spanIndex)
-        operationName "Produce for $jmsResourceName"
-        errored false
+      errored false
+      childOf parentSpan
 
-        tags {
-          defaultTags()
-          "${Tags.COMPONENT.key}" "jms"
-          "${Tags.SPAN_KIND.key}" "producer"
-          "span.origin.type" ActiveMQMessageProducer.name
-        }
-      }
-      span(spanIndex + 2) {
-        childOf span(spanIndex + 1)
-        operationName "Produce for $jmsResourceName"
-        errored false
-
-        tags {
-          defaultTags()
-          "${Tags.COMPONENT.key}" "jms"
-          "${Tags.SPAN_KIND.key}" "producer"
-          "span.origin.type" ActiveMQMessageProducer.name
-        }
-      }
-    }
-    innerProducerSpans.delegate = traceAssert
-    innerProducerSpans.resolveStrategy = Closure.DELEGATE_FIRST
-    return innerProducerSpans()
-  }
-
-  def consumerTrace(ListWriterAssert writer, int index, String jmsResourceName, origin) {
-    writer.trace(index, 2) {
-      span(0) {
-        childOf TEST_WRITER.firstTrace().get(2)
-        operationName "Receive from $jmsResourceName"
-        errored false
-
-        tags {
-          defaultTags()
-          "${Tags.COMPONENT.key}" "jms"
-          "${Tags.SPAN_KIND.key}" "consumer"
-          "span.origin.type" origin
-        }
+      tags {
+        defaultTags(true)
+        "${Tags.COMPONENT.key}" "jms"
+        "${Tags.SPAN_KIND.key}" "consumer"
+        "span.origin.type" origin.name
       }
     }
   }

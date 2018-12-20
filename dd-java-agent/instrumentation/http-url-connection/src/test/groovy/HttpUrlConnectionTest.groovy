@@ -8,11 +8,10 @@ import spock.lang.Shared
 
 import static datadog.trace.agent.test.TestUtils.runUnderTrace
 import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
+import static datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionInstrumentation.HttpUrlState.COMPONENT_NAME
+import static datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionInstrumentation.HttpUrlState.OPERATION_NAME
 
 class HttpUrlConnectionTest extends AgentTestRunner {
-  static {
-    System.setProperty("dd.integration.httpurlconnection.enabled", "true")
-  }
 
   static final RESPONSE = "<html><body><h1>Hello test.</h1>"
   static final STATUS = 202
@@ -65,11 +64,11 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(1) {
-          operationName "http.request.input-stream"
+          operationName OPERATION_NAME
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
+            "$Tags.COMPONENT.key" COMPONENT_NAME
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "GET"
@@ -88,11 +87,11 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(3) {
-          operationName "http.request.input-stream"
+          operationName OPERATION_NAME
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
+            "$Tags.COMPONENT.key" COMPONENT_NAME
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "GET"
@@ -155,11 +154,11 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(1) {
-          operationName "http.request.input-stream"
+          operationName OPERATION_NAME
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
+            "$Tags.COMPONENT.key" COMPONENT_NAME
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "GET"
@@ -170,11 +169,11 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(2) {
-          operationName "http.request.input-stream"
+          operationName OPERATION_NAME
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
+            "$Tags.COMPONENT.key" COMPONENT_NAME
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "GET"
@@ -213,11 +212,11 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(1) {
-          operationName "http.request.input-stream"
+          operationName OPERATION_NAME
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
+            "$Tags.COMPONENT.key" COMPONENT_NAME
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "HEAD"
@@ -254,11 +253,11 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(1) {
-          operationName "http.request.input-stream"
+          operationName OPERATION_NAME
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
+            "$Tags.COMPONENT.key" COMPONENT_NAME
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "GET"
@@ -303,7 +302,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
 
     expect:
     assertTraces(1) {
-      trace(0, 4) {
+      trace(0, 3) {
         span(0) {
           operationName "someTrace"
           parent()
@@ -313,11 +312,11 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(1) {
-          operationName "http.request.input-stream"
+          operationName OPERATION_NAME
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
+            "$Tags.COMPONENT.key" COMPONENT_NAME
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "POST"
@@ -332,20 +331,6 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           errored false
           childOf span(1)
           tags {
-            defaultTags()
-          }
-        }
-        span(3) {
-          operationName "http.request.output-stream"
-          childOf span(0)
-          errored false
-          tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
-            "$Tags.HTTP_METHOD.key" "POST"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
             defaultTags()
           }
         }
@@ -392,7 +377,25 @@ class HttpUrlConnectionTest extends AgentTestRunner {
     assert lines == [RESPONSE]
 
     expect:
-    assertTraces(0) {}
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          operationName OPERATION_NAME
+          parent()
+          errored false
+          tags {
+            "$Tags.COMPONENT.key" COMPONENT_NAME
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_URL.key" "$server.address"
+            "$Tags.HTTP_METHOD.key" "GET"
+            "$Tags.HTTP_STATUS.key" STATUS
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_PORT.key" server.address.port
+            defaultTags()
+          }
+        }
+      }
+    }
   }
 
   def "rest template"() {
@@ -405,7 +408,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
 
     expect:
     assertTraces(1) {
-      trace(0, 5) {
+      trace(0, 3) {
         span(0) {
           operationName "someTrace"
           parent()
@@ -415,11 +418,11 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           }
         }
         span(1) {
-          operationName "http.request.input-stream"
+          operationName OPERATION_NAME
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
+            "$Tags.COMPONENT.key" COMPONENT_NAME
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL.key" "$server.address"
             "$Tags.HTTP_METHOD.key" "POST"
@@ -432,36 +435,8 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(2) {
           operationName "test-http-server"
           errored false
-          childOf span(3)
+          childOf span(1)
           tags {
-            defaultTags()
-          }
-        }
-        span(3) {
-          operationName "http.request.output-stream"
-          childOf span(0)
-          errored false
-          tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
-            "$Tags.HTTP_METHOD.key" "POST"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
-            defaultTags()
-          }
-        }
-        span(4) {
-          operationName "http.request.connect"
-          childOf span(0)
-          errored false
-          tags {
-            "$Tags.COMPONENT.key" "HttpURLConnection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
-            "$Tags.HTTP_METHOD.key" "POST"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
             defaultTags()
           }
         }

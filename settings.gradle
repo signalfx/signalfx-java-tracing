@@ -1,14 +1,23 @@
 // Modified by SignalFx
 rootProject.name = 'signalfx-trace-java'
 
-include ':dd-trace-ot'
-include ':dd-java-agent'
+// core tracing projects
+include ':dd-trace-api'
 include ':dd-java-agent:agent-bootstrap'
+include ':dd-trace'
+include ':dd-trace-ext'
+
+// implements for third-party tracing libraries
+include ':dd-trace-ot'
+
+// agent projects
+include ':dd-java-agent'
 include ':dd-java-agent:agent-tooling'
 include ':dd-java-agent:agent-jmxfetch'
+
+// misc
 include ':dd-java-agent:testing'
 include ':dd-java-agent-ittests'
-include ':dd-trace-api'
 
 // instrumentation:
 include ':dd-java-agent:instrumentation:akka-http-10.0'
@@ -38,6 +47,7 @@ include ':dd-java-agent:instrumentation:jdbc'
 include ':dd-java-agent:instrumentation:jedis-1.4'
 include ':dd-java-agent:instrumentation:jetty-8'
 include ':dd-java-agent:instrumentation:jms'
+include ':dd-java-agent:instrumentation:jre-logging'
 include ':dd-java-agent:instrumentation:jsp-2.3'
 include ':dd-java-agent:instrumentation:kafka-clients-0.11'
 include ':dd-java-agent:instrumentation:kafka-streams-0.11'

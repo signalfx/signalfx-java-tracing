@@ -30,4 +30,7 @@ dependencies {
 
   testCompile group: 'io.dropwizard', name: 'dropwizard-views-freemarker', version: '0.7.0'
   testCompile group: 'io.dropwizard', name: 'dropwizard-views-mustache', version: '0.7.0'
+
+  latestDepTestCompile group: 'io.dropwizard', name: 'dropwizard-views-freemarker', version: '+'
+  latestDepTestCompile group: 'io.dropwizard', name: 'dropwizard-views-mustache', version: '+'
 }

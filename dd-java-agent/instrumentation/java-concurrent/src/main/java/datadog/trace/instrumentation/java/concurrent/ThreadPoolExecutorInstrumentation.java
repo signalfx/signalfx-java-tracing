@@ -18,6 +18,11 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 @Slf4j
 @AutoService(Instrumenter.class)
+/**
+ * Disable instrumentation for executors that cannot take our runnable wrappers.
+ *
+ * <p>FIXME: We should remove this once https://github.com/raphw/byte-buddy/issues/558 is fixed
+ */
 public class ThreadPoolExecutorInstrumentation extends Instrumenter.Default {
 
   public ThreadPoolExecutorInstrumentation() {
@@ -57,7 +62,12 @@ public class ThreadPoolExecutorInstrumentation extends Instrumenter.Default {
           queue.offer(new GenericRunnable());
           queue.clear(); // Remove the Runnable we just added.
         } catch (final ClassCastException | IllegalArgumentException e) {
+          // These errors indicate the queue is fundamentally incompatible with wrapped runnables.
+          // We must disable the executor instance to avoid passing wrapped runnables later.
           ExecutorInstrumentation.ConcurrentUtils.disableExecutor(executor);
+        } catch (final Exception e) {
+          // Other errors might indicate the queue is not fully initialized.
+          // We might want to disable for those too, but for now just ignore.
         }
       }
     }

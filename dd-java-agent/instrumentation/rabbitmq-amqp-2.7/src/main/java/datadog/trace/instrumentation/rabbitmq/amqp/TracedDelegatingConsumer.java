@@ -18,11 +18,13 @@ import io.opentracing.util.GlobalTracer;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Wrapping the consumer instead of instrumenting it directly because it doesn't get access to the
  * queue name when the message is consumed.
  */
+@Slf4j
 public class TracedDelegatingConsumer implements Consumer {
   private final String queue;
   private final Consumer delegate;
@@ -53,7 +55,7 @@ public class TracedDelegatingConsumer implements Consumer {
   }
 
   @Override
-  public void handleRecoverOk(String consumerTag) {
+  public void handleRecoverOk(final String consumerTag) {
     delegate.handleRecoverOk(consumerTag);
   }
 
@@ -80,7 +82,7 @@ public class TracedDelegatingConsumer implements Consumer {
         queueName = "<generated>";
       }
 
-      Tracer.SpanBuilder builder =
+      final Tracer.SpanBuilder spanBuilder =
           GlobalTracer.get()
               .buildSpan("basic.deliver " + queueName)
               .asChildOf(parentContext)
@@ -90,16 +92,17 @@ public class TracedDelegatingConsumer implements Consumer {
               .withTag("message.size", body == null ? 0 : body.length)
               .withTag("span.origin.type", delegate.getClass().getName());
 
-      String exchange = envelope.getExchange();
-      if (!Strings.isNullOrEmpty(exchange)) {
-        builder = builder.withTag("amqp.exchange", exchange);
-      }
-      String routingKey = envelope.getRoutingKey();
-      if (!Strings.isNullOrEmpty(routingKey)) {
-        builder = builder.withTag("amqp.routing_key", routingKey);
+      if (envelope != null) {
+        spanBuilder.withTag("amqp.exchange", envelope.getExchange());
+        if (!Strings.isNullOrEmpty(envelope.getRoutingKey())) {
+          spanBuilder.withTag("amqp.routing_key", envelope.getRoutingKey());
+        }
       }
 
-      scope = builder.startActive(true);
+      scope = spanBuilder.startActive(true);
+
+    } catch (final Exception e) {
+      log.debug("Instrumentation error in tracing consumer", e);
     } finally {
       try {
 
@@ -110,6 +113,7 @@ public class TracedDelegatingConsumer implements Consumer {
         final Span span = scope.span();
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
+        throw throwable;
       } finally {
         scope.close();
       }

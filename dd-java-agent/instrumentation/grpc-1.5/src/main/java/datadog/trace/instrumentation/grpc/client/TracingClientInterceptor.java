@@ -37,6 +37,7 @@ public class TracingClientInterceptor implements ClientInterceptor {
         tracer
             .buildSpan(method.getFullMethodName())
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
+            .withTag(Tags.COMPONENT.getKey(), "grpc-client")
             .startActive(false);
     final Span span = scope.span();
 
@@ -44,7 +45,7 @@ public class TracingClientInterceptor implements ClientInterceptor {
     try {
       // call other interceptors
       result = next.newCall(method, callOptions);
-    } catch (final RuntimeException | Error e) {
+    } catch (final Throwable e) {
       Tags.ERROR.set(span, true);
       span.log(Collections.singletonMap(ERROR_OBJECT, e));
       span.finish();
@@ -74,7 +75,7 @@ public class TracingClientInterceptor implements ClientInterceptor {
 
       try (final Scope ignored = tracer.scopeManager().activate(span, false)) {
         super.start(new TracingClientCallListener<>(tracer, span, responseListener), headers);
-      } catch (final RuntimeException | Error e) {
+      } catch (final Throwable e) {
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, e));
         span.finish();
@@ -86,7 +87,7 @@ public class TracingClientInterceptor implements ClientInterceptor {
     public void sendMessage(final ReqT message) {
       try (final Scope ignored = tracer.scopeManager().activate(span, false)) {
         super.sendMessage(message);
-      } catch (final RuntimeException | Error e) {
+      } catch (final Throwable e) {
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, e));
         span.finish();
@@ -115,10 +116,11 @@ public class TracingClientInterceptor implements ClientInterceptor {
               .asChildOf(span)
               .withTag("message.type", message.getClass().getName())
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
+              .withTag(Tags.COMPONENT.getKey(), "grpc-client")
               .startActive(true);
       try {
         delegate().onMessage(message);
-      } catch (final RuntimeException | Error e) {
+      } catch (final Throwable e) {
         final Span span = scope.span();
         Tags.ERROR.set(span, true);
         this.span.log(Collections.singletonMap(ERROR_OBJECT, e));
@@ -144,7 +146,7 @@ public class TracingClientInterceptor implements ClientInterceptor {
       // Finishes span.
       try (final Scope ignored = tracer.scopeManager().activate(span, true)) {
         delegate().onClose(status, trailers);
-      } catch (final RuntimeException | Error e) {
+      } catch (final Throwable e) {
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, e));
         span.finish();
@@ -156,7 +158,7 @@ public class TracingClientInterceptor implements ClientInterceptor {
     public void onReady() {
       try (final Scope ignored = tracer.scopeManager().activate(span, false)) {
         delegate().onReady();
-      } catch (final RuntimeException | Error e) {
+      } catch (final Throwable e) {
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, e));
         span.finish();

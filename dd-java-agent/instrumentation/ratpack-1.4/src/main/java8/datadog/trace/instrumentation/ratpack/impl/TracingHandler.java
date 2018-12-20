@@ -1,6 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.ratpack.impl;
 
+import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -29,25 +30,46 @@ public final class TracingHandler implements Handler {
         GlobalTracer.get()
             .buildSpan("ratpack.handler")
             .asChildOf(extractedContext)
-            .withTag(Tags.COMPONENT.getKey(), "handler")
+            .withTag(Tags.COMPONENT.getKey(), "ratpack")
             .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
             .withTag(Tags.HTTP_METHOD.getKey(), request.getMethod().getName())
             .withTag(Tags.HTTP_URL.getKey(), request.getUri())
-            .startActive(true);
+            .startActive(false);
+
+    if (scope instanceof TraceScope) {
+      ((TraceScope) scope).setAsyncPropagation(true);
+    }
+
+    final Span rootSpan = scope.span();
 
     ctx.getResponse()
         .beforeSend(
             response -> {
-              final Span span = scope.span();
+              final Scope responseScope = GlobalTracer.get().scopeManager().active();
+
+              if (responseScope instanceof TraceScope) {
+                ((TraceScope) responseScope).setAsyncPropagation(false);
+              }
+
+              rootSpan.setOperationName(getResourceName(ctx));
               final Status status = response.getStatus();
               if (status != null) {
                 if (status.is5xx()) {
-                  Tags.ERROR.set(span, true);
+                  Tags.ERROR.set(rootSpan, true);
                 }
-                Tags.HTTP_STATUS.set(span, status.getCode());
+                Tags.HTTP_STATUS.set(rootSpan, status.getCode());
               }
-              scope.close();
+
+              rootSpan.finish();
             });
+
+    ctx.onClose(
+        requestOutcome -> {
+          final Scope activeScope = GlobalTracer.get().scopeManager().active();
+          if (activeScope != null) {
+            activeScope.close();
+          }
+        });
 
     ctx.next();
   }

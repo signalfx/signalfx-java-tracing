@@ -4,7 +4,6 @@ import datadog.trace.agent.test.utils.OkHttpUtils
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import spark.Spark
-import spark.embeddedserver.jetty.JettyHandler
 import spock.lang.Shared
 
 class SparkJavaBasedTest extends AgentTestRunner {
@@ -28,37 +27,6 @@ class SparkJavaBasedTest extends AgentTestRunner {
     Spark.stop()
   }
 
-  def "valid response"() {
-    setup:
-    def request = new Request.Builder()
-      .url("http://localhost:$port/")
-      .get()
-      .build()
-    def response = client.newCall(request).execute()
-
-    expect:
-    port != 0
-    response.body().string() == "Hello World"
-  }
-
-  def "valid response with registered trace"() {
-    setup:
-    def request = new Request.Builder()
-      .url("http://localhost:$port/")
-      .get()
-      .build()
-    def response = client.newCall(request).execute()
-
-    expect:
-    port != 0
-    response.body().string() == "Hello World"
-
-    and:
-    TEST_WRITER.waitForTraces(1)
-    TEST_WRITER.size() == 1
-  }
-
-
   def "generates spans"() {
     setup:
     def request = new Request.Builder()
@@ -68,6 +36,7 @@ class SparkJavaBasedTest extends AgentTestRunner {
     def response = client.newCall(request).execute()
 
     expect:
+    port != 0
     response.body().string() == "Hello asdf1234"
 
     assertTraces(1) {
@@ -81,13 +50,13 @@ class SparkJavaBasedTest extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "jetty-handler"
+            "span.origin.type" spark.embeddedserver.jetty.JettyHandler.name
             "http.status_code" 200
-            "span.origin.type" JettyHandler.name
-            "servlet.context" null
+            defaultTags()
           }
         }
       }
     }
-
   }
+
 }

@@ -1,9 +1,9 @@
 // Modified by SignalFx
-import datadog.opentracing.scopemanager.ContextualScopeManager
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
-import datadog.trace.instrumentation.ratpack.impl.RatpackScopeManager
+import datadog.trace.context.TraceScope
 import io.opentracing.Scope
+import io.opentracing.tag.Tags
 import io.opentracing.util.GlobalTracer
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
@@ -37,8 +37,10 @@ class RatpackTest extends AgentTestRunner {
       .url(app.address.toURL())
       .get()
       .build()
+
     when:
     def resp = client.newCall(request).execute()
+
     then:
     resp.code() == 200
     resp.body.string() == "success"
@@ -46,14 +48,16 @@ class RatpackTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          operationName "ratpack.handler"
+          operationName "GET /"
+          parent()
           errored false
           tags {
-            "component" "handler"
-            "http.url" "/"
-            "http.method" "GET"
-            "span.kind" "server"
-            "http.status_code" 200
+            "$Tags.COMPONENT.key" "ratpack"
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
+            "$Tags.HTTP_METHOD.key" "GET"
+            "$Tags.HTTP_STATUS.key" 200
+            "$Tags.HTTP_URL.key" "/"
+            defaultTags()
           }
         }
       }
@@ -75,8 +79,10 @@ class RatpackTest extends AgentTestRunner {
       .url(HttpUrl.get(app.address).newBuilder().addPathSegments("a/b/baz").build())
       .get()
       .build()
+
     when:
     def resp = client.newCall(request).execute()
+
     then:
     resp.code() == 200
     resp.body.string() == ":foo/:bar?/baz"
@@ -84,14 +90,16 @@ class RatpackTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          operationName "ratpack.handler"
+          operationName "GET /:foo/:bar?/baz"
+          parent()
           errored false
           tags {
-            "component" "handler"
-            "http.url" "/a/b/baz"
-            "http.method" "GET"
-            "span.kind" "server"
-            "http.status_code" 200
+            "$Tags.COMPONENT.key" "ratpack"
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
+            "$Tags.HTTP_METHOD.key" "GET"
+            "$Tags.HTTP_STATUS.key" 200
+            "$Tags.HTTP_URL.key" "/a/b/baz"
+            defaultTags()
           }
         }
       }
@@ -103,7 +111,9 @@ class RatpackTest extends AgentTestRunner {
     def app = GroovyEmbeddedApp.ratpack {
       handlers {
         get {
-          context.clientError(500)
+          context.render(Promise.sync {
+            return "fail " + 0 / 0
+          })
         }
       }
     }
@@ -119,15 +129,18 @@ class RatpackTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          operationName "ratpack.handler"
+          operationName "GET /"
+          parent()
           errored true
           tags {
-            "component" "handler"
-            "http.url" "/"
-            "http.method" "GET"
-            "span.kind" "server"
+            "$Tags.COMPONENT.key" "ratpack"
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
+            "$Tags.HTTP_METHOD.key" "GET"
+            "$Tags.HTTP_STATUS.key" 500
+            "$Tags.HTTP_URL.key" "/"
             "error" true
-            "http.status_code" 500
+//            errorTags(Exception, String) // TODO: find out how to get throwable in instrumentation
+            defaultTags()
           }
         }
       }
@@ -168,8 +181,10 @@ class RatpackTest extends AgentTestRunner {
       .url(app.address.toURL())
       .get()
       .build()
+
     when:
     def resp = client.newCall(request).execute()
+
     then:
     resp.code() == 200
     resp.body().string() == "success"
@@ -177,10 +192,10 @@ class RatpackTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 5) {
         span(0) {
-          operationName "ratpack.handler"
+          operationName "GET /"
           errored false
           tags {
-            "component" "handler"
+            "component" "ratpack"
             "http.url" "/"
             "http.method" "GET"
             "span.kind" "server"
@@ -191,7 +206,7 @@ class RatpackTest extends AgentTestRunner {
           operationName "ratpack.client-request"
           errored false
           tags {
-            "component" "httpclient"
+            "component" "ratpack-httpclient"
             "http.url" "${external.address}nested2"
             "http.method" "GET"
             "span.kind" "client"
@@ -199,10 +214,10 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(2) {
-          operationName "ratpack.handler"
+          operationName "GET /nested2"
           errored false
           tags {
-            "component" "handler"
+            "component" "ratpack"
             "http.url" "/nested2"
             "http.method" "GET"
             "span.kind" "server"
@@ -213,7 +228,7 @@ class RatpackTest extends AgentTestRunner {
           operationName "ratpack.client-request"
           errored false
           tags {
-            "component" "httpclient"
+            "component" "ratpack-httpclient"
             "http.url" "${external.address}nested"
             "http.method" "GET"
             "span.kind" "client"
@@ -221,10 +236,10 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(4) {
-          operationName "ratpack.handler"
+          operationName "GET /nested"
           errored false
           tags {
-            "component" "handler"
+            "component" "ratpack"
             "http.url" "/nested"
             "http.method" "GET"
             "span.kind" "server"
@@ -234,33 +249,52 @@ class RatpackTest extends AgentTestRunner {
       }
     }
 
+    where:
+    startSpanInHandler << [true, false]
   }
 
   def "forked executions inherit parent scope"() {
     when:
-    def result = ExecHarness.yieldSingle({ spec ->
-      // This does the work of the initial instrumentation that occurs on the server registry. Because we are using
-      // ExecHarness for testing this does not get executed by the instrumentation
-      def ratpackScopeManager = new RatpackScopeManager()
-      spec.add(ratpackScopeManager)
-      ((ContextualScopeManager) GlobalTracer.get().scopeManager())
-        .addScopeContext(ratpackScopeManager)
-    }, {
+    def result = ExecHarness.yieldSingle({}, {
       final Scope scope =
         GlobalTracer.get()
           .buildSpan("ratpack.exec-test")
+          .withTag("resource.name", "INSIDE-TEST")
           .startActive(true)
+
+      ((TraceScope) scope).setAsyncPropagation(true)
       scope.span().setBaggageItem("test-baggage", "foo")
-      ParallelBatch.of(testPromise(), testPromise()).yield()
+      ParallelBatch.of(testPromise(), testPromise())
+        .yield()
+        .map({ now ->
+        // close the scope now that we got the baggage inside the promises
+        scope.close()
+        return now
+      })
     })
 
     then:
     result.valueOrThrow == ["foo", "foo"]
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          operationName "ratpack.exec-test"
+          parent()
+          errored false
+          tags {
+            "resource.name" "INSIDE-TEST"
+            defaultTags()
+          }
+        }
+      }
+    }
   }
 
+  // returns a promise that contains the active scope's "test-baggage" baggage
   Promise<String> testPromise() {
     Promise.sync {
-      GlobalTracer.get().activeSpan().getBaggageItem("test-baggage")
+      Scope tracerScope = GlobalTracer.get().scopeManager().active()
+      return tracerScope.span().getBaggageItem("test-baggage")
     }
   }
 }

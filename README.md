@@ -10,3 +10,13 @@ instead of DataDog's DDTracer.
 See [our example app that uses
 this](https://github.com/signalfx/tracing-examples/tree/master/java-agent) for
 details on how to use and configure it.
+
+
+## Versioning
+
+For now, the agent will be versioned in conjunction with the DataDog APM agent
+that it is based on, with a SignalFx-specific patch version at the end, of the
+form `-sfxN`, where `N` is the SignalFx patch starting at `0`.  For
+example, the DD APM agent version `0.20.0` would be initially released by us as
+`0.20.0-sfx0`.  We will attempt to merge in changes from the upstream (i.e.
+DD's repo) on a regular basis, especially after releases.

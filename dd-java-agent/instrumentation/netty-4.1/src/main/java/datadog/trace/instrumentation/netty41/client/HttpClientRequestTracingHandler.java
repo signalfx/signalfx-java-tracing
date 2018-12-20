@@ -4,6 +4,7 @@ package datadog.trace.instrumentation.netty41.client;
 import static io.netty.handler.codec.http.HttpHeaderNames.HOST;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
+import datadog.trace.context.TraceScope;
 import datadog.trace.instrumentation.netty41.AttributeKeys;
 import datadog.trace.instrumentation.utils.URLUtil;
 import io.netty.channel.ChannelHandlerContext;
@@ -25,6 +26,14 @@ public class HttpClientRequestTracingHandler extends ChannelOutboundHandlerAdapt
       ctx.write(msg, prm);
       return;
     }
+
+    TraceScope scope = null;
+    final TraceScope.Continuation continuation =
+        ctx.channel().attr(AttributeKeys.PARENT_CONNECT_CONTINUATION_ATTRIBUTE_KEY).getAndRemove();
+    if (continuation != null) {
+      scope = continuation.activate();
+    }
+
     final HttpRequest request = (HttpRequest) msg;
     final InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
 
@@ -57,6 +66,10 @@ public class HttpClientRequestTracingHandler extends ChannelOutboundHandlerAdapt
       span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
       span.finish(); // Finish the span manually since finishSpanOnClose was false
       throw throwable;
+    }
+
+    if (null != scope) {
+      scope.close();
     }
   }
 }

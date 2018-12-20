@@ -19,6 +19,8 @@ class ConfigTest extends Specification {
   private static final DD_SPAN_TAGS_ENV = "DD_SPAN_TAGS"
   private static final DD_HEADER_TAGS_ENV = "DD_HEADER_TAGS"
   private static final DD_JMXFETCH_METRICS_CONFIGS_ENV = "DD_JMXFETCH_METRICS_CONFIGS"
+  private static final DD_TRACE_AGENT_PORT_ENV = "DD_TRACE_AGENT_PORT"
+  private static final DD_AGENT_PORT_LEGACY_ENV = "DD_AGENT_PORT"
 
   def "verify defaults"() {
     when:
@@ -29,12 +31,13 @@ class ConfigTest extends Specification {
     config.writerType == "DDAgentWriter"
     config.agentHost == "localhost"
     config.agentPort == 8126
-    config.prioritySamplingEnabled == false
+    config.prioritySamplingEnabled == true
     config.traceResolverEnabled == true
     config.serviceMapping == [:]
     config.mergedSpanTags == [:]
-    config.mergedJmxTags == [(RUNTIME_ID_TAG): config.getRuntimeId()]
+    config.mergedJmxTags == [(RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE_NAME): config.serviceName]
     config.headerTags == [:]
+    config.runtimeContextFieldInjection == true
     config.jmxFetchEnabled == false
     config.jmxFetchMetricsConfigs == []
     config.jmxFetchCheckPeriod == null
@@ -49,14 +52,16 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + SERVICE_NAME, "something else")
     System.setProperty(PREFIX + WRITER_TYPE, "LoggingWriter")
     System.setProperty(PREFIX + AGENT_HOST, "somehost")
-    System.setProperty(PREFIX + AGENT_PORT, "123")
-    System.setProperty(PREFIX + PRIORITY_SAMPLING, "true")
+    System.setProperty(PREFIX + TRACE_AGENT_PORT, "123")
+    System.setProperty(PREFIX + AGENT_PORT_LEGACY, "456")
+    System.setProperty(PREFIX + PRIORITY_SAMPLING, "false")
     System.setProperty(PREFIX + TRACE_RESOLVER_ENABLED, "false")
     System.setProperty(PREFIX + SERVICE_MAPPING, "a:1")
     System.setProperty(PREFIX + GLOBAL_TAGS, "b:2")
     System.setProperty(PREFIX + SPAN_TAGS, "c:3")
     System.setProperty(PREFIX + JMX_TAGS, "d:4")
     System.setProperty(PREFIX + HEADER_TAGS, "e:5")
+    System.setProperty(PREFIX + RUNTIME_CONTEXT_FIELD_INJECTION, "false")
     System.setProperty(PREFIX + JMX_FETCH_ENABLED, "true")
     System.setProperty(PREFIX + JMX_FETCH_METRICS_CONFIGS, "/foo.yaml,/bar.yaml")
     System.setProperty(PREFIX + JMX_FETCH_CHECK_PERIOD, "100")
@@ -72,12 +77,13 @@ class ConfigTest extends Specification {
     config.writerType == "LoggingWriter"
     config.agentHost == "somehost"
     config.agentPort == 123
-    config.prioritySamplingEnabled == true
+    config.prioritySamplingEnabled == false
     config.traceResolverEnabled == false
     config.serviceMapping == [a: "1"]
     config.mergedSpanTags == [b: "2", c: "3"]
-    config.mergedJmxTags == [b: "2", d: "4", (RUNTIME_ID_TAG): config.getRuntimeId()]
+    config.mergedJmxTags == [b: "2", d: "4", (RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE_NAME): config.serviceName]
     config.headerTags == [e: "5"]
+    config.runtimeContextFieldInjection == false
     config.jmxFetchEnabled == true
     config.jmxFetchMetricsConfigs == ["/foo.yaml", "/bar.yaml"]
     config.jmxFetchCheckPeriod == 100
@@ -105,11 +111,12 @@ class ConfigTest extends Specification {
     setup:
     environmentVariables.set(DD_SERVICE_NAME_ENV, "still something else")
     environmentVariables.set(DD_WRITER_TYPE_ENV, "LoggingWriter")
+    environmentVariables.set(DD_TRACE_AGENT_PORT_ENV, "777")
 
     System.setProperty(PREFIX + SERVICE_NAME, "what we actually want")
     System.setProperty(PREFIX + WRITER_TYPE, "DDAgentWriter")
     System.setProperty(PREFIX + AGENT_HOST, "somewhere")
-    System.setProperty(PREFIX + AGENT_PORT, "9999")
+    System.setProperty(PREFIX + TRACE_AGENT_PORT, "123")
 
     when:
     def config = new Config()
@@ -118,7 +125,49 @@ class ConfigTest extends Specification {
     config.serviceName == "what we actually want"
     config.writerType == "DDAgentWriter"
     config.agentHost == "somewhere"
-    config.agentPort == 9999
+    config.agentPort == 123
+  }
+
+  def "sys props and env vars overrides for trace_agent_port and agent_port_legacy as expected"() {
+    setup:
+    if (overridePortEnvVar) {
+      environmentVariables.set(DD_TRACE_AGENT_PORT_ENV, "777")
+    }
+    if (overrideLegacyPortEnvVar) {
+      environmentVariables.set(DD_AGENT_PORT_LEGACY_ENV, "888")
+    }
+
+    if (overridePort) {
+      System.setProperty(PREFIX + TRACE_AGENT_PORT, "123")
+    }
+    if (overrideLegacyPort) {
+      System.setProperty(PREFIX + AGENT_PORT_LEGACY, "456")
+    }
+
+    when:
+    def config = new Config()
+
+    then:
+    config.agentPort == expectedPort
+
+    where:
+    overridePort | overrideLegacyPort | overridePortEnvVar | overrideLegacyPortEnvVar | expectedPort
+    true         | true               | false              | false                    | 123
+    true         | false              | false              | false                    | 123
+    false        | true               | false              | false                    | 456
+    false        | false              | false              | false                    | 8126
+    true         | true               | true               | false                    | 123
+    true         | false              | true               | false                    | 123
+    false        | true               | true               | false                    | 777 // env var gets picked up instead.
+    false        | false              | true               | false                    | 777 // env var gets picked up instead.
+    true         | true               | false              | true                     | 123
+    true         | false              | false              | true                     | 123
+    false        | true               | false              | true                     | 456
+    false        | false              | false              | true                     | 888 // legacy env var gets picked up instead.
+    true         | true               | true               | true                     | 123
+    true         | false              | true               | true                     | 123
+    false        | true               | true               | true                     | 777 // env var gets picked up instead.
+    false        | false              | true               | true                     | 777 // env var gets picked up instead.
   }
 
   def "sys props override properties"() {
@@ -127,8 +176,8 @@ class ConfigTest extends Specification {
     properties.setProperty(SERVICE_NAME, "something else")
     properties.setProperty(WRITER_TYPE, "LoggingWriter")
     properties.setProperty(AGENT_HOST, "somehost")
-    properties.setProperty(AGENT_PORT, "123")
-    properties.setProperty(PRIORITY_SAMPLING, "true")
+    properties.setProperty(TRACE_AGENT_PORT, "123")
+    properties.setProperty(PRIORITY_SAMPLING, "false")
     properties.setProperty(TRACE_RESOLVER_ENABLED, "false")
     properties.setProperty(SERVICE_MAPPING, "a:1")
     properties.setProperty(GLOBAL_TAGS, "b:2")
@@ -149,11 +198,11 @@ class ConfigTest extends Specification {
     config.writerType == "LoggingWriter"
     config.agentHost == "somehost"
     config.agentPort == 123
-    config.prioritySamplingEnabled == true
+    config.prioritySamplingEnabled == false
     config.traceResolverEnabled == false
     config.serviceMapping == [a: "1"]
     config.mergedSpanTags == [b: "2", c: "3"]
-    config.mergedJmxTags == [b: "2", d: "4", (RUNTIME_ID_TAG): config.getRuntimeId()]
+    config.mergedJmxTags == [b: "2", d: "4", (RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE_NAME): config.serviceName]
     config.headerTags == [e: "5"]
     config.jmxFetchMetricsConfigs == ["/foo.yaml", "/bar.yaml"]
     config.jmxFetchCheckPeriod == 100

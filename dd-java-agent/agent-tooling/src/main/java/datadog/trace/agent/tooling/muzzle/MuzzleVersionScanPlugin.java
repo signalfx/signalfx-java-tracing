@@ -3,11 +3,15 @@ package datadog.trace.agent.tooling.muzzle;
 import datadog.trace.agent.tooling.HelperInjector;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.WeakMap;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.WeakHashMap;
+import net.bytebuddy.dynamic.ClassFileLocator;
 
 /**
  * Entry point for muzzle version scan gradle plugin.
@@ -29,28 +33,35 @@ public class MuzzleVersionScanPlugin {
         });
   }
 
-  public static void assertInstrumentationMuzzled(final ClassLoader cl, final boolean assertPass)
+  public static void assertInstrumentationMuzzled(
+      final ClassLoader instrumentationLoader,
+      final ClassLoader userClassLoader,
+      final boolean assertPass)
       throws Exception {
     // muzzle validate all instrumenters
     for (Instrumenter instrumenter :
-        ServiceLoader.load(Instrumenter.class, MuzzleGradlePlugin.class.getClassLoader())) {
+        ServiceLoader.load(Instrumenter.class, instrumentationLoader)) {
       if (instrumenter.getClass().getName().endsWith("TraceConfigInstrumentation")) {
         // TraceConfigInstrumentation doesn't do muzzle checks
         // check on TracerClassInstrumentation instead
         instrumenter =
             (Instrumenter)
-                MuzzleGradlePlugin.class
-                    .getClassLoader()
+                instrumentationLoader
                     .loadClass(instrumenter.getClass().getName() + "$TracerClassInstrumentation")
                     .getDeclaredConstructor()
                     .newInstance();
+      }
+      if (!(instrumenter instanceof Instrumenter.Default)) {
+        // only default Instrumenters use muzzle. Skip custom instrumenters.
+        continue;
       }
       Method m = null;
       try {
         m = instrumenter.getClass().getDeclaredMethod("getInstrumentationMuzzle");
         m.setAccessible(true);
         final ReferenceMatcher muzzle = (ReferenceMatcher) m.invoke(instrumenter);
-        final List<Reference.Mismatch> mismatches = muzzle.getMismatchedReferenceSources(cl);
+        final List<Reference.Mismatch> mismatches =
+            muzzle.getMismatchedReferenceSources(userClassLoader);
         final boolean passed = mismatches.size() == 0;
         if (mismatches.size() > 0) {}
         if (passed && !assertPass) {
@@ -76,27 +87,28 @@ public class MuzzleVersionScanPlugin {
     // run helper injector on all instrumenters
     if (assertPass) {
       for (Instrumenter instrumenter :
-          ServiceLoader.load(Instrumenter.class, MuzzleGradlePlugin.class.getClassLoader())) {
+          ServiceLoader.load(Instrumenter.class, instrumentationLoader)) {
         if (instrumenter.getClass().getName().endsWith("TraceConfigInstrumentation")) {
           // TraceConfigInstrumentation doesn't do muzzle checks
           // check on TracerClassInstrumentation instead
           instrumenter =
               (Instrumenter)
-                  MuzzleGradlePlugin.class
-                      .getClassLoader()
+                  instrumentationLoader
                       .loadClass(instrumenter.getClass().getName() + "$TracerClassInstrumentation")
                       .getDeclaredConstructor()
                       .newInstance();
         }
+        if (!(instrumenter instanceof Instrumenter.Default)) {
+          // only default Instrumenters use muzzle. Skip custom instrumenters.
+          continue;
+        }
+        Instrumenter.Default defaultInstrumenter = (Instrumenter.Default) instrumenter;
         try {
-          // Ratpack injects the scope manager as a helper.
-          // This is likely a bug, but we'll grandfather it out of the helper checks for now.
-          if (!instrumenter.getClass().getName().contains("Ratpack")) {
-            // verify helper injector works
-            final String[] helperClassNames = instrumenter.helperClassNames();
-            if (helperClassNames.length > 0) {
-              new HelperInjector(helperClassNames).transform(null, null, cl, null);
-            }
+          // verify helper injector works
+          final String[] helperClassNames = defaultInstrumenter.helperClassNames();
+          if (helperClassNames.length > 0) {
+            new HelperInjector(createHelperMap(defaultInstrumenter))
+                .transform(null, null, userClassLoader, null);
           }
         } catch (final Exception e) {
           System.err.println(
@@ -107,9 +119,22 @@ public class MuzzleVersionScanPlugin {
     }
   }
 
-  public static void printMuzzleReferences() {
+  private static Map<String, byte[]> createHelperMap(Instrumenter.Default instrumenter)
+      throws IOException {
+    final Map<String, byte[]> helperMap =
+        new LinkedHashMap<>(instrumenter.helperClassNames().length);
+    for (final String helperName : instrumenter.helperClassNames()) {
+      final ClassFileLocator locator =
+          ClassFileLocator.ForClassLoader.of(instrumenter.getClass().getClassLoader());
+      final byte[] classBytes = locator.locate(helperName).resolve();
+      helperMap.put(helperName, classBytes);
+    }
+    return helperMap;
+  }
+
+  public static void printMuzzleReferences(final ClassLoader instrumentationLoader) {
     for (final Instrumenter instrumenter :
-        ServiceLoader.load(Instrumenter.class, MuzzleGradlePlugin.class.getClassLoader())) {
+        ServiceLoader.load(Instrumenter.class, instrumentationLoader)) {
       if (instrumenter instanceof Instrumenter.Default) {
         try {
           final Method getMuzzleMethod =

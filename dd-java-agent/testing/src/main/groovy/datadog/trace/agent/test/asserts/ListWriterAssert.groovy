@@ -50,6 +50,7 @@ class ListWriterAssert {
         break
       }
       def condition = new Condition(null, "$stackLine", TextPosition.create(stackLine == null ? 0 : stackLine.lineNumber, 0), e.message, null, e)
+      System.out.println(writer)
       throw new ConditionNotSatisfiedError(condition, e)
     }
   }

@@ -5,7 +5,6 @@ import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.kstream.KStream
-import org.apache.kafka.streams.kstream.KStreamBuilder
 import org.apache.kafka.streams.kstream.ValueMapper
 import org.junit.ClassRule
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory
@@ -13,7 +12,6 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.kafka.listener.KafkaMessageListenerContainer
 import org.springframework.kafka.listener.MessageListener
-import org.springframework.kafka.listener.config.ContainerProperties
 import org.springframework.kafka.test.rule.KafkaEmbedded
 import org.springframework.kafka.test.utils.ContainerTestUtils
 import org.springframework.kafka.test.utils.KafkaTestUtils
@@ -41,7 +39,15 @@ class KafkaStreamsTest extends AgentTestRunner {
 
     // CONFIGURE CONSUMER
     def consumerFactory = new DefaultKafkaConsumerFactory<String, String>(KafkaTestUtils.consumerProps("sender", "false", embeddedKafka))
-    def consumerContainer = new KafkaMessageListenerContainer<>(consumerFactory, new ContainerProperties(STREAM_PROCESSED))
+
+    def containerProperties
+    try {
+      // Different class names for test and latestDepTest.
+      containerProperties = Class.forName("org.springframework.kafka.listener.config.ContainerProperties").newInstance(STREAM_PROCESSED)
+    } catch (ClassNotFoundException | NoClassDefFoundError e) {
+      containerProperties = Class.forName("org.springframework.kafka.listener.ContainerProperties").newInstance(STREAM_PROCESSED)
+    }
+    def consumerContainer = new KafkaMessageListenerContainer<>(consumerFactory, containerProperties)
 
     // create a thread safe queue to store the processed message
     def records = new LinkedBlockingQueue<ConsumerRecord<String, String>>()
@@ -65,9 +71,15 @@ class KafkaStreamsTest extends AgentTestRunner {
     ContainerTestUtils.waitForAssignment(consumerContainer, embeddedKafka.getPartitionsPerTopic())
 
     // CONFIGURE PROCESSOR
-    final KStreamBuilder builder = new KStreamBuilder()
+    def builder
+    try {
+      // Different class names for test and latestDepTest.
+      builder = Class.forName("org.apache.kafka.streams.kstream.KStreamBuilder").newInstance()
+    } catch (ClassNotFoundException | NoClassDefFoundError e) {
+      builder = Class.forName("org.apache.kafka.streams.StreamsBuilder").newInstance()
+    }
     KStream<String, String> textLines = builder.stream(STREAM_PENDING)
-    textLines
+    def values = textLines
       .mapValues(new ValueMapper<String, String>() {
       @Override
       String apply(String textLine) {
@@ -76,8 +88,18 @@ class KafkaStreamsTest extends AgentTestRunner {
         return textLine.toLowerCase()
       }
     })
-      .to(Serdes.String(), Serdes.String(), STREAM_PROCESSED)
-    KafkaStreams streams = new KafkaStreams(builder, config)
+
+    KafkaStreams streams
+    try {
+      // Different api for test and latestDepTest.
+      values.to(Serdes.String(), Serdes.String(), STREAM_PROCESSED)
+      streams = new KafkaStreams(builder, config)
+    } catch (MissingMethodException e) {
+      def producer = Class.forName("org.apache.kafka.streams.kstream.Produced")
+        .with(Serdes.String(), Serdes.String())
+      values.to(STREAM_PROCESSED, producer)
+      streams = new KafkaStreams(builder.build(), config)
+    }
     streams.start()
 
     // CONFIGURE PRODUCER
@@ -94,63 +116,73 @@ class KafkaStreamsTest extends AgentTestRunner {
     received.value() == greeting.toLowerCase()
     received.key() == null
 
-    TEST_WRITER.waitForTraces(1)
-    TEST_WRITER.size() == 1
-    def trace = TEST_WRITER.get(0)
-    trace.size() == 4
+    assertTraces(1) {
+      trace(0, 4) {
+        // PRODUCER span 0
+        span(3) {
+          operationName "produce.test.pending"
+          errored false
+          parent()
+          tags {
+            "component" "java-kafka"
+            "span.kind" "producer"
+            "topic" "test.pending"
+            defaultTags()
+          }
+        }
 
-    def consumeProcessed = trace[0]
-    def produceProcessed = trace[1]
-    def consumePending = trace[2]
-    def producePending = trace[3]
+        // STREAMING span 0
+        span(1) {
+          operationName "produce.test.processed"
+          errored false
+          childOf span(2)
 
-    producePending.operationName == "produce.$STREAM_PENDING"
-    producePending.parentId == 0
+          tags {
+            "component" "java-kafka"
+            "span.kind" "producer"
+            "topic" "test.processed"
+            defaultTags()
+          }
+        }
 
-    def producePendingTags = producePending.tags()
-    producePendingTags["component"] == "java-kafka"
-    producePendingTags["span.kind"] == "producer"
-    producePendingTags["topic"] == STREAM_PENDING
-    producePendingTags.size() == 3
+        // STREAMING span 1
+        span(2) {
+          operationName "consume.test.pending"
+          errored false
+          childOf span(3)
 
-    produceProcessed.operationName == "produce.$STREAM_PROCESSED"
-
-    def produceProcessedTags = produceProcessed.tags()
-    produceProcessedTags["component"] == "java-kafka"
-    produceProcessedTags["span.kind"] == "producer"
-    produceProcessedTags["topic"] == STREAM_PROCESSED
-    produceProcessedTags.size() == 3
-
-    produceProcessed.parentId == consumePending.spanId
-
-    consumePending.operationName == "consume.$STREAM_PENDING"
-    consumePending.parentId == producePending.spanId
-
-    def consumePendingTags = consumePending.tags()
-    consumePendingTags["component"] == "java-kafka"
-    consumePendingTags["span.kind"] == "consumer"
-    consumePendingTags["topic"] == STREAM_PENDING
-    consumePendingTags["partition"] >= 0
-    consumePendingTags["offset"] == 0
-    consumePendingTags["asdf"] == "testing"
-    consumePendingTags.size() == 6
-
-    consumeProcessed.operationName == "consume.$STREAM_PROCESSED"
-    consumeProcessed.parentId == produceProcessed.spanId
-
-    def consumeProcessedTags = consumeProcessed.tags()
-    consumeProcessedTags["component"] == "java-kafka"
-    consumeProcessedTags["span.kind"] == "consumer"
-    consumeProcessedTags["topic"] == STREAM_PROCESSED
-    consumeProcessedTags["partition"] >= 0
-    consumeProcessedTags["offset"] == 0
-    consumeProcessedTags["testing"] == 123
-    consumeProcessedTags.size() == 6
+          tags {
+            "component" "java-kafka"
+            "span.kind" "consumer"
+            "partition" { it >= 0 }
+            "offset" 0
+            "topic" "test.pending"
+            defaultTags(true)
+            "asdf" "testing"
+          }
+        }
+        // CONSUMER span 0
+        span(0) {
+          operationName "consume.test.processed"
+          errored false
+          childOf span(1)
+          tags {
+            "component" "java-kafka"
+            "span.kind" "consumer"
+            "partition" { it >= 0 }
+            "offset" 0
+            "topic" "test.processed"
+            defaultTags(true)
+            "testing" 123
+          }
+        }
+      }
+    }
 
     def headers = received.headers()
     headers.iterator().hasNext()
-    new String(headers.headers("traceid").iterator().next().value()) == "$produceProcessed.traceId"
-    new String(headers.headers("spanid").iterator().next().value()) == "$produceProcessed.spanId"
+    new String(headers.headers("traceid").iterator().next().value()) == "${TEST_WRITER[0][1].traceId}"
+    new String(headers.headers("spanid").iterator().next().value()) == "${TEST_WRITER[0][1].spanId}"
 
 
     cleanup:

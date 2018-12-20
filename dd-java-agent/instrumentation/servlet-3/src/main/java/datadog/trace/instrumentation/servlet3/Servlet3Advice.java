@@ -13,6 +13,7 @@ import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
+import java.security.Principal;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.servlet.ServletRequest;
@@ -22,11 +23,13 @@ import javax.servlet.http.HttpServletResponse;
 import net.bytebuddy.asm.Advice;
 
 public class Servlet3Advice {
+  public static final String SERVLET_SPAN = "datadog.servlet.span";
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static Scope startSpan(
       @Advice.This final Object servlet, @Advice.Argument(0) final ServletRequest req) {
-    if (GlobalTracer.get().activeSpan() != null || !(req instanceof HttpServletRequest)) {
+    final Object spanAttr = req.getAttribute(SERVLET_SPAN);
+    if (!(req instanceof HttpServletRequest) || spanAttr != null) {
       // Tracing might already be applied by the FilterChain.  If so ignore this.
       return null;
     }
@@ -62,9 +65,7 @@ public class Servlet3Advice {
       ((TraceScope) scope).setAsyncPropagation(true);
     }
 
-    if (httpServletRequest.getUserPrincipal() != null) {
-      scope.span().setTag("user.principal", httpServletRequest.getUserPrincipal().getName());
-    }
+    req.setAttribute(SERVLET_SPAN, scope.span());
     return scope;
   }
 
@@ -74,6 +75,14 @@ public class Servlet3Advice {
       @Advice.Argument(1) final ServletResponse response,
       @Advice.Enter final Scope scope,
       @Advice.Thrown final Throwable throwable) {
+    // Set user.principal regardless of who created this span.
+    final Object spanAttr = request.getAttribute(SERVLET_SPAN);
+    if (spanAttr instanceof Span && request instanceof HttpServletRequest) {
+      final Principal principal = ((HttpServletRequest) request).getUserPrincipal();
+      if (principal != null) {
+        ((Span) spanAttr).setTag("user.name", principal.getName());
+      }
+    }
 
     if (scope != null) {
       if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
@@ -88,30 +97,24 @@ public class Servlet3Advice {
           }
           Tags.ERROR.set(span, Boolean.TRUE);
           span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
-          if (scope instanceof TraceScope) {
-            ((TraceScope) scope).setAsyncPropagation(false);
-          }
-          scope.close();
+          req.removeAttribute(SERVLET_SPAN);
           span.finish(); // Finish the span manually since finishSpanOnClose was false
-        } else if (req.isAsyncStarted()) {
-          final AtomicBoolean activated = new AtomicBoolean(false);
-          // what if async is already finished? This would not be called
-          req.getAsyncContext().addListener(new TagSettingAsyncListener(activated, span));
-          scope.close();
         } else {
-          int status = resp.getStatus();
-          Tags.HTTP_STATUS.set(span, status);
-          if (status == 404) {
-            span.setOperationName("404");
-          } else if (status >= 500 && status < 600) {
-            Tags.ERROR.set(span, Boolean.TRUE);
+          final AtomicBoolean activated = new AtomicBoolean(false);
+          if (req.isAsyncStarted()) {
+            req.getAsyncContext().addListener(new TagSettingAsyncListener(activated, span));
           }
-          if (scope instanceof TraceScope) {
-            ((TraceScope) scope).setAsyncPropagation(false);
+          // Check again in case the request finished before adding the listener.
+          if (!req.isAsyncStarted() && activated.compareAndSet(false, true)) {
+            Tags.HTTP_STATUS.set(span, resp.getStatus());
+            if (resp.getStatus() >= 500) {
+              Tags.ERROR.set(span, true);
+            }
+            req.removeAttribute(SERVLET_SPAN);
+            span.finish(); // Finish the span manually since finishSpanOnClose was false
           }
-          scope.close();
-          span.finish(); // Finish the span manually since finishSpanOnClose was false
         }
+        scope.close();
       }
     }
   }

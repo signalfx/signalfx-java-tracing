@@ -80,7 +80,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
           errored false
           parent()
           tags {
-            "$Tags.COMPONENT.key" "couchbase"
+            "$Tags.COMPONENT.key" "couchbase-client"
             "bucket" bucketCouchbase.name()
             defaultTags()
           }
@@ -107,7 +107,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
           errored false
           parent()
           tags {
-            "$Tags.COMPONENT.key" "couchbase"
+            "$Tags.COMPONENT.key" "couchbase-client"
             "bucket" bucketCouchbase.name()
             defaultTags()
           }
@@ -127,7 +127,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
           errored false
           parent()
           tags {
-            "$Tags.COMPONENT.key" "couchbase"
+            "$Tags.COMPONENT.key" "couchbase-client"
             "bucket" bucketCouchbase.name()
             defaultTags()
           }
@@ -150,7 +150,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
           errored false
           parent()
           tags {
-            "$Tags.COMPONENT.key" "couchbase"
+            "$Tags.COMPONENT.key" "couchbase-client"
             "bucket" bucketCouchbase.name()
             defaultTags()
           }
@@ -162,7 +162,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
           errored false
           parent()
           tags {
-            "$Tags.COMPONENT.key" "couchbase"
+            "$Tags.COMPONENT.key" "couchbase-client"
             "bucket" bucketCouchbase.name()
             defaultTags()
           }
@@ -174,7 +174,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
           errored false
           parent()
           tags {
-            "$Tags.COMPONENT.key" "couchbase"
+            "$Tags.COMPONENT.key" "couchbase-client"
             "bucket" bucketCouchbase.name()
             defaultTags()
           }
@@ -197,7 +197,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
           errored false
           parent()
           tags {
-            "$Tags.COMPONENT.key" "couchbase"
+            "$Tags.COMPONENT.key" "couchbase-client"
             "bucket" bucketCouchbase.name()
             defaultTags()
           }
@@ -209,7 +209,7 @@ class CouchbaseSpringRepositoryTest extends AbstractCouchbaseTest {
           errored false
           parent()
           tags {
-            "$Tags.COMPONENT.key" "couchbase"
+            "$Tags.COMPONENT.key" "couchbase-client"
             "bucket" bucketCouchbase.name()
             defaultTags()
           }

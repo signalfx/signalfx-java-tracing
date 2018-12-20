@@ -36,6 +36,7 @@ public class TestTracer extends MockTracer implements Tracer {
     }
     ArrayList<TestSpan> trace = traceMap.get(traceId);
     trace.add(0, new TestSpan(span));
+    System.out.println("Finishing span: " + span.toString());
     if (span.parentId() == 0) {
       listWriter.write(trace);
     }

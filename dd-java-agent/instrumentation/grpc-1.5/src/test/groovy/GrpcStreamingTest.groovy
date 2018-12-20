@@ -1,4 +1,6 @@
 // Modified by SignalFx
+
+import datadog.opentracing.mock.TestSpan
 import datadog.trace.agent.test.AgentTestRunner
 import example.GreeterGrpc
 import example.Helloworld
@@ -15,9 +17,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 class GrpcStreamingTest extends AgentTestRunner {
-  static {
-    System.setProperty("dd.integration.grpc.enabled", "true")
-  }
 
   def "test conversation #name"() {
     setup:
@@ -79,51 +78,72 @@ class GrpcStreamingTest extends AgentTestRunner {
       observer.onNext(message)
     }
     observer.onCompleted()
+    TEST_WRITER.waitForTraces(1)
+    TEST_WRITER.get(0).sort(new Comparator<TestSpan>() {
+      @Override
+      int compare(TestSpan o1, TestSpan o2) {
+        int parentComp = Long.compare(o1.parentId, o2.parentId)
+        if (parentComp == 0) {
+          return o1.operationName.compareTo(o2.operationName)
+        }
+        return parentComp
+      }
+    })
 
     then:
     error.get() == null
 
-    TEST_WRITER.waitForTraces(1)
-    TEST_WRITER.sort()
-
-    def trace = TEST_WRITER.get(0)
-    trace.size() == expectedSpans
-
-    def span0 = trace.get(0)
-    span0.operationName == "example.Greeter/Conversation"
-    span0.parentId() == 0
-    def span0Tags = span0.tags()
-    span0Tags.get("status.code") == "OK"
-    span0Tags.get(Tags.SPAN_KIND.getKey()) == Tags.SPAN_KIND_CLIENT
-
-    def span1 = trace.get(1)
-    span1.operationName == "example.Greeter/Conversation"
-    span1.parentId() == span0.spanId
-    span1.tags().get(Tags.SPAN_KIND.getKey()) == Tags.SPAN_KIND_SERVER
-
-    def numClient = 0
-    def numServer = 0
-    for (int i = 2 ; i < expectedSpans ; i++) {
-
-      def span = trace.get(i)
-      def spanKind = span.tags().get(Tags.SPAN_KIND.getKey())
-
-      def parentId
-      if (spanKind == Tags.SPAN_KIND_CLIENT) {
-        parentId = span0.spanId
-        numClient++
-      } else {
-        parentId = span1.spanId
-        numServer++
+    assertTraces(1) {
+      trace(0, clientMessageCount + 1 + (clientMessageCount * serverMessageCount) + 1) {
+        span(1) {
+          operationName "example.Greeter/Conversation"
+          childOf span(0)
+          errored false
+          tags {
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
+            "$Tags.COMPONENT.key" "grpc-server"
+            defaultTags(true)
+          }
+        }
+        clientRange.each {
+          span((clientMessageCount * serverMessageCount) + 1 + it) {
+            operationName "grpc.message"
+            childOf span(1)
+            errored false
+            tags {
+              "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
+              "$Tags.COMPONENT.key" "grpc-server"
+              "message.type" "example.Helloworld\$Response"
+              defaultTags()
+            }
+          }
+        }
+        span(0) {
+          operationName "example.Greeter/Conversation"
+          parent()
+          errored false
+          tags {
+            "status.code" "OK"
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT.key" "grpc-client"
+            defaultTags()
+          }
+        }
+        (1..(clientMessageCount * serverMessageCount)).each {
+          span(1 + it) {
+            operationName "grpc.message"
+            childOf span(0)
+            errored false
+            tags {
+              "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+              "$Tags.COMPONENT.key" "grpc-client"
+              "message.type" "example.Helloworld\$Response"
+              defaultTags()
+            }
+          }
+        }
       }
-
-      assert span.operationName == "grpc.message"
-      assert span.parentId() == parentId
-      assert span.tags().get("message.type") == "example.Helloworld\$Response"
     }
-
-    numClient == clientMessageCount * serverMessageCount
-    numServer == clientMessageCount
 
     serverReceived == clientRange.collect { "call $it" }
     clientReceived == serverRange.collect { clientRange.collect { "call $it" } }.flatten().sort()
@@ -142,6 +162,5 @@ class GrpcStreamingTest extends AgentTestRunner {
 
     clientRange = 1..clientMessageCount
     serverRange = 1..serverMessageCount
-    expectedSpans = clientMessageCount + clientMessageCount * serverMessageCount + 2
   }
 }

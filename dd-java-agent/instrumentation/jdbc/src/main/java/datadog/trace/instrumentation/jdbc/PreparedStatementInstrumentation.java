@@ -13,6 +13,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
+import datadog.trace.bootstrap.ExceptionLogger;
 import datadog.trace.bootstrap.JDBCMaps;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -68,13 +69,15 @@ public final class PreparedStatementInstrumentation extends Instrumenter.Default
           if (connection.isWrapperFor(Connection.class)) {
             connection = connection.unwrap(Connection.class);
           }
-        } catch (final Exception e) {
+        } catch (final Exception | AbstractMethodError e) {
           // perhaps wrapping isn't supported?
           // ex: org.h2.jdbc.JdbcConnection v1.3.175
+          // or: jdts.jdbc which always throws `AbstractMethodError` (at least up to version 1.3)
           // Stick with original connection.
         }
       } catch (final Throwable e) {
         // Had some problem getting the connection.
+        ExceptionLogger.LOGGER.debug("Could not get connection for PreparedStatementAdvice", e);
         return NoopScope.INSTANCE;
       }
 

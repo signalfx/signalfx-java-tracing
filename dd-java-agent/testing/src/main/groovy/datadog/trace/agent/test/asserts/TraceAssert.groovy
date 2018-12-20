@@ -40,6 +40,7 @@ class TraceAssert {
     if (trace.size() != size) {
       throw new ConcurrentModificationException("Trace modified during assertion")
     }
+
     assertedIndexes.add(index)
     assertSpan(trace.get(index), spec)
   }

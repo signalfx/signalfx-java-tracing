@@ -4,8 +4,8 @@ import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.failSafe;
 import static datadog.trace.agent.tooling.Utils.getConfigEnabled;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 
+import datadog.trace.agent.tooling.context.FieldBackedProvider;
 import datadog.trace.agent.tooling.context.InstrumentationContextProvider;
-import datadog.trace.agent.tooling.context.MapBackedProvider;
 import datadog.trace.agent.tooling.muzzle.Reference;
 import datadog.trace.agent.tooling.muzzle.ReferenceMatcher;
 import java.security.ProtectionDomain;
@@ -28,7 +28,6 @@ import net.bytebuddy.utility.JavaModule;
  * directly.
  */
 public interface Instrumenter {
-
   /**
    * Add this instrumentation to an AgentBuilder.
    *
@@ -36,17 +35,6 @@ public interface Instrumenter {
    * @return the original agentBuilder and this instrumentation
    */
   AgentBuilder instrument(AgentBuilder agentBuilder);
-
-  /** @return A type matcher used to match the class under transform. */
-  ElementMatcher typeMatcher();
-
-  /** @return A type matcher used to match the classloader under transform */
-  ElementMatcher<? super ClassLoader> classLoaderMatcher();
-
-  /** @return Class names of helpers to inject into the user's classloader */
-  String[] helperClassNames();
-
-  Map<? extends ElementMatcher, String> transformers();
 
   @Slf4j
   abstract class Default implements Instrumenter {
@@ -77,7 +65,7 @@ public interface Instrumenter {
         }
       }
       enabled = anyEnabled;
-      contextProvider = new MapBackedProvider(this);
+      contextProvider = new FieldBackedProvider(this);
     }
 
     @Override
@@ -178,20 +166,20 @@ public interface Instrumenter {
       return null;
     }
 
-    @Override
+    /** @return Class names of helpers to inject into the user's classloader */
     public String[] helperClassNames() {
       return new String[0];
     }
 
-    @Override
+    /** @return A type matcher used to match the classloader under transform */
     public ElementMatcher<ClassLoader> classLoaderMatcher() {
       return any();
     }
 
-    @Override
+    /** @return A type matcher used to match the class under transform. */
     public abstract ElementMatcher<? super TypeDescription> typeMatcher();
 
-    @Override
+    /** @return A map of matcher->advice */
     public abstract Map<? extends ElementMatcher, String> transformers();
 
     /**

@@ -24,13 +24,10 @@ import net.bytebuddy.matcher.ElementMatcher;
 @AutoService(Instrumenter.class)
 public class UrlInstrumentation extends Instrumenter.Default {
 
+  public static final String COMPONENT = "UrlConnection";
+
   public UrlInstrumentation() {
     super("urlconnection", "httpurlconnection");
-  }
-
-  @Override
-  protected boolean defaultEnabled() {
-    return false;
   }
 
   @Override
@@ -65,6 +62,7 @@ public class UrlInstrumentation extends Instrumenter.Default {
             GlobalTracer.get()
                 .buildSpan(protocol + ".request")
                 .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
+                .withTag(Tags.COMPONENT.getKey(), COMPONENT)
                 .startActive(true);
 
         final Span span = scope.span();

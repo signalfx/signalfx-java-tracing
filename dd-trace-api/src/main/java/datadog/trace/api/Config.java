@@ -31,7 +31,8 @@ public class Config {
   public static final String SERVICE_NAME = "service.name";
   public static final String WRITER_TYPE = "writer.type";
   public static final String AGENT_HOST = "agent.host";
-  public static final String AGENT_PORT = "agent.port";
+  public static final String TRACE_AGENT_PORT = "trace.agent.port";
+  public static final String AGENT_PORT_LEGACY = "agent.port";
   public static final String PRIORITY_SAMPLING = "priority.sampling";
   public static final String TRACE_RESOLVER_ENABLED = "trace.resolver.enabled";
   public static final String SERVICE_MAPPING = "service.mapping";
@@ -39,6 +40,8 @@ public class Config {
   public static final String SPAN_TAGS = "trace.span.tags";
   public static final String JMX_TAGS = "trace.jmx.tags";
   public static final String HEADER_TAGS = "trace.header.tags";
+  public static final String RUNTIME_CONTEXT_FIELD_INJECTION =
+      "trace.runtime.context.field.injection";
   public static final String JMX_FETCH_ENABLED = "jmxfetch.enabled";
   public static final String JMX_FETCH_METRICS_CONFIGS = "jmxfetch.metrics-configs";
   public static final String JMX_FETCH_CHECK_PERIOD = "jmxfetch.check-period";
@@ -54,9 +57,11 @@ public class Config {
   public static final String DEFAULT_AGENT_WRITER_TYPE = DD_AGENT_WRITER_TYPE;
 
   public static final String DEFAULT_AGENT_HOST = "localhost";
-  public static final int DEFAULT_AGENT_PORT = 8126;
+  public static final int DEFAULT_TRACE_AGENT_PORT = 8126;
 
-  private static final boolean DEFAULT_PRIORITY_SAMPLING_ENABLED = false;
+  private static final boolean DEFAULT_RUNTIME_CONTEXT_FIELD_INJECTION = true;
+
+  private static final boolean DEFAULT_PRIORITY_SAMPLING_ENABLED = true;
   private static final boolean DEFAULT_TRACE_RESOLVER_ENABLED = true;
   private static final boolean DEFAULT_JMX_FETCH_ENABLED = false;
 
@@ -79,6 +84,7 @@ public class Config {
   private final Map<String, String> spanTags;
   private final Map<String, String> jmxTags;
   @Getter private final Map<String, String> headerTags;
+  @Getter private final boolean runtimeContextFieldInjection;
   @Getter private final boolean jmxFetchEnabled;
   @Getter private final List<String> jmxFetchMetricsConfigs;
   @Getter private final Integer jmxFetchCheckPeriod;
@@ -94,7 +100,10 @@ public class Config {
     serviceName = getSettingFromEnvironment(SERVICE_NAME, DEFAULT_SERVICE_NAME);
     writerType = getSettingFromEnvironment(WRITER_TYPE, DEFAULT_AGENT_WRITER_TYPE);
     agentHost = getSettingFromEnvironment(AGENT_HOST, DEFAULT_AGENT_HOST);
-    agentPort = getIntegerSettingFromEnvironment(AGENT_PORT, DEFAULT_AGENT_PORT);
+    agentPort =
+        getIntegerSettingFromEnvironment(
+            TRACE_AGENT_PORT,
+            getIntegerSettingFromEnvironment(AGENT_PORT_LEGACY, DEFAULT_TRACE_AGENT_PORT));
     prioritySamplingEnabled =
         getBooleanSettingFromEnvironment(PRIORITY_SAMPLING, DEFAULT_PRIORITY_SAMPLING_ENABLED);
     traceResolverEnabled =
@@ -104,8 +113,12 @@ public class Config {
     globalTags = getMapSettingFromEnvironment(GLOBAL_TAGS, null);
     spanTags = getMapSettingFromEnvironment(SPAN_TAGS, null);
     jmxTags = getMapSettingFromEnvironment(JMX_TAGS, null);
-
     headerTags = getMapSettingFromEnvironment(HEADER_TAGS, null);
+
+    runtimeContextFieldInjection =
+        getBooleanSettingFromEnvironment(
+            RUNTIME_CONTEXT_FIELD_INJECTION, DEFAULT_RUNTIME_CONTEXT_FIELD_INJECTION);
+
     jmxFetchEnabled =
         getBooleanSettingFromEnvironment(JMX_FETCH_ENABLED, DEFAULT_JMX_FETCH_ENABLED);
     jmxFetchMetricsConfigs = getListSettingFromEnvironment(JMX_FETCH_METRICS_CONFIGS, null);
@@ -124,7 +137,11 @@ public class Config {
     serviceName = properties.getProperty(SERVICE_NAME, parent.serviceName);
     writerType = properties.getProperty(WRITER_TYPE, parent.writerType);
     agentHost = properties.getProperty(AGENT_HOST, parent.agentHost);
-    agentPort = getPropertyIntegerValue(properties, AGENT_PORT, parent.agentPort);
+    agentPort =
+        getPropertyIntegerValue(
+            properties,
+            TRACE_AGENT_PORT,
+            getPropertyIntegerValue(properties, AGENT_PORT_LEGACY, parent.agentPort));
     prioritySamplingEnabled =
         getPropertyBooleanValue(properties, PRIORITY_SAMPLING, parent.prioritySamplingEnabled);
     traceResolverEnabled =
@@ -134,8 +151,12 @@ public class Config {
     globalTags = getPropertyMapValue(properties, GLOBAL_TAGS, parent.globalTags);
     spanTags = getPropertyMapValue(properties, SPAN_TAGS, parent.spanTags);
     jmxTags = getPropertyMapValue(properties, JMX_TAGS, parent.jmxTags);
-
     headerTags = getPropertyMapValue(properties, HEADER_TAGS, parent.headerTags);
+
+    runtimeContextFieldInjection =
+        getPropertyBooleanValue(
+            properties, RUNTIME_CONTEXT_FIELD_INJECTION, parent.runtimeContextFieldInjection);
+
     jmxFetchEnabled =
         getPropertyBooleanValue(properties, JMX_FETCH_ENABLED, parent.jmxFetchEnabled);
     jmxFetchMetricsConfigs =
@@ -163,6 +184,7 @@ public class Config {
     result.putAll(globalTags);
     result.putAll(jmxTags);
     result.put(RUNTIME_ID_TAG, runtimeId);
+    result.put(SERVICE_NAME, serviceName);
     return Collections.unmodifiableMap(result);
   }
 

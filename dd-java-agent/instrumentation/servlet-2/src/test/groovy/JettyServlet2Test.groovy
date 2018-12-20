@@ -90,7 +90,7 @@ class JettyServlet2Test extends AgentTestRunner {
             "span.origin.type" "TestServlet2\$Sync"
             "servlet.context" "/ctx"
             if (auth) {
-              "user.principal" "user"
+              "user.name" "user"
             }
             defaultTags(distributedTracing)
           }

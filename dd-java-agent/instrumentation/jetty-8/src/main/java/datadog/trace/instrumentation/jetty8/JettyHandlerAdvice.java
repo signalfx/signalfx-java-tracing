@@ -56,7 +56,7 @@ public class JettyHandlerAdvice {
     Tags.HTTP_METHOD.set(span, req.getMethod());
     Tags.HTTP_URL.set(span, req.getRequestURL().toString());
     if (req.getUserPrincipal() != null) {
-      span.setTag("user.principal", req.getUserPrincipal().getName());
+      span.setTag("user.name", req.getUserPrincipal().getName());
     }
     return scope;
   }
@@ -82,18 +82,19 @@ public class JettyHandlerAdvice {
         }
         scope.close();
         span.finish(); // Finish the span manually since finishSpanOnClose was false
-      } else if (req.isAsyncStarted()) {
-        final AtomicBoolean activated = new AtomicBoolean(false);
-        // what if async is already finished? This would not be called
-        req.getAsyncContext().addListener(new TagSettingAsyncListener(activated, span));
-        scope.close();
       } else {
-        Tags.HTTP_STATUS.set(span, resp.getStatus());
-        if (scope instanceof TraceScope) {
-          ((TraceScope) scope).setAsyncPropagation(false);
+        final AtomicBoolean activated = new AtomicBoolean(false);
+        if (req.isAsyncStarted()) {
+          req.getAsyncContext().addListener(new TagSettingAsyncListener(activated, span));
+        }
+        if (!req.isAsyncStarted() && activated.compareAndSet(false, true)) {
+          Tags.HTTP_STATUS.set(span, resp.getStatus());
+          if (scope instanceof TraceScope) {
+            ((TraceScope) scope).setAsyncPropagation(false);
+          }
+          span.finish(); // Finish the span manually since finishSpanOnClose was false
         }
         scope.close();
-        span.finish(); // Finish the span manually since finishSpanOnClose was false
       }
     }
   }

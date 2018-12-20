@@ -10,9 +10,11 @@ import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.handler.AbstractHandler
 
+import javax.servlet.DispatcherType
 import javax.servlet.ServletException
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
+import java.util.concurrent.atomic.AtomicBoolean
 
 class JettyHandlerTest extends AgentTestRunner {
 
@@ -27,10 +29,6 @@ class JettyHandlerTest extends AgentTestRunner {
 
   def cleanup() {
     server.stop()
-  }
-
-  @Override
-  void afterTest() {
   }
 
   def "call to jetty creates a trace"() {
@@ -54,23 +52,26 @@ class JettyHandlerTest extends AgentTestRunner {
 
     expect:
     response.body().string().trim() == "Hello World"
-    TEST_WRITER.waitForTraces(1)
-    TEST_WRITER.size() == 1
-    def trace = TEST_WRITER.firstTrace()
-    trace.size() == 1
-    def span = trace[0]
-    span.operationName == "GET ${handler.class.name}"
-    span.parentId == 0
-    def tags = span.tags()
-    tags["http.url"] == "http://localhost:$port/"
-    tags["http.method"] == "GET"
-    tags["span.kind"] == "server"
-    tags["component"] == "jetty-handler"
-    tags["http.status_code"] == 200
-    tags["span.origin.type"] == handler.class.name
-    tags.size() == 6
-  }
 
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          operationName "GET ${handler.class.name}"
+          errored false
+          parent()
+          tags {
+            "http.url" "http://localhost:$port/"
+            "http.method" "GET"
+            "span.kind" "server"
+            "component" "jetty-handler"
+            "span.origin.type" handler.class.name
+            "http.status_code" 200
+            defaultTags()
+          }
+        }
+      }
+    }
+  }
 
   def "handler instrumentation clears state after async request"() {
     setup:
@@ -78,7 +79,7 @@ class JettyHandlerTest extends AgentTestRunner {
       @Override
       void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
         final Continuation continuation = ContinuationSupport.getContinuation(request)
-        continuation.suspend()
+        continuation.suspend(response)
         // By the way, this is a terrible async server
         new Thread() {
           @Override
@@ -117,10 +118,16 @@ class JettyHandlerTest extends AgentTestRunner {
 
   def "call to jetty with error creates a trace"() {
     setup:
+    def errorHandlerCalled = new AtomicBoolean(false)
     Handler handler = new AbstractHandler() {
       @Override
       void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-        throw new RuntimeException()
+        if (baseRequest.dispatcherType == DispatcherType.ERROR) {
+          errorHandlerCalled.set(true)
+          baseRequest.setHandled(true)
+        } else {
+          throw new RuntimeException()
+        }
       }
     }
     server.setHandler(handler)
@@ -133,21 +140,44 @@ class JettyHandlerTest extends AgentTestRunner {
 
     expect:
     response.body().string().trim() == ""
-    TEST_WRITER.waitForTraces(1)
-    TEST_WRITER.size() == 1
-    def trace = TEST_WRITER.firstTrace()
-    trace.size() == 1
-    def span = trace[0]
-    span.operationName == "GET ${handler.class.name}"
-    span.parentId == 0
-    def tags = span.tags()
-    tags["http.url"] == "http://localhost:$port/"
-    tags["http.method"] == "GET"
-    tags["span.kind"] == "server"
-    tags["component"] == "jetty-handler"
-    tags["http.status_code"] == 500
-    tags["span.origin.type"] == handler.class.name
-    tags["error"] == true
-    tags.size() == 7
+
+    assertTraces(errorHandlerCalled.get() ? 2 : 1) {
+      trace(0, 1) {
+        span(0) {
+          operationName "GET ${handler.class.name}"
+          errored true
+          parent()
+          tags {
+            "http.url" "http://localhost:$port/"
+            "http.method" "GET"
+            "span.kind" "server"
+            "component" "jetty-handler"
+            "span.origin.type" handler.class.name
+            "http.status_code" 500
+            errorTags RuntimeException
+            defaultTags()
+          }
+        }
+      }
+      if (errorHandlerCalled.get()) {
+        trace(1, 1) {
+          span(0) {
+            operationName "GET ${handler.class.name}"
+            errored true
+            parent()
+            tags {
+              "http.url" "http://localhost:$port/"
+              "http.method" "GET"
+              "span.kind" "server"
+              "component" "jetty-handler"
+              "span.origin.type" handler.class.name
+              "http.status_code" 500
+              "error" true
+              defaultTags()
+            }
+          }
+        }
+      }
+    }
   }
 }

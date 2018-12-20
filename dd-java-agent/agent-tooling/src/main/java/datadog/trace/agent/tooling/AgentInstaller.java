@@ -55,8 +55,21 @@ public class AgentInstaller {
             .with(POOL_STRATEGY)
             .with(new LoggingListener())
             .with(LOCATION_STRATEGY)
+            // FIXME: we cannot enable it yet due to BB/JVM bug, see
+            // https://github.com/raphw/byte-buddy/issues/558
+            // .with(AgentBuilder.LambdaInstrumentationStrategy.ENABLED)
             .ignore(any(), skipClassLoader())
-            .or(nameStartsWith("datadog.trace."))
+            .or(
+                nameStartsWith("datadog.trace.")
+                    // FIXME: We should remove this once
+                    // https://github.com/raphw/byte-buddy/issues/558 is fixed
+                    .and(
+                        not(
+                            named(
+                                    "datadog.trace.bootstrap.instrumentation.java.concurrent.RunnableWrapper")
+                                .or(
+                                    named(
+                                        "datadog.trace.bootstrap.instrumentation.java.concurrent.CallableWrapper")))))
             .or(nameStartsWith("datadog.opentracing."))
             .or(nameStartsWith("datadog.slf4j."))
             .or(nameStartsWith("net.bytebuddy."))
@@ -66,7 +79,8 @@ public class AgentInstaller {
                         not(
                             named("java.net.URL")
                                 .or(named("java.net.HttpURLConnection"))
-                                .or(nameStartsWith("java.util.concurrent.")))))
+                                .or(nameStartsWith("java.util.concurrent."))
+                                .or(nameStartsWith("java.util.logging.")))))
             .or(nameStartsWith("com.sun.").and(not(nameStartsWith("com.sun.messaging."))))
             .or(
                 nameStartsWith("sun.")
@@ -98,7 +112,9 @@ public class AgentInstaller {
   }
 
   private static void registerWeakMapProvider() {
-    WeakMap.Provider.registerIfAbsent(new WeakMapSuppliers.WeakConcurrent());
+    if (!WeakMap.Provider.isProviderRegistered()) {
+      WeakMap.Provider.registerIfAbsent(new WeakMapSuppliers.WeakConcurrent());
+    }
     //    WeakMap.Provider.registerIfAbsent(new WeakMapSuppliers.WeakConcurrent.Inline());
     //    WeakMap.Provider.registerIfAbsent(new WeakMapSuppliers.Guava());
   }

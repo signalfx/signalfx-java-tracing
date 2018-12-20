@@ -5,7 +5,6 @@ import io.opentracing.tag.Tags
 class SlickTest extends AgentTestRunner {
 
   // Can't be @Shared, otherwise the work queue is initialized before the instrumentation is applied
-  //  @Shared
   def database = new SlickUtils()
 
   def "Basic statement generates spans"() {
@@ -23,6 +22,7 @@ class SlickTest extends AgentTestRunner {
           parent()
           errored false
           tags {
+            "$Tags.COMPONENT.key" "trace"
             defaultTags()
           }
         }

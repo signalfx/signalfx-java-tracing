@@ -1,4 +1,3 @@
-// Modified by SignalFx
 package datadog.trace.bootstrap;
 
 import java.net.URL;
@@ -20,13 +19,12 @@ public class DatadogClassLoader extends URLClassLoader {
    * Construct a new DatadogClassLoader
    *
    * @param bootstrapJarLocation Used for resource lookups.
-   * @param agentJarsLocations Classpath of this classloader.
+   * @param agentJarLocation Classpath of this classloader.
    * @param parent Classloader parent. Should null (bootstrap), or the platform classloader for java
    *     9+.
    */
-  public DatadogClassLoader(
-      URL bootstrapJarLocation, URL[] agentJarsLocations, ClassLoader parent) {
-    super(agentJarsLocations, parent);
+  public DatadogClassLoader(URL bootstrapJarLocation, URL agentJarLocation, ClassLoader parent) {
+    super(new URL[] {agentJarLocation}, parent);
     bootstrapProxy = new BootstrapClassLoaderProxy(new URL[] {bootstrapJarLocation}, null);
   }
 

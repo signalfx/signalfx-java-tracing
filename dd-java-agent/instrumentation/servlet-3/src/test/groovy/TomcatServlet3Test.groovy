@@ -23,7 +23,7 @@ class TomcatServlet3Test extends AbstractServlet3Test<Context> {
 
   def setupSpec() {
     tomcatServer = new Tomcat()
-    tomcatServer.setPort(port)
+    tomcatServer.setPort(0)
     tomcatServer.getConnector()
 
     baseDir.deleteOnExit()
@@ -47,6 +47,7 @@ class TomcatServlet3Test extends AbstractServlet3Test<Context> {
     setupServlets(servletContext)
 
     tomcatServer.start()
+    port = tomcatServer.getConnector().localPort
     System.out.println(
       "Tomcat server: http://" + tomcatServer.getHost().getName() + ":" + port + "/")
   }

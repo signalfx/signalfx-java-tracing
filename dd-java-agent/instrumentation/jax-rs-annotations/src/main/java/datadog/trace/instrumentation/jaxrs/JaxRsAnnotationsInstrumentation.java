@@ -41,7 +41,7 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
 
   @Override
   public String[] helperClassNames() {
-    return new String[] {"datadog.trace.instrumentation.utils.URLUtil"};
+    return new String[] {"datadog.trace.common.util.URLUtil"};
   }
 
   @Override

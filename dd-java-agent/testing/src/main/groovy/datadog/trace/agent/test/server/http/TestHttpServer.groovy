@@ -1,7 +1,6 @@
 // Modified by SignalFx
 package datadog.trace.agent.test.server.http
 
-import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.asserts.ListWriterAssert
 import datadog.opentracing.mock.TestSpan
 import io.opentracing.SpanContext
@@ -42,14 +41,12 @@ class TestHttpServer implements AutoCloseable {
   public Tracer tracer = GlobalTracer.get()
 
 
-  final URI address
+  private URI address
   private final AtomicReference<HandlerApi.RequestApi> last = new AtomicReference<>()
 
   private TestHttpServer() {
-    int port = TestUtils.randomOpenPort()
-    internalServer = new Server(port)
+    internalServer = new Server(0)
     internalServer.stopAtShutdown = true
-    address = new URI("http://localhost:$port")
   }
 
   def start() {
@@ -61,8 +58,12 @@ class TestHttpServer implements AutoCloseable {
     def handlerList = new HandlerList()
     handlerList.handlers = handlers.configured
     internalServer.handler = handlerList
-    System.out.println("Starting server $this on port $address.port")
+    System.out.println("Starting server $this on random port")
     internalServer.start()
+
+    address = new URI("http://localhost:${internalServer.connectors[0].localPort}")
+    System.out.println("Started server $this on port $address")
+
     return this
   }
 

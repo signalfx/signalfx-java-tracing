@@ -1,5 +1,4 @@
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
 import io.opentracing.mock.MockSpan
 import io.opentracing.util.GlobalTracer
@@ -30,7 +29,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
     .build()
 
   @Shared
-  int port = TestUtils.randomOpenPort()
+  int port
   @Shared
   protected String user = "user"
   @Shared

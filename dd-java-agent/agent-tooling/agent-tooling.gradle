@@ -1,8 +1,4 @@
 // Modified by SignalFx
-plugins {
-  id "com.github.johnrengelman.shadow"
-}
-
 apply from: "${rootDir}/gradle/java.gradle"
 
 excludedClassesConverage += ['datadog.trace.agent.tooling.*']
@@ -14,12 +10,10 @@ configurations {
 
 dependencies {
   compile project(':dd-java-agent:agent-bootstrap')
-  compile project(':dd-java-agent:instrumentation:utils')
   compile group: 'com.blogspot.mydailyjava', name: 'weak-lock-free', version: '0.13'
   compile deps.bytebuddy
   compile deps.bytebuddyagent
   compile deps.jaeger
-
   annotationProcessor deps.autoservice
   implementation deps.autoservice
 
@@ -30,29 +24,4 @@ dependencies {
 
   instrumentationMuzzle sourceSets.main.output
   instrumentationMuzzle configurations.compile
-}
-
-shadowJar {
-  dependencies {
-    exclude(project(':dd-java-agent:agent-bootstrap'))
-    exclude(project(':dd-trace-api'))
-    exclude(dependency([group: 'io.opentracing', name: 'opentracing-api']))
-    exclude(dependency([group: 'io.opentracing', name: 'opentracing-noop']))
-    exclude(dependency([group: 'io.opentracing', name: 'opentracing-util']))
-
-  }
-  relocate 'io.jaegertracing', 'datadog.trace.jaeger.jaegertracing'
-  // rename okhttp3 to avoid instrumenter match (okhtt3.OkHttpClient)
-  relocate 'okhttp3', 'datadog.trace.jaeger.okhttpthree'
-  relocate 'com.twitter.zipkin', 'datadog.trace.jaeger.twitter.zipkin'
-  relocate 'com.google.gson', 'datadog.trace.jaeger.google.gson'
-  relocate 'org.apache.thrift', 'datadog.trace.jaeger.apache.thrift'
-  relocate 'org.apache.http', 'datadog.trace.jaeger.apache.http'
-  relocate 'okio', 'datadog.trace.jaeger.okio'
-  relocate 'org.apache.commons.logging', 'datadog.trace.jaeger.apache.commons.logging'
-  relocate 'org.apache.commons.codec', 'datadog.trace.jaeger.apache.commons.codec'
-}
-
-jar {
-  classifier = 'unbundled'
 }

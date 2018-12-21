@@ -52,7 +52,7 @@ public class NettyChannelPipelineInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.instrumentation.utils.URLUtil",
+      "datadog.trace.common.util.URLUtil",
       packageName + ".AttributeKeys",
       // client helpers
       packageName + ".client.NettyResponseInjectAdapter",

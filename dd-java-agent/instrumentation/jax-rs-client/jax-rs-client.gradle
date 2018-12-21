@@ -34,7 +34,7 @@ dependencies {
   implementation deps.autoservice
 
   compile project(':dd-java-agent:agent-tooling')
-  compile project(':dd-java-agent:instrumentation:utils')
+  compile project(':dd-trace-ot')
 
   testCompile project(':dd-java-agent:testing')
 

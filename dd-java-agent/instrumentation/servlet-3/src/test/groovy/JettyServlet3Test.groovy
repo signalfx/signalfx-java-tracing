@@ -17,7 +17,7 @@ class JettyServlet3Test extends AbstractServlet3Test<ServletContextHandler> {
   private Server jettyServer
 
   def setupSpec() {
-    jettyServer = new Server(port)
+    jettyServer = new Server(0)
 
     ServletContextHandler servletContext = new ServletContextHandler(null, "/$context")
     setupAuthentication(jettyServer, servletContext)
@@ -25,6 +25,7 @@ class JettyServlet3Test extends AbstractServlet3Test<ServletContextHandler> {
     jettyServer.setHandler(servletContext)
 
     jettyServer.start()
+    port = jettyServer.connectors[0].localPort
 
     System.out.println(
       "Jetty server: http://localhost:" + port + "/")

@@ -1,6 +1,5 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.agent.test.TestUtils
 import datadog.trace.agent.test.utils.OkHttpUtils
 import okhttp3.Credentials
 import okhttp3.Interceptor
@@ -34,8 +33,7 @@ class JettyServlet2Test extends AgentTestRunner {
   private ServletContextHandler servletContext
 
   def setup() {
-    port = TestUtils.randomOpenPort()
-    jettyServer = new Server(port)
+    jettyServer = new Server(0)
     servletContext = new ServletContextHandler()
     servletContext.contextPath = "/ctx"
 
@@ -47,6 +45,7 @@ class JettyServlet2Test extends AgentTestRunner {
 
     jettyServer.setHandler(servletContext)
     jettyServer.start()
+    port = jettyServer.connectors[0].localPort
   }
 
   def cleanup() {

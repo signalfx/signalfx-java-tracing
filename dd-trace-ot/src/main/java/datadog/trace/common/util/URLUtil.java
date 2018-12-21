@@ -1,4 +1,4 @@
-package datadog.trace.instrumentation.utils;
+package datadog.trace.common.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;

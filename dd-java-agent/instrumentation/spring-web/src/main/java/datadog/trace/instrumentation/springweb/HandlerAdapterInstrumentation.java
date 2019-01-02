@@ -68,7 +68,6 @@ public final class HandlerAdapterInstrumentation extends Instrumenter.Default {
         final Object bestMatchingPattern =
             request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         if (method != null && bestMatchingPattern != null) {
-          System.out.println("PATTERN " + bestMatchingPattern);
           parentScope.span().setOperationName(method + " " + bestMatchingPattern);
         }
       }

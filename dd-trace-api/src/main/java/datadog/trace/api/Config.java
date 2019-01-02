@@ -59,7 +59,7 @@ public class Config {
   public static final String DEFAULT_AGENT_HOST = "localhost";
   public static final int DEFAULT_TRACE_AGENT_PORT = 8126;
 
-  private static final boolean DEFAULT_RUNTIME_CONTEXT_FIELD_INJECTION = true;
+  private static final boolean DEFAULT_RUNTIME_CONTEXT_FIELD_INJECTION = false;
 
   private static final boolean DEFAULT_PRIORITY_SAMPLING_ENABLED = true;
   private static final boolean DEFAULT_TRACE_RESOLVER_ENABLED = true;

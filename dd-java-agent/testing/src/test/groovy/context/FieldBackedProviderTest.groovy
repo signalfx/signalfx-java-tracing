@@ -5,6 +5,7 @@ import datadog.trace.agent.test.TestUtils
 import datadog.trace.api.Config
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.utility.JavaModule
+import spock.lang.Ignore
 import spock.lang.Requires
 
 import java.lang.instrument.ClassDefinition
@@ -18,6 +19,7 @@ import static context.ContextTestInstrumentation.IncorrectKeyClassUsageKeyClass
 import static context.ContextTestInstrumentation.KeyClass
 import static context.ContextTestInstrumentation.UntransformableKeyClass
 
+@Ignore
 class FieldBackedProviderTest extends AgentTestRunner {
 
   @Override

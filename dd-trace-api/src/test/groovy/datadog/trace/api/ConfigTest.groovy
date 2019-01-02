@@ -37,7 +37,7 @@ class ConfigTest extends Specification {
     config.mergedSpanTags == [:]
     config.mergedJmxTags == [(RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE_NAME): config.serviceName]
     config.headerTags == [:]
-    config.runtimeContextFieldInjection == true
+    config.runtimeContextFieldInjection == false
     config.jmxFetchEnabled == false
     config.jmxFetchMetricsConfigs == []
     config.jmxFetchCheckPeriod == null

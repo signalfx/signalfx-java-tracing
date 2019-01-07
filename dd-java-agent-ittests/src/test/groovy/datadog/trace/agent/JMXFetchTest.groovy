@@ -18,10 +18,10 @@ class JMXFetchTest extends Specification {
     def currentContextLoader = Thread.currentThread().getContextClassLoader()
     DatagramSocket socket = new DatagramSocket(0)
 
-    System.properties.setProperty("dd.jmxfetch.enabled", "true")
-    System.properties.setProperty("dd.jmxfetch.statsd.port", Integer.toString(socket.localPort))
+    System.properties.setProperty("sfx.jmxfetch.enabled", "true")
+    System.properties.setProperty("sfx.jmxfetch.statsd.port", Integer.toString(socket.localPort))
     // Overwrite writer type to disable console jmxfetch reporter
-    System.properties.setProperty("dd.writer.type", "DDAgentWriter")
+    System.properties.setProperty("sfx.writer.type", "DDAgentWriter")
 
     def classLoader = IntegrationTestUtils.getJmxFetchClassLoader()
     // Have to set this so JMXFetch knows where to find resources

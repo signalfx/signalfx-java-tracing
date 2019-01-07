@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @ToString(includeFieldNames = true)
 public class Config {
   /** Config keys below */
-  private static final String PREFIX = "dd.";
+  private static final String PREFIX = "sfx.";
 
   private static final Config INSTANCE = new Config();
 
@@ -32,6 +32,7 @@ public class Config {
   public static final String WRITER_TYPE = "writer.type";
   public static final String AGENT_HOST = "agent.host";
   public static final String TRACE_AGENT_PORT = "trace.agent.port";
+  public static final String AGENT_PATH = "agent.path";
   public static final String AGENT_PORT_LEGACY = "agent.port";
   public static final String PRIORITY_SAMPLING = "priority.sampling";
   public static final String TRACE_RESOLVER_ENABLED = "trace.resolver.enabled";
@@ -57,7 +58,8 @@ public class Config {
   public static final String DEFAULT_AGENT_WRITER_TYPE = DD_AGENT_WRITER_TYPE;
 
   public static final String DEFAULT_AGENT_HOST = "localhost";
-  public static final int DEFAULT_TRACE_AGENT_PORT = 8126;
+  public static final int DEFAULT_TRACE_AGENT_PORT = 9080;
+  public static final String DEFAULT_AGENT_PATH = "/v1/trace";
 
   private static final boolean DEFAULT_RUNTIME_CONTEXT_FIELD_INJECTION = false;
 
@@ -77,6 +79,7 @@ public class Config {
   @Getter private final String writerType;
   @Getter private final String agentHost;
   @Getter private final int agentPort;
+  @Getter private final String agentPath;
   @Getter private final boolean prioritySamplingEnabled;
   @Getter private final boolean traceResolverEnabled;
   @Getter private final Map<String, String> serviceMapping;
@@ -104,6 +107,7 @@ public class Config {
         getIntegerSettingFromEnvironment(
             TRACE_AGENT_PORT,
             getIntegerSettingFromEnvironment(AGENT_PORT_LEGACY, DEFAULT_TRACE_AGENT_PORT));
+    agentPath = getSettingFromEnvironment(AGENT_PATH, DEFAULT_AGENT_PATH);
     prioritySamplingEnabled =
         getBooleanSettingFromEnvironment(PRIORITY_SAMPLING, DEFAULT_PRIORITY_SAMPLING_ENABLED);
     traceResolverEnabled =
@@ -142,6 +146,7 @@ public class Config {
             properties,
             TRACE_AGENT_PORT,
             getPropertyIntegerValue(properties, AGENT_PORT_LEGACY, parent.agentPort));
+    agentPath = properties.getProperty(AGENT_PATH, parent.agentPath);
     prioritySamplingEnabled =
         getPropertyBooleanValue(properties, PRIORITY_SAMPLING, parent.prioritySamplingEnabled);
     traceResolverEnabled =

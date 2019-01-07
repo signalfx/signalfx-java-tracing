@@ -13,14 +13,14 @@ class ConfigTest extends Specification {
   @Rule
   public final EnvironmentVariables environmentVariables = new EnvironmentVariables()
 
-  private static final DD_SERVICE_NAME_ENV = "DD_SERVICE_NAME"
-  private static final DD_WRITER_TYPE_ENV = "DD_WRITER_TYPE"
-  private static final DD_SERVICE_MAPPING_ENV = "DD_SERVICE_MAPPING"
-  private static final DD_SPAN_TAGS_ENV = "DD_SPAN_TAGS"
-  private static final DD_HEADER_TAGS_ENV = "DD_HEADER_TAGS"
-  private static final DD_JMXFETCH_METRICS_CONFIGS_ENV = "DD_JMXFETCH_METRICS_CONFIGS"
-  private static final DD_TRACE_AGENT_PORT_ENV = "DD_TRACE_AGENT_PORT"
-  private static final DD_AGENT_PORT_LEGACY_ENV = "DD_AGENT_PORT"
+  private static final DD_SERVICE_NAME_ENV = "SFX_SERVICE_NAME"
+  private static final DD_WRITER_TYPE_ENV = "SFX_WRITER_TYPE"
+  private static final DD_SERVICE_MAPPING_ENV = "SFX_SERVICE_MAPPING"
+  private static final DD_SPAN_TAGS_ENV = "SFX_SPAN_TAGS"
+  private static final DD_HEADER_TAGS_ENV = "SFX_HEADER_TAGS"
+  private static final DD_JMXFETCH_METRICS_CONFIGS_ENV = "SFX_JMXFETCH_METRICS_CONFIGS"
+  private static final DD_TRACE_AGENT_PORT_ENV = "SFX_TRACE_AGENT_PORT"
+  private static final DD_AGENT_PORT_LEGACY_ENV = "SFX_AGENT_PORT"
 
   def "verify defaults"() {
     when:
@@ -30,7 +30,7 @@ class ConfigTest extends Specification {
     config.serviceName == "unnamed-java-app"
     config.writerType == "DDAgentWriter"
     config.agentHost == "localhost"
-    config.agentPort == 8126
+    config.agentPort == 9080
     config.prioritySamplingEnabled == true
     config.traceResolverEnabled == true
     config.serviceMapping == [:]
@@ -155,7 +155,7 @@ class ConfigTest extends Specification {
     true         | true               | false              | false                    | 123
     true         | false              | false              | false                    | 123
     false        | true               | false              | false                    | 456
-    false        | false              | false              | false                    | 8126
+    false        | false              | false              | false                    | 9080
     true         | true               | true               | false                    | 123
     true         | false              | true               | false                    | 123
     false        | true               | true               | false                    | 777 // env var gets picked up instead.

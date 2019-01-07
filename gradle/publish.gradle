@@ -39,10 +39,14 @@ if (!isRoot) {
     publications {
       mavenJava(MavenPublication) {
         from components.java
+
+        artifact sourceJar
+        artifact javaDocJar
+
         pom {
           name = project.name
           artifactId = project.name.replaceAll('dd-', 'signalfx-')
-          description = project.description
+          description = project.name
           url = "https://github.com/signalfx/signalfx-trace-java"
           licenses {
             license {

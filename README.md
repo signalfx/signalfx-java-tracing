@@ -36,4 +36,42 @@ DD's repo) on a regular basis, especially after releases.
 
 # Supported libraries and frameworks
 
-_Coming soon._
+*Bold* libraries are enabled out of the box and are fully supported.  Non-bold
+libraries are in beta and must be enabled by setting the property
+`-Dsfx.integration.NAME.enabled=true`, where `NAME` is the name given in the
+table below.
+
+| Library | Versions Supported | Instrumentation Name(s) | Notes |
+| ---     | ---                | ---                     | ---   |
+| **Akka HTTP** | 10.0.0+ | `akka-http`, `akka-http-server`, `akka-http-client` | |
+| **Apache HTTP Client** | 4.0+ | `httpclient` | Also supports the DropWizard HTTP Client that subclasses the Apache one |
+| **AWS SDK Client** | 1.10.33+ | `aws-sdk` | |
+| **CouchBase Client** | 2.0.0+ | `couchbase` | |
+| **Cassandra (DataStax client)** | 2.3.0+ | `cassandra` | |
+| **DropWizard Views** | * | `dropwizard`, `dropwizard-view` | |
+| **ElasticSearch Client** | 2+ | `elasticsearch` | Supports both REST and transport clients |
+| **gRPC (Client and Server)** | 1.5.0+ | `grpc` | |
+| **java.net.HttpURLConnection** | * | `httpurlconnection` | |
+| **Hystrix** | 1.4.0+ | `hystrix` | |
+| **JAX-RS Client** | 2.0.0+ | `jaxrs` | Also supports DropWizard client 0.8.0+ |
+| **JDBC API** | * | `jdbc` | |
+| **Jedis (Redis client)** | 1.4.0+ | `jedis` | |
+| **Lettuce (Redis Client)** | 5.0.0+ | `lettuce` | |
+| Jetty Server | 8.0.0+ | `jetty` | |
+| **JMS Messaging** | * | `jms` | |
+| **JSP** | 7+ | `jsp` | |
+| **Kafka Client** | 0.11.0.0+ | `kafka` | |
+| **Mongo Client** | 3.1+ | `mongo` | |
+| **Mongo Async Client** | 3.3+ | `mongo` | |
+| **Netty Client and Server** | 4.0+ | `netty` | |
+| **OkHTTP Client** | 3.0+ | `okhttp` | |
+| **Play Web Framework** | 2.4+ | `play` | |
+| **RabbitMQ Client** | 2.7.0+ | `rabbitmq` | |
+| Ratpack | 1.4+ | `ratpack` | |
+| **Java Servlet** | 2+ | `servlet` | |
+| Spark Java | 2.3+ | `sparkjava` | |
+| **Spring Web** | 4.0+ | `spring-web` | |
+| **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
+| **Memcached (SpyMemcached)** | 2.10.0+ | `spymemcached` | |
+| **Vertx Web** | 4.1.0+  | N/A | This works through the Netty instrumentation |
+

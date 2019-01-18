@@ -91,22 +91,30 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
         resourceNameBuilder.append(httpMethod);
         resourceNameBuilder.append(" ");
       }
+
+      final StringBuilder urlBuilder = new StringBuilder();
       Path last = null;
       for (final Path path : paths) {
-        if (path.value().startsWith("/") || (last != null && last.value().endsWith("/"))) {
-          resourceNameBuilder.append(path.value());
-        } else {
+        if (!path.value().startsWith("/") && !(last != null && last.value().endsWith("/"))) {
           resourceNameBuilder.append("/");
-          resourceNameBuilder.append(path.value());
+          urlBuilder.append("/");
         }
+        resourceNameBuilder.append(path.value());
+        urlBuilder.append(path.value());
         last = path;
       }
       final String resourceName = resourceNameBuilder.toString().trim();
 
       final Scope scope = GlobalTracer.get().scopeManager().active();
       if (scope != null && !resourceName.isEmpty()) {
-        scope.span().setOperationName(resourceName);
-        Tags.COMPONENT.set(scope.span(), "jax-rs");
+        Span span = scope.span();
+        span.setOperationName(resourceName);
+        Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_SERVER);
+        Tags.COMPONENT.set(span, "jax-rs");
+        Tags.HTTP_URL.set(span, urlBuilder.toString().trim());
+        if (httpMethod != null) {
+          Tags.HTTP_METHOD.set(span, httpMethod);
+        }
       }
 
       // Now create a span representing the method execution.

@@ -13,21 +13,26 @@ import static datadog.trace.agent.test.TestUtils.runUnderTrace
 
 class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
 
-  def "span named '#name' from annotations on class"() {
+  def "span named #httpMethod #path from annotations on class"() {
     setup:
     runUnderTrace("test") {
       obj.call()
     }
 
+
     expect:
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          operationName "test"
-          resourceName name
+          operationName "$httpMethod $path".trim()
           parent()
           tags {
+            "$Tags.SPAN_KIND.key" "$Tags.SPAN_KIND_SERVER"
             "$Tags.COMPONENT.key" "jax-rs"
+            "$Tags.HTTP_URL.key" path
+            if (httpMethod != "") {
+              "$Tags.HTTP_METHOD.key" httpMethod
+            }
             defaultTags()
           }
         }
@@ -44,44 +49,44 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
     }
 
     where:
-    name                        | obj
-    "/a"                        | new Jax() {
+    httpMethod | path                   | obj
+    ""         | "/a"                   | new Jax() {
       @Path("/a")
       void call() {}
     }
-    "GET /b"                    | new Jax() {
+    "GET"      | "/b"                   | new Jax() {
       @GET
       @Path("/b")
       void call() {}
     }
-    "POST /c"                   | new InterfaceWithPath() {
+    "POST"     | "/c"                   | new InterfaceWithPath() {
       @POST
       @Path("/c")
       void call() {}
     }
-    "HEAD"                      | new InterfaceWithPath() {
+    "HEAD"     | ""                     | new InterfaceWithPath() {
       @HEAD
       void call() {}
     }
-    "POST /abstract/d"          | new AbstractClassWithPath() {
+    "POST"     | "/abstract/d"          | new AbstractClassWithPath() {
       @POST
       @Path("/d")
       void call() {}
     }
-    "PUT /abstract"             | new AbstractClassWithPath() {
+    "PUT"      | "/abstract"            | new AbstractClassWithPath() {
       @PUT
       void call() {}
     }
-    "OPTIONS /abstract/child/e" | new ChildClassWithPath() {
+    "OPTIONS"  | "/abstract/child/e"    | new ChildClassWithPath() {
       @OPTIONS
       @Path("/e")
       void call() {}
     }
-    "DELETE /abstract/child"    | new ChildClassWithPath() {
+    "DELETE"   | "/abstract/child"      | new ChildClassWithPath() {
       @DELETE
       void call() {}
     }
-    "POST /abstract/child/call" | new ChildClassWithPath()
+    "POST"     | "/abstract/child/call" | new ChildClassWithPath()
 
     className = getName(obj.class)
   }

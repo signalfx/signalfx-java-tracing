@@ -14,7 +14,7 @@ def isCI = System.getenv("CI") != null
 
 allprojects {
   group = 'com.signalfx.public'
-  version = '0.20.0-sfx0-beta1'
+  version = '0.20.0-sfx0-beta2'
 
   if (isCI) {
     buildDir = "${rootDir}/workspace/${projectDir.path.replace(rootDir.path, '')}/build/"

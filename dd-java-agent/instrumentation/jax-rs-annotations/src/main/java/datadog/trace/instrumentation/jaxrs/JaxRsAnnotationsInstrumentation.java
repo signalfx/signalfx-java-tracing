@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Stack;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.Path;
 import net.bytebuddy.asm.Advice;
@@ -63,7 +64,7 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
   public static class JaxRsAnnotationsAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Scope nameSpan(@Advice.Origin final Method method) {
+    public static Stack<Scope> nameSpan(@Advice.Origin final Method method) {
 
       // TODO: do we need caching for this?
       final LinkedList<Path> paths = new LinkedList<>();
@@ -103,21 +104,6 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
         urlBuilder.append(path.value());
         last = path;
       }
-      final String resourceName = resourceNameBuilder.toString().trim();
-
-      final Scope scope = GlobalTracer.get().scopeManager().active();
-      if (scope != null && !resourceName.isEmpty()) {
-        Span span = scope.span();
-        span.setOperationName(resourceName);
-        Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_SERVER);
-        Tags.COMPONENT.set(span, "jax-rs");
-        Tags.HTTP_URL.set(span, urlBuilder.toString().trim());
-        if (httpMethod != null) {
-          Tags.HTTP_METHOD.set(span, httpMethod);
-        }
-      }
-
-      // Now create a span representing the method execution.
 
       final Class<?> clazz = method.getDeclaringClass();
       final String methodName = method.getName();
@@ -135,21 +121,56 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
 
       final String operationName = className + "." + methodName;
 
-      return GlobalTracer.get()
-          .buildSpan(operationName)
-          .withTag(Tags.COMPONENT.getKey(), "jax-rs-controller")
-          .startActive(true);
+      final Stack<Scope> scopeStack = new Stack<>();
+
+      Scope parentScope = GlobalTracer.get().scopeManager().active();
+      if (parentScope == null) {
+        parentScope = GlobalTracer.get().buildSpan(operationName).startActive(true);
+        scopeStack.push(parentScope);
+      }
+
+      Span span = parentScope.span();
+      Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_SERVER);
+      Tags.COMPONENT.set(span, "jax-rs");
+
+      final String resourceName = resourceNameBuilder.toString().trim();
+      if (!resourceName.isEmpty()) {
+        span.setOperationName(resourceName);
+      }
+
+      final String url = urlBuilder.toString().trim();
+      if (!url.isEmpty()) {
+        Tags.HTTP_URL.set(span, url);
+      }
+
+      if (httpMethod != null) {
+        Tags.HTTP_METHOD.set(span, httpMethod);
+      }
+
+      // Now create a span representing the method execution.
+
+      final Scope controllerScope =
+          GlobalTracer.get()
+              .buildSpan(operationName)
+              .withTag(Tags.COMPONENT.getKey(), "jax-rs-controller")
+              .startActive(true);
+
+      scopeStack.push(controllerScope);
+      return scopeStack;
     }
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void stopSpan(
-        @Advice.Enter final Scope scope, @Advice.Thrown final Throwable throwable) {
+        @Advice.Enter final Stack<Scope> scopes, @Advice.Thrown final Throwable throwable) {
       if (throwable != null) {
-        final Span span = scope.span();
+        final Span span = scopes.peek().span();
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
       }
-      scope.close();
+
+      while (!scopes.isEmpty()) {
+        scopes.pop().close();
+      }
     }
   }
 }

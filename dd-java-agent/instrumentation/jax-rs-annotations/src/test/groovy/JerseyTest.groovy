@@ -2,6 +2,7 @@ import datadog.trace.agent.test.AgentTestRunner
 import io.dropwizard.testing.junit.ResourceTestRule
 import org.junit.ClassRule
 import spock.lang.Shared
+import io.opentracing.tag.Tags
 
 import static datadog.trace.agent.test.TestUtils.runUnderTrace
 
@@ -27,5 +28,9 @@ class JerseyTest extends AgentTestRunner {
     def span = trace[0]
     span.resourceName == "POST /test/hello/{name}"
     span.tags["component"] == "jax-rs"
+    span.tags["$Tags.SPAN_KIND.key"] == "$Tags.SPAN_KIND_SERVER"
+    span.tags["$Tags.COMPONENT.key"] == "jax-rs"
+    span.tags["$Tags.HTTP_URL.key"] == "/test/hello/{name}"
+    span.tags["$Tags.HTTP_METHOD.key"] == "POST"
   }
 }

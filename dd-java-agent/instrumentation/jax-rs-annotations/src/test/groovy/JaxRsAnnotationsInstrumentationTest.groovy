@@ -15,10 +15,7 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
 
   def "span named #httpMethod #path from annotations on class"() {
     setup:
-    runUnderTrace("test") {
-      obj.call()
-    }
-
+    obj.call()
 
     expect:
     assertTraces(1) {
@@ -29,7 +26,9 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
           tags {
             "$Tags.SPAN_KIND.key" "$Tags.SPAN_KIND_SERVER"
             "$Tags.COMPONENT.key" "jax-rs"
-            "$Tags.HTTP_URL.key" path
+            if (path != ""){
+              "$Tags.HTTP_URL.key" path
+            }
             if (httpMethod != "") {
               "$Tags.HTTP_METHOD.key" httpMethod
             }

@@ -41,6 +41,7 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
           operationName "${className}.call"
           childOf span(0)
           tags {
+            "$Tags.SPAN_KIND.key" "$Tags.SPAN_KIND_SERVER"
             "$Tags.COMPONENT.key" "jax-rs-controller"
             defaultTags()
           }

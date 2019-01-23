@@ -137,6 +137,7 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
 
       return GlobalTracer.get()
           .buildSpan(operationName)
+          .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
           .withTag(Tags.COMPONENT.getKey(), "jax-rs-controller")
           .startActive(true);
     }

@@ -9,6 +9,7 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.instrumentation.jaxrs.utils.ScopeStore;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -42,7 +43,7 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
 
   @Override
   public String[] helperClassNames() {
-    return new String[] {"datadog.trace.common.util.URLUtil"};
+    return new String[] {"datadog.trace.common.util.URLUtil", packageName + ".utils.ScopeStore"};
   }
 
   @Override
@@ -64,7 +65,7 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
   public static class JaxRsAnnotationsAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Stack<Scope> nameSpan(@Advice.Origin final Method method) {
+    public static Stack<ScopeStore> nameSpan(@Advice.Origin final Method method) {
 
       // TODO: do we need caching for this?
       final LinkedList<Path> paths = new LinkedList<>();
@@ -120,14 +121,15 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
       }
 
       final String operationName = className + "." + methodName;
-
-      final Stack<Scope> scopeStack = new Stack<>();
-
+      final Stack<ScopeStore> scopeStack = new Stack<>();
+      boolean closeParent = false;
       Scope parentScope = GlobalTracer.get().scopeManager().active();
       if (parentScope == null) {
         parentScope = GlobalTracer.get().buildSpan(operationName).startActive(true);
-        scopeStack.push(parentScope);
+        closeParent = true;
       }
+      final ScopeStore parentScopeStore = new ScopeStore(parentScope, closeParent);
+      scopeStack.push(parentScopeStore);
 
       Span span = parentScope.span();
       Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_SERVER);
@@ -155,21 +157,33 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
               .withTag(Tags.COMPONENT.getKey(), "jax-rs-controller")
               .startActive(true);
 
-      scopeStack.push(controllerScope);
+      final ScopeStore controllerScopeStore = new ScopeStore(controllerScope, true);
+      scopeStack.push(controllerScopeStore);
+
       return scopeStack;
     }
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void stopSpan(
-        @Advice.Enter final Stack<Scope> scopes, @Advice.Thrown final Throwable throwable) {
+        @Advice.Enter final Stack<ScopeStore> scopes, @Advice.Thrown final Throwable throwable) {
+      boolean errored = false;
+
       if (throwable != null) {
-        final Span span = scopes.peek().span();
-        Tags.ERROR.set(span, true);
+        errored = true;
+        final Span span = scopes.peek().scope.span();
         span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
       }
 
       while (!scopes.isEmpty()) {
-        scopes.pop().close();
+        final ScopeStore scopeStore = scopes.pop();
+        final Scope scope = scopeStore.scope;
+        if (errored) {
+          final Span span = scope.span();
+          Tags.ERROR.set(span, true);
+        }
+        if (scopeStore.close) {
+          scope.close();
+        }
       }
     }
   }

@@ -8,6 +8,7 @@ import datadog.opentracing.DDTracer;
 import datadog.trace.agent.test.asserts.ListWriterAssert;
 import datadog.trace.agent.tooling.AgentInstaller;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.api.Config;
 import datadog.trace.api.GlobalTracer;
 import datadog.trace.common.writer.ListWriter;
 import datadog.trace.common.writer.Writer;
@@ -19,6 +20,7 @@ import io.opentracing.Tracer;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
 import java.util.List;
+import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -87,7 +89,9 @@ public abstract class AgentTestRunner extends Specification {
             return result;
           }
         };
-    TEST_TRACER = new DDTracer(TEST_WRITER);
+    Properties testProps = new Properties();
+    testProps.setProperty("b3.propagation", "false");
+    TEST_TRACER = new DDTracer(Config.get(testProps), TEST_WRITER);
     TestUtils.registerOrReplaceGlobalTracer((Tracer) TEST_TRACER);
     GlobalTracer.registerIfAbsent((datadog.trace.api.Tracer) TEST_TRACER);
   }

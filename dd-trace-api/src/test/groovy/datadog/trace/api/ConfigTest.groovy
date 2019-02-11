@@ -29,9 +29,14 @@ class ConfigTest extends Specification {
     then:
     config.serviceName == "unnamed-java-app"
     config.writerType == "DDAgentWriter"
-    config.agentHost == "localhost"
-    config.agentPort == 8126
-    config.prioritySamplingEnabled == true
+    config.apiType == "ZipkinV2"
+    config.useB3Propagation == true
+    config.getAgentHost() == "localhost"
+    config.getAgentPort() == 9080
+    config.getAgentPath() == "/v1/trace"
+    config.getAgentUseHTTPS() == false
+    config.agentEndpoint.toString() == "http://localhost:9080/v1/trace"
+    config.prioritySamplingEnabled == false
     config.traceResolverEnabled == true
     config.serviceMapping == [:]
     config.mergedSpanTags == [:]
@@ -49,25 +54,28 @@ class ConfigTest extends Specification {
 
   def "specify overrides via system properties"() {
     setup:
-    System.setProperty(PREFIX + SERVICE_NAME, "something else")
-    System.setProperty(PREFIX + WRITER_TYPE, "LoggingWriter")
-    System.setProperty(PREFIX + AGENT_HOST, "somehost")
-    System.setProperty(PREFIX + TRACE_AGENT_PORT, "123")
-    System.setProperty(PREFIX + AGENT_PORT_LEGACY, "456")
-    System.setProperty(PREFIX + PRIORITY_SAMPLING, "false")
-    System.setProperty(PREFIX + TRACE_RESOLVER_ENABLED, "false")
-    System.setProperty(PREFIX + SERVICE_MAPPING, "a:1")
-    System.setProperty(PREFIX + GLOBAL_TAGS, "b:2")
-    System.setProperty(PREFIX + SPAN_TAGS, "c:3")
-    System.setProperty(PREFIX + JMX_TAGS, "d:4")
-    System.setProperty(PREFIX + HEADER_TAGS, "e:5")
-    System.setProperty(PREFIX + RUNTIME_CONTEXT_FIELD_INJECTION, "false")
-    System.setProperty(PREFIX + JMX_FETCH_ENABLED, "true")
-    System.setProperty(PREFIX + JMX_FETCH_METRICS_CONFIGS, "/foo.yaml,/bar.yaml")
-    System.setProperty(PREFIX + JMX_FETCH_CHECK_PERIOD, "100")
-    System.setProperty(PREFIX + JMX_FETCH_REFRESH_BEANS_PERIOD, "200")
-    System.setProperty(PREFIX + JMX_FETCH_STATSD_HOST, "statsd host")
-    System.setProperty(PREFIX + JMX_FETCH_STATSD_PORT, "321")
+    System.setProperty(prefix + SERVICE_NAME, "something else")
+    System.setProperty(prefix + WRITER_TYPE, "LoggingWriter")
+    System.setProperty(prefix + USE_B3_PROPAGATION, "false")
+    System.setProperty(prefix + AGENT_HOST, "somehost")
+    System.setProperty(prefix + TRACE_AGENT_PORT, "123")
+    System.setProperty(prefix + AGENT_PATH, "/v2/trace")
+    System.setProperty(prefix + AGENT_ENDPOINT, "https://example.com/")
+    System.setProperty(prefix + AGENT_PORT_LEGACY, "456")
+    System.setProperty(prefix + PRIORITY_SAMPLING, "false")
+    System.setProperty(prefix + TRACE_RESOLVER_ENABLED, "false")
+    System.setProperty(prefix + SERVICE_MAPPING, "a:1")
+    System.setProperty(prefix + GLOBAL_TAGS, "b:2")
+    System.setProperty(prefix + SPAN_TAGS, "c:3")
+    System.setProperty(prefix + JMX_TAGS, "d:4")
+    System.setProperty(prefix + HEADER_TAGS, "e:5")
+    System.setProperty(prefix + RUNTIME_CONTEXT_FIELD_INJECTION, "false")
+    System.setProperty(prefix + JMX_FETCH_ENABLED, "true")
+    System.setProperty(prefix + JMX_FETCH_METRICS_CONFIGS, "/foo.yaml,/bar.yaml")
+    System.setProperty(prefix + JMX_FETCH_CHECK_PERIOD, "100")
+    System.setProperty(prefix + JMX_FETCH_REFRESH_BEANS_PERIOD, "200")
+    System.setProperty(prefix + JMX_FETCH_STATSD_HOST, "statsd host")
+    System.setProperty(prefix + JMX_FETCH_STATSD_PORT, "321")
 
     when:
     def config = new Config()
@@ -75,8 +83,11 @@ class ConfigTest extends Specification {
     then:
     config.serviceName == "something else"
     config.writerType == "LoggingWriter"
-    config.agentHost == "somehost"
-    config.agentPort == 123
+    config.useB3Propagation == false
+    config.getAgentHost() == "somehost"
+    config.getAgentPort() == 123
+    config.getAgentPath() == "/v2/trace"
+    config.getAgentUseHTTPS() == true
     config.prioritySamplingEnabled == false
     config.traceResolverEnabled == false
     config.serviceMapping == [a: "1"]
@@ -90,6 +101,11 @@ class ConfigTest extends Specification {
     config.jmxFetchRefreshBeansPeriod == 200
     config.jmxFetchStatsdHost == "statsd host"
     config.jmxFetchStatsdPort == 321
+
+    where:
+    prefix      | _
+    "dd."       | _
+    "signalfx." | _
   }
 
   def "specify overrides via env vars"() {
@@ -105,6 +121,17 @@ class ConfigTest extends Specification {
     config.serviceName == "still something else"
     config.writerType == "LoggingWriter"
     config.jmxFetchMetricsConfigs == ["some/file"]
+  }
+
+  def "malformed endpoint url fails"() {
+    setup:
+    System.setProperty(PREFIX + AGENT_ENDPOINT, "aasdf\$!@\$%%asfkjj/aasdfsadf:")
+
+    when:
+    def config = new Config()
+
+    then:
+    config.agentEndpoint == null
   }
 
   def "sys props override env vars"() {
@@ -155,7 +182,7 @@ class ConfigTest extends Specification {
     true         | true               | false              | false                    | 123
     true         | false              | false              | false                    | 123
     false        | true               | false              | false                    | 456
-    false        | false              | false              | false                    | 8126
+    false        | false              | false              | false                    | 9080
     true         | true               | true               | false                    | 123
     true         | false              | true               | false                    | 123
     false        | true               | true               | false                    | 777 // env var gets picked up instead.

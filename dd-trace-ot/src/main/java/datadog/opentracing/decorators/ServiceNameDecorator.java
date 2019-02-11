@@ -12,7 +12,10 @@ public class ServiceNameDecorator extends AbstractDecorator {
 
   @Override
   public boolean shouldSetTag(final DDSpanContext context, final String tag, final Object value) {
-    context.setServiceName(String.valueOf(value));
+    // The DD service.name tag has a lot of overlap with component and can generally just be
+    // ignored.  For overridding
+    // the service, use the "service" tag, handled by the ServiceDecorator.
+    // context.setServiceName(String.valueOf(value));
     return false;
   }
 }

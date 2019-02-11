@@ -12,7 +12,8 @@ minimumInstructionCoverage = 0.6
 excludedClassesConverage += [
   'datadog.trace.common.writer.ListWriter',
   'datadog.trace.common.writer.LoggingWriter',
-  'datadog.trace.common.sampling.PrioritySampling'
+  'datadog.trace.common.sampling.PrioritySampling',
+  'datadog.trace.common.sampling.Sampler.Builder'
 ]
 
 apply plugin: 'org.unbroken-dome.test-sets'

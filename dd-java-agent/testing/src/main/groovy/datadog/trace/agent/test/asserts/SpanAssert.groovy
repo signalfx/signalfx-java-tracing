@@ -30,7 +30,8 @@ class SpanAssert {
   }
 
   def serviceName(String name) {
-    assert span.serviceName == name
+    // Simplest thing to do is just skip this assertion since we don't use serviceName the way DD does.
+    //assert span.serviceName == name
   }
 
   def operationName(String name) {

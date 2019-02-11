@@ -21,7 +21,7 @@ import org.msgpack.jackson.dataformat.MessagePackFactory;
 
 /** The API pointing to a DD agent */
 @Slf4j
-public class DDApi {
+public class DDApi implements Api {
   private static final String DATADOG_META_LANG = "Datadog-Meta-Lang";
   private static final String DATADOG_META_LANG_VERSION = "Datadog-Meta-Lang-Version";
   private static final String DATADOG_META_LANG_INTERPRETER = "Datadog-Meta-Lang-Interpreter";
@@ -69,6 +69,7 @@ public class DDApi {
    * @param traces the traces to be sent
    * @return the staus code returned
    */
+  @Override
   public boolean sendTraces(final List<List<DDSpan>> traces) {
     final int totalSize = traceCount == null ? traces.size() : traceCount.getAndSet(0);
     try {

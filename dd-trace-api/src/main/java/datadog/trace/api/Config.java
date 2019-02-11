@@ -1,5 +1,7 @@
 package datadog.trace.api;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,13 +28,20 @@ public class Config {
   /** Config keys below */
   private static final String PREFIX = "dd.";
 
+  private static final String SIGNALFX_PREFIX = "signalfx.";
+
   private static final Config INSTANCE = new Config();
 
   public static final String SERVICE_NAME = "service.name";
   public static final String WRITER_TYPE = "writer.type";
+  public static final String API_TYPE = "api.type";
+  public static final String USE_B3_PROPAGATION = "b3.propagation";
   public static final String AGENT_HOST = "agent.host";
   public static final String TRACE_AGENT_PORT = "trace.agent.port";
   public static final String AGENT_PORT_LEGACY = "agent.port";
+  public static final String AGENT_PATH = "agent.path";
+  public static final String AGENT_USE_HTTPS = "agent.https";
+  public static final String AGENT_ENDPOINT = "agent.endpoint";
   public static final String PRIORITY_SAMPLING = "priority.sampling";
   public static final String TRACE_RESOLVER_ENABLED = "trace.resolver.enabled";
   public static final String SERVICE_MAPPING = "service.mapping";
@@ -53,15 +62,17 @@ public class Config {
   public static final String DEFAULT_SERVICE_NAME = "unnamed-java-app";
 
   public static final String DD_AGENT_WRITER_TYPE = "DDAgentWriter";
+  public static final String DD_AGENT_API_TYPE = "DD";
+  public static final String ZIPKIN_V2_API_TYPE = "ZipkinV2";
   public static final String LOGGING_WRITER_TYPE = "LoggingWriter";
   public static final String DEFAULT_AGENT_WRITER_TYPE = DD_AGENT_WRITER_TYPE;
+  public static final String DEFAULT_API_TYPE = ZIPKIN_V2_API_TYPE;
 
-  public static final String DEFAULT_AGENT_HOST = "localhost";
-  public static final int DEFAULT_TRACE_AGENT_PORT = 8126;
+  public static final String DEFAULT_AGENT_ENDPOINT = "http://localhost:9080/v1/trace";
 
   private static final boolean DEFAULT_RUNTIME_CONTEXT_FIELD_INJECTION = false;
 
-  private static final boolean DEFAULT_PRIORITY_SAMPLING_ENABLED = true;
+  private static final boolean DEFAULT_PRIORITY_SAMPLING_ENABLED = false;
   private static final boolean DEFAULT_TRACE_RESOLVER_ENABLED = true;
   private static final boolean DEFAULT_JMX_FETCH_ENABLED = false;
 
@@ -75,8 +86,13 @@ public class Config {
 
   @Getter private final String serviceName;
   @Getter private final String writerType;
-  @Getter private final String agentHost;
-  @Getter private final int agentPort;
+  @Getter private final String apiType;
+  @Getter private final boolean useB3Propagation;
+  private final String agentHost;
+  private final Integer agentPort;
+  private final String agentPath;
+  private final Boolean agentUseHTTPS;
+  @Getter private final URL agentEndpoint;
   @Getter private final boolean prioritySamplingEnabled;
   @Getter private final boolean traceResolverEnabled;
   @Getter private final Map<String, String> serviceMapping;
@@ -99,11 +115,15 @@ public class Config {
 
     serviceName = getSettingFromEnvironment(SERVICE_NAME, DEFAULT_SERVICE_NAME);
     writerType = getSettingFromEnvironment(WRITER_TYPE, DEFAULT_AGENT_WRITER_TYPE);
-    agentHost = getSettingFromEnvironment(AGENT_HOST, DEFAULT_AGENT_HOST);
+    apiType = getSettingFromEnvironment(API_TYPE, DEFAULT_API_TYPE);
+    useB3Propagation = getBooleanSettingFromEnvironment(USE_B3_PROPAGATION, true);
+    agentHost = getSettingFromEnvironment(AGENT_HOST, null);
     agentPort =
         getIntegerSettingFromEnvironment(
-            TRACE_AGENT_PORT,
-            getIntegerSettingFromEnvironment(AGENT_PORT_LEGACY, DEFAULT_TRACE_AGENT_PORT));
+            TRACE_AGENT_PORT, getIntegerSettingFromEnvironment(AGENT_PORT_LEGACY, null));
+    agentPath = getSettingFromEnvironment(AGENT_PATH, null);
+    agentUseHTTPS = getBooleanSettingFromEnvironment(AGENT_USE_HTTPS, null);
+    agentEndpoint = getURLSettingFromEnvironment(AGENT_ENDPOINT, DEFAULT_AGENT_ENDPOINT);
     prioritySamplingEnabled =
         getBooleanSettingFromEnvironment(PRIORITY_SAMPLING, DEFAULT_PRIORITY_SAMPLING_ENABLED);
     traceResolverEnabled =
@@ -136,12 +156,18 @@ public class Config {
 
     serviceName = properties.getProperty(SERVICE_NAME, parent.serviceName);
     writerType = properties.getProperty(WRITER_TYPE, parent.writerType);
+    apiType = properties.getProperty(API_TYPE, parent.apiType);
+    useB3Propagation =
+        getPropertyBooleanValue(properties, USE_B3_PROPAGATION, parent.useB3Propagation);
     agentHost = properties.getProperty(AGENT_HOST, parent.agentHost);
     agentPort =
         getPropertyIntegerValue(
             properties,
             TRACE_AGENT_PORT,
             getPropertyIntegerValue(properties, AGENT_PORT_LEGACY, parent.agentPort));
+    agentPath = properties.getProperty(AGENT_PATH, parent.agentPath);
+    agentUseHTTPS = getPropertyBooleanValue(properties, AGENT_USE_HTTPS, parent.agentUseHTTPS);
+    agentEndpoint = getPropertyURLValue(properties, AGENT_ENDPOINT, parent.agentEndpoint);
     prioritySamplingEnabled =
         getPropertyBooleanValue(properties, PRIORITY_SAMPLING, parent.prioritySamplingEnabled);
     traceResolverEnabled =
@@ -171,6 +197,34 @@ public class Config {
         getPropertyIntegerValue(properties, JMX_FETCH_STATSD_PORT, parent.jmxFetchStatsdPort);
   }
 
+  public String getAgentHost() {
+    if (agentHost != null) {
+      return agentHost;
+    }
+    return agentEndpoint == null ? null : agentEndpoint.getHost();
+  }
+
+  public Integer getAgentPort() {
+    if (agentPort != null) {
+      return agentPort;
+    }
+    return agentEndpoint == null ? null : agentEndpoint.getPort();
+  }
+
+  public Boolean getAgentUseHTTPS() {
+    if (agentUseHTTPS != null) {
+      return agentUseHTTPS;
+    }
+    return agentEndpoint == null ? null : "https".equals(agentEndpoint.getProtocol());
+  }
+
+  public String getAgentPath() {
+    if (agentPath != null) {
+      return agentPath;
+    }
+    return agentEndpoint == null ? null : agentEndpoint.getPath();
+  }
+
   public Map<String, String> getMergedSpanTags() {
     // DO not include runtimeId into span tags: we only want that added to the root span
     final Map<String, String> result = newHashMap(globalTags.size() + spanTags.size());
@@ -189,7 +243,18 @@ public class Config {
   }
 
   private static String getSettingFromEnvironment(final String name, final String defaultValue) {
-    final String completeName = PREFIX + name;
+    String value = getSettingFromEnvironment(PREFIX, name, null);
+    if (value == null) {
+      // Let the SignalFx prefix act as a fallback so we support both for testing/migration
+      // purposes.
+      value = getSettingFromEnvironment(SIGNALFX_PREFIX, name, null);
+    }
+    return value == null ? defaultValue : value;
+  }
+
+  private static String getSettingFromEnvironment(
+      final String prefix, final String name, final String defaultValue) {
+    final String completeName = prefix + name;
     final String value =
         System.getProperties()
             .getProperty(completeName, System.getenv(propertyToEnvironmentName(completeName)));
@@ -198,12 +263,16 @@ public class Config {
 
   private static Map<String, String> getMapSettingFromEnvironment(
       final String name, final String defaultValue) {
-    return parseMap(getSettingFromEnvironment(name, defaultValue), PREFIX + name);
+    return parseMap(getSettingFromEnvironment(name, defaultValue), name);
   }
 
   private static List<String> getListSettingFromEnvironment(
       final String name, final String defaultValue) {
     return parseList(getSettingFromEnvironment(name, defaultValue));
+  }
+
+  private static URL getURLSettingFromEnvironment(final String name, final String defaultValue) {
+    return parseURL(getSettingFromEnvironment(name, defaultValue), name);
   }
 
   private static Boolean getBooleanSettingFromEnvironment(
@@ -232,6 +301,12 @@ public class Config {
       final Properties properties, final String name, final List<String> defaultValue) {
     final String value = properties.getProperty(name);
     return value == null ? defaultValue : parseList(value);
+  }
+
+  private static URL getPropertyURLValue(
+      final Properties properties, final String name, final URL defaultValue) {
+    final String value = properties.getProperty(name);
+    return value == null ? defaultValue : parseURL(value, name);
   }
 
   private static Boolean getPropertyBooleanValue(
@@ -285,6 +360,15 @@ public class Config {
 
     final String[] tokens = str.split(",", -1);
     return Collections.unmodifiableList(Arrays.asList(tokens));
+  }
+
+  private static URL parseURL(final String str, final String settingName) {
+    try {
+      return new URL(str);
+    } catch (MalformedURLException e) {
+      log.warn("Malformed URL {} in setting {}: {}", str, settingName, e.getMessage());
+      return null;
+    }
   }
 
   public static Config get() {

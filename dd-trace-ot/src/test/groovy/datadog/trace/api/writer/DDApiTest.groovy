@@ -84,7 +84,7 @@ class DDApiTest extends Specification {
     where:
     traces                                                               | expectedRequestBody
     []                                                                   | []
-    [SpanFactory.newSpanOf(1L).setTag("service.name", "my-service")]     | [new TreeMap<>([
+    [SpanFactory.newSpanOf(1L).setTag("service", "my-service")]     | [new TreeMap<>([
       "duration" : 0,
       "error"    : 0,
       "meta"     : ["span.type": "fakeType", "thread.name": Thread.currentThread().getName(), "thread.id": "${Thread.currentThread().id}"],

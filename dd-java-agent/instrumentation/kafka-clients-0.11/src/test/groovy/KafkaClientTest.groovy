@@ -87,7 +87,6 @@ class KafkaClientTest extends AgentTestRunner {
     def t1span1 = t1[0]
 
     t1span1.context().operationName == "kafka.produce"
-    t1span1.serviceName == "kafka"
     t1span1.resourceName == "Produce Topic $SHARED_TOPIC"
     t1span1.type == "queue"
     !t1span1.context().getErrorFlag()
@@ -106,7 +105,6 @@ class KafkaClientTest extends AgentTestRunner {
     def t2span1 = t2[0]
 
     t2span1.context().operationName == "kafka.consume"
-    t2span1.serviceName == "kafka"
     t2span1.resourceName == "Consume Topic $SHARED_TOPIC"
     t2span1.type == "queue"
     !t2span1.context().getErrorFlag()

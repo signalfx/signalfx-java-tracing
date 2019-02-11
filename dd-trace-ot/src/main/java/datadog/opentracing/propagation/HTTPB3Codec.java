@@ -1,7 +1,9 @@
 package datadog.opentracing.propagation;
 
+import com.google.common.base.Strings;
 import datadog.opentracing.DDSpanContext;
 import datadog.trace.api.sampling.PrioritySampling;
+import datadog.trace.common.util.Ids;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.TextMap;
 import java.io.UnsupportedEncodingException;
@@ -13,34 +15,48 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
-/** A codec designed for HTTP transport via headers */
+/**
+ * A codec designed for B3 HTTP transport via headers
+ *
+ * <p>Spec is at https://github.com/openzipkin/b3-propagation
+ */
 @Slf4j
-public class HTTPCodec implements Codec<TextMap> {
+public class HTTPB3Codec implements Codec<TextMap> {
 
   // uint 64 bits max value, 2^64 - 1
   static final BigInteger BIG_INTEGER_UINT64_MAX =
       new BigInteger("2").pow(64).subtract(BigInteger.ONE);
 
   private static final String OT_BAGGAGE_PREFIX = "ot-baggage-";
-  public static final String TRACE_ID_KEY = "x-datadog-trace-id";
-  public static final String SPAN_ID_KEY = "x-datadog-parent-id";
-  private static final String SAMPLING_PRIORITY_KEY = "x-datadog-sampling-priority";
+  private static final String TRACE_ID_KEY = "x-b3-traceid";
+  private static final String SPAN_ID_KEY = "x-b3-spanid";
+  private static final String PARENT_SPAN_ID_KEY = "x-b3-parentspanid";
+  private static final String SAMPLED_KEY = "x-b3-sampled";
+  private static final String FLAGS_KEY = "x-b3-flags";
 
-  private final Map<String, String> taggedHeaders;
-
-  public HTTPCodec(final Map<String, String> taggedHeaders) {
-    this.taggedHeaders = new HashMap<>();
-    for (final Map.Entry<String, String> mapping : taggedHeaders.entrySet()) {
-      this.taggedHeaders.put(mapping.getKey().trim().toLowerCase(), mapping.getValue());
-    }
-  }
+  public HTTPB3Codec() {}
 
   @Override
   public void inject(final DDSpanContext context, final TextMap carrier) {
-    carrier.put(TRACE_ID_KEY, String.valueOf(context.getTraceId()));
-    carrier.put(SPAN_ID_KEY, String.valueOf(context.getSpanId()));
-    if (context.lockSamplingPriority()) {
-      carrier.put(SAMPLING_PRIORITY_KEY, String.valueOf(context.getSamplingPriority()));
+    carrier.put(TRACE_ID_KEY, Ids.idToHex(context.getTraceId()));
+    carrier.put(SPAN_ID_KEY, Ids.idToHex(context.getSpanId()));
+    if (!Strings.isNullOrEmpty(context.getParentId())) {
+      carrier.put(PARENT_SPAN_ID_KEY, Ids.idToHex(context.getParentId()));
+    }
+
+    int ps = context.getSamplingPriority();
+    switch (ps) {
+      case PrioritySampling.USER_KEEP:
+        // Set the debug flag if the user has manually marked the span to keep
+        carrier.put(FLAGS_KEY, "1");
+        // We don't need to set sampled in this case since it is implied
+        break;
+      case PrioritySampling.SAMPLER_KEEP:
+        carrier.put(SAMPLED_KEY, "1");
+        break;
+      case PrioritySampling.SAMPLER_DROP:
+      case PrioritySampling.USER_DROP:
+        carrier.put(SAMPLED_KEY, "0");
     }
 
     for (final Map.Entry<String, String> entry : context.baggageItems()) {
@@ -51,7 +67,6 @@ public class HTTPCodec implements Codec<TextMap> {
 
   @Override
   public SpanContext extract(final TextMap carrier) {
-
     Map<String, String> baggage = Collections.emptyMap();
     Map<String, String> tags = Collections.emptyMap();
     String traceId = "0";
@@ -66,24 +81,28 @@ public class HTTPCodec implements Codec<TextMap> {
         continue;
       }
 
+      // No need to decode parent span id since we don't use it for anything.
       if (TRACE_ID_KEY.equalsIgnoreCase(key)) {
-        traceId = validateUInt64BitsID(val);
+        traceId = validateUInt64BitsID(Ids.hexToId(val));
       } else if (SPAN_ID_KEY.equalsIgnoreCase(key)) {
-        spanId = validateUInt64BitsID(val);
+        spanId = validateUInt64BitsID(Ids.hexToId(val));
       } else if (key.startsWith(OT_BAGGAGE_PREFIX)) {
         if (baggage.isEmpty()) {
           baggage = new HashMap<>();
         }
         baggage.put(key.replace(OT_BAGGAGE_PREFIX, ""), decode(val));
-      } else if (SAMPLING_PRIORITY_KEY.equalsIgnoreCase(key)) {
-        samplingPriority = Integer.parseInt(val);
-      }
-
-      if (taggedHeaders.containsKey(key)) {
-        if (tags.isEmpty()) {
-          tags = new HashMap<>();
+      } else if (SAMPLED_KEY.equalsIgnoreCase(key)) {
+        if ("1".equals(val)) {
+          samplingPriority = PrioritySampling.SAMPLER_KEEP;
+        } else if ("0".equals(val)) {
+          samplingPriority = PrioritySampling.SAMPLER_DROP;
+        } else {
+          log.debug("Unknown B3 sampled header value: {}", val);
         }
-        tags.put(taggedHeaders.get(key), decode(val));
+      } else if (FLAGS_KEY.equalsIgnoreCase(key)) {
+        if ("1".equals(val)) {
+          samplingPriority = PrioritySampling.USER_KEEP;
+        }
       }
     }
 
@@ -95,8 +114,6 @@ public class HTTPCodec implements Codec<TextMap> {
 
       log.debug("{} - Parent context extracted", ctx.getTraceId());
       context = ctx;
-    } else if (!tags.isEmpty()) {
-      context = new TagContext(tags);
     }
 
     return context;

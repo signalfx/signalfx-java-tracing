@@ -1,5 +1,8 @@
 package datadog.trace.common.writer;
 
+import static datadog.trace.api.Config.DD_AGENT_API_TYPE;
+import static datadog.trace.api.Config.ZIPKIN_V2_API_TYPE;
+
 import datadog.opentracing.DDSpan;
 import datadog.trace.api.Config;
 import java.util.List;
@@ -57,7 +60,18 @@ public interface Writer {
     }
 
     private static Writer createAgentWriter(final Config config) {
-      return new DDAgentWriter(new DDApi(config.getAgentHost(), config.getAgentPort()));
+      if (DD_AGENT_API_TYPE.equals(config.getApiType())) {
+        return new DDAgentWriter(new DDApi(config.getAgentHost(), config.getAgentPort()));
+      } else if (ZIPKIN_V2_API_TYPE.equals(config.getApiType())) {
+        return new DDAgentWriter(
+            new ZipkinV2Api(
+                config.getAgentHost(),
+                config.getAgentPort(),
+                config.getAgentPath(),
+                config.getAgentUseHTTPS()));
+      } else {
+        throw new IllegalArgumentException("Unknown api type: " + config.getApiType());
+      }
     }
 
     private Builder() {}

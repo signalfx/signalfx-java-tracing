@@ -104,7 +104,6 @@ public class MongoClientInstrumentationTest {
     Assert.assertEquals("mongo.query", trace0.getOperationName());
     Assert.assertEquals(createCollectionQuery, trace0.getResourceName());
     Assert.assertEquals("mongodb", trace0.getType());
-    Assert.assertEquals("mongo", trace0.getServiceName());
 
     Assert.assertEquals("java-mongo", trace0.getTags().get(Tags.COMPONENT.getKey()));
     Assert.assertEquals(createCollectionQuery, trace0.getTags().get(Tags.DB_STATEMENT.getKey()));

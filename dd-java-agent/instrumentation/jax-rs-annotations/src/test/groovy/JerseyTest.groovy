@@ -26,7 +26,7 @@ class JerseyTest extends AgentTestRunner {
 
     def trace = TEST_WRITER.firstTrace()
     def span = trace[0]
-    span.resourceName == "POST /test/hello/{name}"
+    span.resourceName == "/test/hello/{name}"
     span.tags["component"] == "jax-rs"
     span.tags["$Tags.SPAN_KIND.key"] == "$Tags.SPAN_KIND_SERVER"
     span.tags["$Tags.COMPONENT.key"] == "jax-rs"

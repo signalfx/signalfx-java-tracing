@@ -52,7 +52,6 @@ class CassandraClientTest extends AgentTestRunner {
     TEST_WRITER.size() == 5
     final DDSpan selectTrace = TEST_WRITER.get(TEST_WRITER.size() - 1).get(0)
 
-    selectTrace.getServiceName() == "cassandra"
     selectTrace.getOperationName() == "cassandra.query"
     selectTrace.getResourceName() == query
 
@@ -89,7 +88,6 @@ class CassandraClientTest extends AgentTestRunner {
     session.getClass().getName().endsWith("cassandra.TracingSession")
     final DDSpan selectTrace = TEST_WRITER.get(TEST_WRITER.size() - 1).get(0)
 
-    selectTrace.getServiceName() == "cassandra"
     selectTrace.getOperationName() == "cassandra.query"
     selectTrace.getResourceName() == query
 

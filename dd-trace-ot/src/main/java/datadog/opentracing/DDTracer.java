@@ -2,10 +2,7 @@ package datadog.opentracing;
 
 import datadog.opentracing.decorators.AbstractDecorator;
 import datadog.opentracing.decorators.DDDecoratorsFactory;
-import datadog.opentracing.propagation.Codec;
-import datadog.opentracing.propagation.ExtractedContext;
-import datadog.opentracing.propagation.HTTPCodec;
-import datadog.opentracing.propagation.TagContext;
+import datadog.opentracing.propagation.*;
 import datadog.opentracing.scopemanager.ContextualScopeManager;
 import datadog.opentracing.scopemanager.ScopeContext;
 import datadog.trace.api.Config;
@@ -112,7 +109,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
         config.getRuntimeId(),
         config.getMergedSpanTags(),
         config.getServiceMapping(),
-        config.getHeaderTags());
+        config.getHeaderTags(),
+        config.isUseB3Propagation());
     log.debug("Using config: {}", config);
   }
 
@@ -129,7 +127,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
         runtimeId,
         Collections.<String, String>emptyMap(),
         Collections.<String, String>emptyMap(),
-        Collections.<String, String>emptyMap());
+        Collections.<String, String>emptyMap(),
+        false);
   }
 
   public DDTracer(final Writer writer) {
@@ -144,7 +143,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
         config.getRuntimeId(),
         config.getMergedSpanTags(),
         config.getServiceMapping(),
-        config.getHeaderTags());
+        config.getHeaderTags(),
+        config.isUseB3Propagation());
   }
 
   public DDTracer(
@@ -155,6 +155,26 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
       final Map<String, String> defaultSpanTags,
       final Map<String, String> serviceNameMappings,
       final Map<String, String> taggedHeaders) {
+    this(
+        serviceName,
+        writer,
+        sampler,
+        runtimeId,
+        defaultSpanTags,
+        serviceNameMappings,
+        taggedHeaders,
+        false);
+  }
+
+  public DDTracer(
+      final String serviceName,
+      final Writer writer,
+      final Sampler sampler,
+      final String runtimeId,
+      final Map<String, String> defaultSpanTags,
+      final Map<String, String> serviceNameMappings,
+      final Map<String, String> taggedHeaders,
+      final boolean useB3Propagation) {
     assert runtimeId != null;
     assert defaultSpanTags != null;
     assert serviceNameMappings != null;
@@ -182,10 +202,15 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
     }
 
     registry = new CodecRegistry();
-    registry.register(Format.Builtin.HTTP_HEADERS, new HTTPCodec(taggedHeaders));
-    registry.register(Format.Builtin.TEXT_MAP, new HTTPCodec(taggedHeaders));
-    if (this.writer instanceof DDAgentWriter) {
-      final DDApi api = ((DDAgentWriter) this.writer).getApi();
+    registry.register(
+        Format.Builtin.HTTP_HEADERS,
+        useB3Propagation ? new HTTPB3Codec() : new HTTPCodec(taggedHeaders));
+    registry.register(
+        Format.Builtin.TEXT_MAP,
+        useB3Propagation ? new HTTPB3Codec() : new HTTPCodec(taggedHeaders));
+    if (this.writer instanceof DDAgentWriter
+        && ((DDAgentWriter) this.writer).getApi() instanceof DDApi) {
+      final DDApi api = (DDApi) ((DDAgentWriter) this.writer).getApi();
       traceCount = api.getTraceCounter();
       if (sampler instanceof DDApi.ResponseListener) {
         api.addResponseListener((DDApi.ResponseListener) this.sampler);

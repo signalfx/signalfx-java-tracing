@@ -10,8 +10,10 @@ import datadog.trace.common.writer.LoggingWriter
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.EnvironmentVariables
 import org.junit.contrib.java.lang.system.RestoreSystemProperties
+import spock.lang.Ignore
 import spock.lang.Specification
 
+import static datadog.trace.api.Config.API_TYPE
 import static datadog.trace.api.Config.DEFAULT_SERVICE_NAME
 import static datadog.trace.api.Config.HEADER_TAGS
 import static datadog.trace.api.Config.PREFIX
@@ -42,8 +44,8 @@ class DDTracerTest extends Specification {
 
     then:
     tracer.serviceName == "unnamed-java-app"
-    tracer.sampler instanceof RateByServiceSampler
-    tracer.writer.toString() == "DDAgentWriter { api=DDApi { tracesEndpoint=http://localhost:8126/v0.3/traces } }"
+    tracer.sampler instanceof AllSampler
+    tracer.writer.toString() == "DDAgentWriter { api=ZipkinV2Api { traceEndpoint=http://localhost:9080/v1/trace } }"
 
     tracer.spanContextDecorators.size() == 12
   }
@@ -58,6 +60,18 @@ class DDTracerTest extends Specification {
     tracer.sampler instanceof AllSampler
   }
 
+  def "verify overriding writer with original DD API"() {
+    setup:
+    System.setProperty(PREFIX + API_TYPE, "DD")
+
+    when:
+    def tracer = new DDTracer(new Config())
+
+    then:
+    tracer.writer instanceof DDAgentWriter
+    tracer.writer.toString() == "DDAgentWriter { api=DDApi { tracesEndpoint=http://localhost:9080/v0.4/traces } }"
+  }
+
   def "verify overriding writer"() {
     setup:
     System.setProperty(PREFIX + WRITER_TYPE, "LoggingWriter")
@@ -69,6 +83,7 @@ class DDTracerTest extends Specification {
     tracer.writer instanceof LoggingWriter
   }
 
+  @Ignore
   def "verify mapping configs on tracer"() {
     setup:
     System.setProperty(PREFIX + SERVICE_MAPPING, mapString)
@@ -102,11 +117,11 @@ class DDTracerTest extends Specification {
     where:
 
     source   | key                | value           | expected
-    "writer" | "default"          | "default"       | "DDAgentWriter { api=DDApi { tracesEndpoint=http://localhost:8126/v0.3/traces } }"
+    "writer" | "default"          | "default"       | "DDAgentWriter { api=ZipkinV2Api { traceEndpoint=http://localhost:9080/v1/trace } }"
     "writer" | "writer.type"      | "LoggingWriter" | "LoggingWriter { }"
-    "writer" | "agent.host"       | "somethingelse" | "DDAgentWriter { api=DDApi { tracesEndpoint=http://somethingelse:8126/v0.3/traces } }"
-    "writer" | "agent.port"       | "777"           | "DDAgentWriter { api=DDApi { tracesEndpoint=http://localhost:777/v0.3/traces } }"
-    "writer" | "trace.agent.port" | "9999"          | "DDAgentWriter { api=DDApi { tracesEndpoint=http://localhost:9999/v0.3/traces } }"
+    "writer" | "agent.host"       | "somethingelse" | "DDAgentWriter { api=ZipkinV2Api { traceEndpoint=http://somethingelse:9080/v1/trace } }"
+    "writer" | "agent.port"       | "777"           | "DDAgentWriter { api=ZipkinV2Api { traceEndpoint=http://localhost:777/v1/trace } }"
+    "writer" | "trace.agent.port" | "9999"          | "DDAgentWriter { api=ZipkinV2Api { traceEndpoint=http://localhost:9999/v1/trace } }"
   }
 
   def "verify sampler/writer constructor"() {
@@ -124,6 +139,7 @@ class DDTracerTest extends Specification {
     tracer.runtimeId.length() > 0
   }
 
+  @Ignore
   def "Shares TraceCount with DDApi with #key = #value"() {
     setup:
     System.setProperty(PREFIX + key, value)

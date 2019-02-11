@@ -1,8 +1,5 @@
 package datadog.trace.common.writer;
 
-import static datadog.trace.api.Config.DEFAULT_AGENT_HOST;
-import static datadog.trace.api.Config.DEFAULT_TRACE_AGENT_PORT;
-
 import datadog.opentracing.DDSpan;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -56,7 +53,7 @@ public class DDAgentWriter implements Writer {
       Executors.newSingleThreadExecutor(agentWriterThreadFactory);
 
   /** The DD agent api */
-  private final DDApi api;
+  private final Api api;
 
   /** In memory collection of traces waiting for departure */
   private final WriterQueue<List<DDSpan>> traces;
@@ -64,14 +61,14 @@ public class DDAgentWriter implements Writer {
   private boolean queueFullReported = false;
 
   public DDAgentWriter() {
-    this(new DDApi(DEFAULT_AGENT_HOST, DEFAULT_TRACE_AGENT_PORT));
+    this(new DDApi("localhost", 8126));
   }
 
-  public DDAgentWriter(final DDApi api) {
+  public DDAgentWriter(final Api api) {
     this(api, new WriterQueue<List<DDSpan>>(DEFAULT_MAX_TRACES));
   }
 
-  public DDAgentWriter(final DDApi api, final WriterQueue<List<DDSpan>> queue) {
+  public DDAgentWriter(final Api api, final WriterQueue<List<DDSpan>> queue) {
     super();
     this.api = api;
     traces = queue;
@@ -125,7 +122,7 @@ public class DDAgentWriter implements Writer {
     return "DDAgentWriter { api=" + api + " }";
   }
 
-  public DDApi getApi() {
+  public Api getApi() {
     return api;
   }
 

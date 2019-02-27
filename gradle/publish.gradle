@@ -47,7 +47,7 @@ if (!isRoot) {
           name = project.name
           artifactId = project.name.replaceAll('dd-', 'signalfx-')
           description = project.name
-          url = "https://github.com/signalfx/signalfx-trace-java"
+          url = "https://github.com/signalfx/signalfx-java-tracing"
           licenses {
             license {
               name = "The Apache Software License, Version 2.0"
@@ -56,9 +56,9 @@ if (!isRoot) {
             }
           }
           scm {
-            connection = "scm:https://git@github.com/signalfx/signalfx-trace-java"
-            developerConnection = "scm:git@github.com:signalfx/signalfx-trace-java.git"
-            url = "https://github.com/signalfx/signalfx-trace-java"
+            connection = "scm:https://git@github.com/signalfx/signalfx-java-tracing"
+            developerConnection = "scm:git@github.com:signalfx/signalfx-java-tracing.git"
+            url = "https://github.com/signalfx/signalfx-java-tracing"
           }
           developers {
             developer {

@@ -1,22 +1,24 @@
 # SignalFx Java Agent
 
-This is the SignalFx Java Agent, a JVM agent to automatically instrument
-your Java application to capture and report distributed traces to SignalFx.
+This is the SignalFx Java Agent, a JVM agent to automatically instrument your
+Java application to capture and report distributed traces to SignalFx. This is
+a fork of the [DataDog Java APM
+project](https://github.com/DataDog/dd-trace-java)
 
 The SignalFx Java Agent automatically configures an OpenTracing-compatible
-Jaeger tracer to capture and export trace spans. It also installs this tracer
+tracer to capture and export trace spans. It also installs this tracer
 as the OpenTracing `GlobalTracer` to enable additional custom instrumentation.
 
 # Usage
 
 The SignalFx Java Agent uses a few environment variables for its configuration.
-You should set your application's service name via `JAEGER_SERVICE_NAME` and
-configure the trace endpoint URL via `JAEGER_ENDPOINT` to point to your deployed
-SignalFx Smart Gateway:
+You should set your application's service name via `SIGNALFX_SERVICE_NAME` and
+configure the trace endpoint URL via `SIGNALFX_AGENT_ENDPOINT` to point to your deployed
+SignalFx Smart Agent:
 
 ```
-$ export JAEGER_SERVICE_NAME=my-app
-$ export JAEGER_ENDPOINT=http://smart-gateway:9080/v1/trace
+$ export SIGNALFX_SERVICE_NAME=my-app
+$ export SIGNALFX_AGENT_ENDPOINT=http://127.0.0.1:9080/v1/trace
 $ java -javaagent:signalfx-tracing.jar <rest of command-line arguments...>
 ```
 

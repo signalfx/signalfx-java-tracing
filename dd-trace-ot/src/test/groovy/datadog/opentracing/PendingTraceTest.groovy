@@ -1,13 +1,17 @@
 package datadog.opentracing
 
-import datadog.trace.agent.test.TestUtils
+
+import datadog.trace.api.Config
 import datadog.trace.common.writer.ListWriter
+import datadog.trace.util.gc.GCUtils
 import spock.lang.Specification
 import spock.lang.Subject
 import spock.lang.Timeout
 
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
+
+import static datadog.trace.api.Config.PARTIAL_FLUSH_MIN_SPANS
 
 class PendingTraceTest extends Specification {
   def writer = new ListWriter()
@@ -110,7 +114,7 @@ class PendingTraceTest extends Specification {
     when:
     def childRef = new WeakReference<>(child)
     child = null
-    TestUtils.awaitGC(childRef)
+    GCUtils.awaitGC(childRef)
     while (trace.pendingReferenceCount.get() > 0) {
       trace.clean()
     }
@@ -178,5 +182,97 @@ class PendingTraceTest extends Specification {
     expect:
     // Generous 5 seconds to execute this test
     Math.abs(TimeUnit.NANOSECONDS.toSeconds(trace.currentTimeNano) - TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis())) < 5
+  }
+
+  def "partial flush"() {
+    when:
+    def properties = new Properties()
+    properties.setProperty(PARTIAL_FLUSH_MIN_SPANS, "1")
+    def config = Config.get(properties)
+    def tracer = new DDTracer(config, writer)
+    def trace = new PendingTrace(tracer, traceIdStr, [:])
+    def rootSpan = SpanFactory.newSpanOf(trace)
+    def child1 = tracer.buildSpan("child1").asChildOf(rootSpan).start()
+    def child2 = tracer.buildSpan("child2").asChildOf(rootSpan).start()
+
+    then:
+    trace.pendingReferenceCount.get() == 3
+    trace.weakReferences.size() == 3
+
+    when:
+    rootSpan.finish()
+
+    then:
+    trace.pendingReferenceCount.get() == 2
+    trace.weakReferences.size() == 2
+    trace.asList() == [rootSpan]
+    writer == []
+    tracer.traceCount.get() == 0
+
+    when:
+    child1.finish()
+
+    then:
+    trace.pendingReferenceCount.get() == 1
+    trace.weakReferences.size() == 1
+    trace.asList() == [rootSpan]
+    writer == [[child1]]
+    tracer.traceCount.get() == 1
+
+    when:
+    child2.finish()
+
+    then:
+    trace.pendingReferenceCount.get() == 0
+    trace.weakReferences.size() == 0
+    trace.asList() == [child2, rootSpan]
+    writer == [[child1], [child2, rootSpan]]
+    tracer.traceCount.get() == 2
+  }
+
+  def "partial flush with root span closed last"() {
+    when:
+    def properties = new Properties()
+    properties.setProperty(PARTIAL_FLUSH_MIN_SPANS, "1")
+    def config = Config.get(properties)
+    def tracer = new DDTracer(config, writer)
+    def trace = new PendingTrace(tracer, traceIdStr, [:])
+    def rootSpan = SpanFactory.newSpanOf(trace)
+    def child1 = tracer.buildSpan("child1").asChildOf(rootSpan).start()
+    def child2 = tracer.buildSpan("child2").asChildOf(rootSpan).start()
+
+    then:
+    trace.pendingReferenceCount.get() == 3
+    trace.weakReferences.size() == 3
+
+    when:
+    child1.finish()
+
+    then:
+    trace.pendingReferenceCount.get() == 2
+    trace.weakReferences.size() == 2
+    trace.asList() == [child1]
+    writer == []
+    tracer.traceCount.get() == 0
+
+    when:
+    child2.finish()
+
+    then:
+    trace.pendingReferenceCount.get() == 1
+    trace.weakReferences.size() == 1
+    trace.asList() == []
+    writer == [[child2, child1]]
+    tracer.traceCount.get() == 1
+
+    when:
+    rootSpan.finish()
+
+    then:
+    trace.pendingReferenceCount.get() == 0
+    trace.weakReferences.size() == 0
+    trace.asList() == [rootSpan]
+    writer == [[child2, child1], [rootSpan]]
+    tracer.traceCount.get() == 2
   }
 }

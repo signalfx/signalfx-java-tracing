@@ -2,6 +2,7 @@ package datadog.trace.instrumentation.http_url_connection;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -9,12 +10,12 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.api.Config;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
-import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
@@ -23,11 +24,11 @@ import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import javax.net.ssl.HttpsURLConnection;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -56,13 +57,12 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
 
   @Override
   public Map<String, String> contextStore() {
-    return Collections.singletonMap(
-        "java.net.HttpURLConnection", getClass().getName() + "$HttpUrlState");
+    return singletonMap("java.net.HttpURLConnection", getClass().getName() + "$HttpUrlState");
   }
 
   @Override
-  public Map<ElementMatcher, String> transformers() {
-    return Collections.<ElementMatcher, String>singletonMap(
+  public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
+    return singletonMap(
         isMethod()
             .and(isPublic())
             .and(named("connect").or(named("getOutputStream")).or(named("getInputStream"))),
@@ -184,22 +184,24 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
               .buildSpan(OPERATION_NAME)
               .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
               .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT);
-      try (final Scope scope = builder.startActive(false)) {
-        span = scope.span();
-        final URL url = connection.getURL();
-        Tags.COMPONENT.set(span, COMPONENT_NAME);
-        Tags.HTTP_URL.set(span, url.toString());
-        Tags.PEER_HOSTNAME.set(span, url.getHost());
-        if (url.getPort() > 0) {
-          Tags.PEER_PORT.set(span, url.getPort());
-        } else if (connection instanceof HttpsURLConnection) {
-          Tags.PEER_PORT.set(span, 443);
-        } else {
-          Tags.PEER_PORT.set(span, 80);
-        }
-        Tags.HTTP_METHOD.set(span, connection.getRequestMethod());
-        return span;
+      span = builder.start();
+      final URL url = connection.getURL();
+      Tags.COMPONENT.set(span, COMPONENT_NAME);
+      Tags.HTTP_URL.set(span, url.toString());
+      Tags.PEER_HOSTNAME.set(span, url.getHost());
+      if (Config.get().isHttpClientSplitByDomain()) {
+        span.setTag(DDTags.SERVICE_NAME, url.getHost());
       }
+
+      if (url.getPort() > 0) {
+        Tags.PEER_PORT.set(span, url.getPort());
+      } else if (connection instanceof HttpsURLConnection) {
+        Tags.PEER_PORT.set(span, 443);
+      } else {
+        Tags.PEER_PORT.set(span, 80);
+      }
+      Tags.HTTP_METHOD.set(span, connection.getRequestMethod());
+      return span;
     }
 
     public boolean hasSpan() {
@@ -215,10 +217,9 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
     }
 
     public void finishSpan(final Throwable throwable) {
-      try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, true)) {
-        Tags.ERROR.set(span, true);
-        span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
-      }
+      Tags.ERROR.set(span, true);
+      span.log(singletonMap(ERROR_OBJECT, throwable));
+      span.finish();
       span = null;
       finished = true;
     }
@@ -230,11 +231,10 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
        * (e.g. breaks getOutputStream).
        */
       if (responseCode > 0) {
-        try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, true)) {
-          Tags.HTTP_STATUS.set(span, responseCode);
-          span = null;
-          finished = true;
-        }
+        Tags.HTTP_STATUS.set(span, responseCode);
+        span.finish();
+        span = null;
+        finished = true;
       }
     }
   }

@@ -10,20 +10,20 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.Sets;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.api.Config;
 import datadog.trace.api.Trace;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.description.NamedElement;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 @Slf4j
 @AutoService(Instrumenter.class)
 public final class TraceAnnotationsInstrumentation extends Instrumenter.Default {
-  private static final String CONFIG_NAME = "dd.trace.annotations";
 
   static final String CONFIG_FORMAT =
       "(?:\\s*"
@@ -47,7 +47,7 @@ public final class TraceAnnotationsInstrumentation extends Instrumenter.Default 
   public TraceAnnotationsInstrumentation() {
     super("trace", "trace-annotation");
 
-    final String configString = getPropOrEnv(CONFIG_NAME);
+    final String configString = Config.getSettingFromEnvironment(Config.TRACE_ANNOTATIONS, null);
     if (configString == null) {
       additionalTraceAnnotations =
           Collections.unmodifiableSet(Sets.<String>newHashSet(DEFAULT_ANNOTATIONS));
@@ -83,9 +83,8 @@ public final class TraceAnnotationsInstrumentation extends Instrumenter.Default 
   }
 
   @Override
-  public Map<ElementMatcher, String> transformers() {
-    final Map<ElementMatcher, String> transformers = new HashMap<>();
-    transformers.put(isAnnotatedWith(methodTraceMatcher), TraceAdvice.class.getName());
-    return transformers;
+  public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
+    return Collections.singletonMap(
+        isAnnotatedWith(methodTraceMatcher), TraceAdvice.class.getName());
   }
 }

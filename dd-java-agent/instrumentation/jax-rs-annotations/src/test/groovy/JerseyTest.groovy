@@ -4,7 +4,7 @@ import org.junit.ClassRule
 import spock.lang.Shared
 import io.opentracing.tag.Tags
 
-import static datadog.trace.agent.test.TestUtils.runUnderTrace
+import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 
 class JerseyTest extends AgentTestRunner {
 

@@ -13,4 +13,7 @@ public class DDTags {
   public static final String ERROR_MSG = "error.msg"; // string representing the error message
   public static final String ERROR_TYPE = "error.type"; // string representing the type of the error
   public static final String ERROR_STACK = "error.stack"; // human readable version of the stack
+
+  public static final String ANALYTICS_SAMPLE_RATE = "_dd1.sr.eausr";
+  @Deprecated public static final String EVENT_SAMPLE_RATE = ANALYTICS_SAMPLE_RATE;
 }

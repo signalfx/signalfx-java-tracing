@@ -1,9 +1,9 @@
 package datadog.trace.instrumentation.elasticsearch5;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
-import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -18,9 +18,9 @@ import io.opentracing.Span;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.elasticsearch.client.ResponseListener;
@@ -43,18 +43,15 @@ public class Elasticsearch5RestClientInstrumentation extends Instrumenter.Defaul
   }
 
   @Override
-  public Map<ElementMatcher, String> transformers() {
-    final Map<ElementMatcher, String> transformers = new HashMap<>();
-    transformers.put(
+  public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
+    return singletonMap(
         isMethod()
-            .and(isPublic())
-            .and(named("performRequestAsync"))
+            .and(named("performRequestAsync").or(named("performRequestAsyncNoCatch")))
             .and(takesArguments(7))
             .and(takesArgument(0, named("java.lang.String"))) // method
             .and(takesArgument(1, named("java.lang.String"))) // endpoint
             .and(takesArgument(5, named("org.elasticsearch.client.ResponseListener"))),
         ElasticsearchRestClientAdvice.class.getName());
-    return transformers;
   }
 
   public static class ElasticsearchRestClientAdvice {

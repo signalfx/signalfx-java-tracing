@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.common.writer;
 
 import com.fasterxml.jackson.databind.JsonNode;

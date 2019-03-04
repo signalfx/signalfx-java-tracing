@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
@@ -45,6 +46,7 @@ class JedisClientTest extends AgentTestRunner {
     def trace = TEST_WRITER.firstTrace()
     trace.size() == 1
     final DDSpan setTrace = trace.get(0)
+    setTrace.getServiceName() == "unnamed-java-app"
     setTrace.getOperationName() == "redis.query"
     setTrace.getResourceName() == "SET"
     setTrace.getSpanType() == DDSpanTypes.REDIS
@@ -64,6 +66,7 @@ class JedisClientTest extends AgentTestRunner {
     def trace = TEST_WRITER.get(1)
     trace.size() == 1
     final DDSpan getSpan = trace.get(0)
+    getSpan.getServiceName() == "unnamed-java-app"
     getSpan.getOperationName() == "redis.query"
     getSpan.getResourceName() == "GET"
     getSpan.getSpanType() == DDSpanTypes.REDIS
@@ -83,6 +86,7 @@ class JedisClientTest extends AgentTestRunner {
     def trace = TEST_WRITER.get(1)
     trace.size() == 1
     final DDSpan randomKeySpan = trace.get(0)
+    randomKeySpan.getServiceName() == "unnamed-java-app"
     randomKeySpan.getOperationName() == "redis.query"
     randomKeySpan.getResourceName() == "RANDOMKEY"
     randomKeySpan.getSpanType() == DDSpanTypes.REDIS

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace
 
 import datadog.opentracing.DDTracer
@@ -13,7 +14,6 @@ import org.junit.contrib.java.lang.system.RestoreSystemProperties
 import spock.lang.Ignore
 import spock.lang.Specification
 
-import static datadog.trace.api.Config.API_TYPE
 import static datadog.trace.api.Config.DEFAULT_SERVICE_NAME
 import static datadog.trace.api.Config.HEADER_TAGS
 import static datadog.trace.api.Config.PREFIX
@@ -47,7 +47,7 @@ class DDTracerTest extends Specification {
     tracer.sampler instanceof AllSampler
     tracer.writer.toString() == "DDAgentWriter { api=ZipkinV2Api { traceEndpoint=http://localhost:9080/v1/trace } }"
 
-    tracer.spanContextDecorators.size() == 12
+    tracer.spanContextDecorators.size() == 13
   }
 
 
@@ -58,18 +58,6 @@ class DDTracerTest extends Specification {
     def tracer = new DDTracer(new Config())
     then:
     tracer.sampler instanceof AllSampler
-  }
-
-  def "verify overriding writer with original DD API"() {
-    setup:
-    System.setProperty(PREFIX + API_TYPE, "DD")
-
-    when:
-    def tracer = new DDTracer(new Config())
-
-    then:
-    tracer.writer instanceof DDAgentWriter
-    tracer.writer.toString() == "DDAgentWriter { api=DDApi { tracesEndpoint=http://localhost:9080/v0.4/traces } }"
   }
 
   def "verify overriding writer"() {
@@ -93,7 +81,7 @@ class DDTracerTest extends Specification {
     when:
     def config = new Config()
     def tracer = new DDTracer(config)
-    def taggedHeaders = tracer.registry.codecs.values().first().taggedHeaders
+    def taggedHeaders = tracer.extractor.taggedHeaders
 
     then:
     tracer.defaultSpanTags == map
@@ -136,7 +124,8 @@ class DDTracerTest extends Specification {
     tracer.serviceName == DEFAULT_SERVICE_NAME
     tracer.sampler == sampler
     tracer.writer == writer
-    tracer.runtimeId.length() > 0
+    tracer.runtimeTags[Config.RUNTIME_ID_TAG].size() > 0 // not null or empty
+    tracer.runtimeTags[Config.LANGUAGE_TAG_KEY] == Config.LANGUAGE_TAG_VALUE
   }
 
   @Ignore
@@ -150,7 +139,7 @@ class DDTracerTest extends Specification {
     tracer.traceCount.is(((DDAgentWriter) tracer.writer).getApi().traceCount)
 
     where:
-    key                      | value
+    key               | value
     PRIORITY_SAMPLING | "true"
     PRIORITY_SAMPLING | "false"
   }

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.common.writer;
 
 import datadog.opentracing.DDSpan;

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 ### Contributing
 
 Pull requests for bug fixes are welcome, but before submitting new features or changes to current functionality 

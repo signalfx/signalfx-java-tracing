@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.common.writer;
 
 import static datadog.trace.api.Config.DD_AGENT_API_TYPE;

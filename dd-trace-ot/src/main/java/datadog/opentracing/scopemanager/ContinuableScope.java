@@ -3,6 +3,7 @@ package datadog.opentracing.scopemanager;
 import datadog.opentracing.DDSpan;
 import datadog.opentracing.DDSpanContext;
 import datadog.opentracing.PendingTrace;
+import datadog.trace.context.ScopeListener;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import java.io.Closeable;
@@ -50,6 +51,9 @@ public class ContinuableScope implements Scope, TraceScope {
     this.finishOnClose = finishOnClose;
     toRestore = scopeManager.tlsScope.get();
     scopeManager.tlsScope.set(this);
+    for (final ScopeListener listener : scopeManager.scopeListeners) {
+      listener.afterScopeActivated();
+    }
   }
 
   @Override
@@ -62,8 +66,22 @@ public class ContinuableScope implements Scope, TraceScope {
       spanUnderScope.finish();
     }
 
+    for (final ScopeListener listener : scopeManager.scopeListeners) {
+      listener.afterScopeClosed();
+    }
+
     if (scopeManager.tlsScope.get() == this) {
       scopeManager.tlsScope.set(toRestore);
+      if (toRestore != null) {
+        for (final ScopeListener listener : scopeManager.scopeListeners) {
+          listener.afterScopeActivated();
+        }
+      }
+    } else {
+      log.debug(
+          "Tried to close {} scope when {} is on top. Ignoring!",
+          this,
+          scopeManager.tlsScope.get());
     }
   }
 
@@ -117,7 +135,10 @@ public class ContinuableScope implements Scope, TraceScope {
     @Override
     public ContinuableScope activate() {
       if (used.compareAndSet(false, true)) {
-        return new ContinuableScope(scopeManager, openCount, this, spanUnderScope, finishOnClose);
+        final ContinuableScope scope =
+            new ContinuableScope(scopeManager, openCount, this, spanUnderScope, finishOnClose);
+        log.debug("Activating continuation {}, scope: {}", this, scope);
+        return scope;
       } else {
         log.debug(
             "Failed to activate continuation. Reusing a continuation not allowed.  Returning a new scope. Spans will not be linked.");
@@ -138,7 +159,10 @@ public class ContinuableScope implements Scope, TraceScope {
         if (closeContinuationScope) {
           ContinuableScope.this.close();
         } else {
-          openCount.decrementAndGet();
+          // Same as in 'close()' above.
+          if (openCount.decrementAndGet() == 0 && finishOnClose) {
+            spanUnderScope.finish();
+          }
         }
       } else {
         log.debug("Failed to close continuation {}. Already used.", this);

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.api;
 
 import java.net.MalformedURLException;
@@ -8,7 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.SortedSet;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -30,9 +33,12 @@ public class Config {
 
   private static final String SIGNALFX_PREFIX = "signalfx.";
 
+  private static final Pattern ENV_REPLACEMENT = Pattern.compile("[^a-zA-Z0-9_]");
+
   private static final Config INSTANCE = new Config();
 
   public static final String SERVICE_NAME = "service.name";
+  public static final String SERVICE = "service";
   public static final String WRITER_TYPE = "writer.type";
   public static final String API_TYPE = "api.type";
   public static final String USE_B3_PROPAGATION = "b3.propagation";
@@ -48,7 +54,12 @@ public class Config {
   public static final String GLOBAL_TAGS = "trace.global.tags";
   public static final String SPAN_TAGS = "trace.span.tags";
   public static final String JMX_TAGS = "trace.jmx.tags";
+  public static final String TRACE_ANALYTICS_ENABLED = "trace.analytics.enabled";
+  public static final String TRACE_ANNOTATIONS = "trace.annotations";
+  public static final String TRACE_METHODS = "trace.methods";
   public static final String HEADER_TAGS = "trace.header.tags";
+  public static final String HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN = "trace.http.client.split-by-domain";
+  public static final String PARTIAL_FLUSH_MIN_SPANS = "trace.partial.flush.min.spans";
   public static final String RUNTIME_CONTEXT_FIELD_INJECTION =
       "trace.runtime.context.field.injection";
   public static final String JMX_FETCH_ENABLED = "jmxfetch.enabled";
@@ -57,8 +68,11 @@ public class Config {
   public static final String JMX_FETCH_REFRESH_BEANS_PERIOD = "jmxfetch.refresh-beans-period";
   public static final String JMX_FETCH_STATSD_HOST = "jmxfetch.statsd.host";
   public static final String JMX_FETCH_STATSD_PORT = "jmxfetch.statsd.port";
+  public static final String APP_CUSTOM_LOG_MANAGER = "app.customlogmanager";
 
   public static final String RUNTIME_ID_TAG = "runtime-id";
+  public static final String LANGUAGE_TAG_KEY = "language";
+  public static final String LANGUAGE_TAG_VALUE = "jvm";
   public static final String DEFAULT_SERVICE_NAME = "unnamed-java-app";
 
   public static final String DD_AGENT_WRITER_TYPE = "DDAgentWriter";
@@ -70,13 +84,20 @@ public class Config {
 
   public static final String DEFAULT_AGENT_ENDPOINT = "http://localhost:9080/v1/trace";
 
-  private static final boolean DEFAULT_RUNTIME_CONTEXT_FIELD_INJECTION = false;
+  public static final String LOGS_INJECTION_ENABLED = "logs.injection";
+  public static final boolean DEFAULT_LOGS_INJECTION_ENABLED = false;
+
+  private static final boolean DEFAULT_RUNTIME_CONTEXT_FIELD_INJECTION = true;
 
   private static final boolean DEFAULT_PRIORITY_SAMPLING_ENABLED = false;
   private static final boolean DEFAULT_TRACE_RESOLVER_ENABLED = true;
+  private static final boolean DEFAULT_HTTP_CLIENT_SPLIT_BY_DOMAIN = false;
+  private static final int DEFAULT_PARTIAL_FLUSH_MIN_SPANS = 0;
   private static final boolean DEFAULT_JMX_FETCH_ENABLED = false;
 
   public static final int DEFAULT_JMX_FETCH_STATSD_PORT = 8125;
+
+  private static final boolean DEFAULT_APP_CUSTOM_LOG_MANAGER = false;
 
   /**
    * this is a random UUID that gets generated on JVM start up and is attached to every root span
@@ -100,6 +121,8 @@ public class Config {
   private final Map<String, String> spanTags;
   private final Map<String, String> jmxTags;
   @Getter private final Map<String, String> headerTags;
+  @Getter private final boolean httpClientSplitByDomain;
+  @Getter private final Integer partialFlushMinSpans;
   @Getter private final boolean runtimeContextFieldInjection;
   @Getter private final boolean jmxFetchEnabled;
   @Getter private final List<String> jmxFetchMetricsConfigs;
@@ -107,6 +130,8 @@ public class Config {
   @Getter private final Integer jmxFetchRefreshBeansPeriod;
   @Getter private final String jmxFetchStatsdHost;
   @Getter private final Integer jmxFetchStatsdPort;
+  @Getter private final boolean logsInjectionEnabled;
+  @Getter private final boolean appCustomLogManager;
 
   // Read order: System Properties -> Env Variables, [-> default value]
   // Visible for testing
@@ -135,6 +160,13 @@ public class Config {
     jmxTags = getMapSettingFromEnvironment(JMX_TAGS, null);
     headerTags = getMapSettingFromEnvironment(HEADER_TAGS, null);
 
+    httpClientSplitByDomain =
+        getBooleanSettingFromEnvironment(
+            HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, DEFAULT_HTTP_CLIENT_SPLIT_BY_DOMAIN);
+
+    partialFlushMinSpans =
+        getIntegerSettingFromEnvironment(PARTIAL_FLUSH_MIN_SPANS, DEFAULT_PARTIAL_FLUSH_MIN_SPANS);
+
     runtimeContextFieldInjection =
         getBooleanSettingFromEnvironment(
             RUNTIME_CONTEXT_FIELD_INJECTION, DEFAULT_RUNTIME_CONTEXT_FIELD_INJECTION);
@@ -148,6 +180,12 @@ public class Config {
     jmxFetchStatsdHost = getSettingFromEnvironment(JMX_FETCH_STATSD_HOST, null);
     jmxFetchStatsdPort =
         getIntegerSettingFromEnvironment(JMX_FETCH_STATSD_PORT, DEFAULT_JMX_FETCH_STATSD_PORT);
+
+    logsInjectionEnabled =
+        getBooleanSettingFromEnvironment(LOGS_INJECTION_ENABLED, DEFAULT_LOGS_INJECTION_ENABLED);
+
+    appCustomLogManager =
+        getBooleanSettingFromEnvironment(APP_CUSTOM_LOG_MANAGER, DEFAULT_APP_CUSTOM_LOG_MANAGER);
   }
 
   // Read order: Properties -> Parent
@@ -179,6 +217,13 @@ public class Config {
     jmxTags = getPropertyMapValue(properties, JMX_TAGS, parent.jmxTags);
     headerTags = getPropertyMapValue(properties, HEADER_TAGS, parent.headerTags);
 
+    httpClientSplitByDomain =
+        getPropertyBooleanValue(
+            properties, HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, parent.httpClientSplitByDomain);
+
+    partialFlushMinSpans =
+        getPropertyIntegerValue(properties, PARTIAL_FLUSH_MIN_SPANS, parent.partialFlushMinSpans);
+
     runtimeContextFieldInjection =
         getPropertyBooleanValue(
             properties, RUNTIME_CONTEXT_FIELD_INJECTION, parent.runtimeContextFieldInjection);
@@ -195,6 +240,12 @@ public class Config {
     jmxFetchStatsdHost = properties.getProperty(JMX_FETCH_STATSD_HOST, parent.jmxFetchStatsdHost);
     jmxFetchStatsdPort =
         getPropertyIntegerValue(properties, JMX_FETCH_STATSD_PORT, parent.jmxFetchStatsdPort);
+
+    logsInjectionEnabled =
+        getBooleanSettingFromEnvironment(LOGS_INJECTION_ENABLED, DEFAULT_LOGS_INJECTION_ENABLED);
+
+    appCustomLogManager =
+        getBooleanSettingFromEnvironment(APP_CUSTOM_LOG_MANAGER, DEFAULT_APP_CUSTOM_LOG_MANAGER);
   }
 
   public String getAgentHost() {
@@ -234,15 +285,37 @@ public class Config {
   }
 
   public Map<String, String> getMergedJmxTags() {
-    final Map<String, String> result = newHashMap(globalTags.size() + jmxTags.size() + 1);
+    final Map<String, String> runtimeTags = getRuntimeTags();
+    final Map<String, String> result =
+        newHashMap(
+            globalTags.size() + jmxTags.size() + runtimeTags.size() + 1 /* for serviceName */);
     result.putAll(globalTags);
     result.putAll(jmxTags);
-    result.put(RUNTIME_ID_TAG, runtimeId);
-    result.put(SERVICE_NAME, serviceName);
+    result.putAll(runtimeTags);
+    // service name set here instead of getRuntimeTags because apm already manages the service tag
+    // and may chose to override it.
+    // Additionally, infra/JMX metrics require `service` rather than APM's `service.name` tag
+    result.put(SERVICE, serviceName);
     return Collections.unmodifiableMap(result);
   }
 
-  private static String getSettingFromEnvironment(final String name, final String defaultValue) {
+  /**
+   * Return a map of tags required by the datadog backend to link runtime metrics (i.e. jmx) and
+   * traces.
+   *
+   * <p>These tags must be applied to every runtime metrics and placed on the root span of every
+   * trace.
+   *
+   * @return A map of tag-name -> tag-value
+   */
+  public Map<String, String> getRuntimeTags() {
+    final Map<String, String> result = newHashMap(2);
+    result.put(RUNTIME_ID_TAG, runtimeId);
+    result.put(LANGUAGE_TAG_KEY, LANGUAGE_TAG_VALUE);
+    return Collections.unmodifiableMap(result);
+  }
+
+  public static String getSettingFromEnvironment(final String name, final String defaultValue) {
     String value = getSettingFromEnvironment(PREFIX, name, null);
     if (value == null) {
       // Let the SignalFx prefix act as a fallback so we support both for testing/migration
@@ -252,7 +325,51 @@ public class Config {
     return value == null ? defaultValue : value;
   }
 
-  private static String getSettingFromEnvironment(
+  public static boolean integrationEnabled(
+      final SortedSet<String> integrationNames, final boolean defaultEnabled) {
+    // If default is enabled, we want to enable individually,
+    // if default is disabled, we want to disable individually.
+    boolean anyEnabled = defaultEnabled;
+    for (final String name : integrationNames) {
+      final boolean configEnabled =
+          getBooleanSettingFromEnvironment("integration." + name + ".enabled", defaultEnabled);
+      if (defaultEnabled) {
+        anyEnabled &= configEnabled;
+      } else {
+        anyEnabled |= configEnabled;
+      }
+    }
+    return anyEnabled;
+  }
+
+  public static boolean traceAnalyticsIntegrationEnabled(
+      final SortedSet<String> integrationNames, final boolean defaultEnabled) {
+    // If default is enabled, we want to enable individually,
+    // if default is disabled, we want to disable individually.
+    boolean anyEnabled = defaultEnabled;
+    for (final String name : integrationNames) {
+      final boolean configEnabled =
+          getBooleanSettingFromEnvironment(
+              "integration." + name + ".analytics.enabled", defaultEnabled);
+      if (defaultEnabled) {
+        anyEnabled &= configEnabled;
+      } else {
+        anyEnabled |= configEnabled;
+      }
+    }
+    return anyEnabled;
+  }
+
+  /**
+   * Helper method that takes the name, adds a "dd." prefix then checks for System Properties of
+   * that name. If none found, the name is converted to an Environment Variable and used to check
+   * the env. If setting not configured in either location, defaultValue is returned.
+   *
+   * @param name
+   * @param defaultValue
+   * @return
+   */
+  public static String getSettingFromEnvironment(
       final String prefix, final String name, final String defaultValue) {
     final String completeName = prefix + name;
     final String value =
@@ -275,32 +392,61 @@ public class Config {
     return parseURL(getSettingFromEnvironment(name, defaultValue), name);
   }
 
-  private static Boolean getBooleanSettingFromEnvironment(
+  /**
+   * Calls {@link #getSettingFromEnvironment(String, String)} and converts the result to a Boolean.
+   *
+   * @param name
+   * @param defaultValue
+   * @return
+   */
+  public static Boolean getBooleanSettingFromEnvironment(
       final String name, final Boolean defaultValue) {
     final String value = getSettingFromEnvironment(name, null);
-    return value == null ? defaultValue : Boolean.valueOf(value);
+    return value == null || value.trim().isEmpty() ? defaultValue : Boolean.valueOf(value);
+  }
+
+  /**
+   * Calls {@link #getSettingFromEnvironment(String, String)} and converts the result to a Float.
+   *
+   * @param name
+   * @param defaultValue
+   * @return
+   */
+  public static Float getFloatSettingFromEnvironment(final String name, final Float defaultValue) {
+    final String value = getSettingFromEnvironment(name, null);
+    try {
+      return value == null ? defaultValue : Float.valueOf(value);
+    } catch (final NumberFormatException e) {
+      log.warn("Invalid configuration for " + name, e);
+      return defaultValue;
+    }
   }
 
   private static Integer getIntegerSettingFromEnvironment(
       final String name, final Integer defaultValue) {
     final String value = getSettingFromEnvironment(name, null);
-    return value == null ? defaultValue : Integer.valueOf(value);
+    try {
+      return value == null ? defaultValue : Integer.valueOf(value);
+    } catch (final NumberFormatException e) {
+      log.warn("Invalid configuration for " + name, e);
+      return defaultValue;
+    }
   }
 
   private static String propertyToEnvironmentName(final String name) {
-    return name.toUpperCase().replace(".", "_").replace("-", "_");
+    return ENV_REPLACEMENT.matcher(name.toUpperCase()).replaceAll("_");
   }
 
   private static Map<String, String> getPropertyMapValue(
       final Properties properties, final String name, final Map<String, String> defaultValue) {
     final String value = properties.getProperty(name);
-    return value == null ? defaultValue : parseMap(value, name);
+    return value == null || value.trim().isEmpty() ? defaultValue : parseMap(value, name);
   }
 
   private static List<String> getPropertyListValue(
       final Properties properties, final String name, final List<String> defaultValue) {
     final String value = properties.getProperty(name);
-    return value == null ? defaultValue : parseList(value);
+    return value == null || value.trim().isEmpty() ? defaultValue : parseList(value);
   }
 
   private static URL getPropertyURLValue(
@@ -312,13 +458,13 @@ public class Config {
   private static Boolean getPropertyBooleanValue(
       final Properties properties, final String name, final Boolean defaultValue) {
     final String value = properties.getProperty(name);
-    return value == null ? defaultValue : Boolean.valueOf(value);
+    return value == null || value.trim().isEmpty() ? defaultValue : Boolean.valueOf(value);
   }
 
   private static Integer getPropertyIntegerValue(
       final Properties properties, final String name, final Integer defaultValue) {
     final String value = properties.getProperty(name);
-    return value == null ? defaultValue : Integer.valueOf(value);
+    return value == null || value.trim().isEmpty() ? defaultValue : Integer.valueOf(value);
   }
 
   private static Map<String, String> parseMap(final String str, final String settingName) {

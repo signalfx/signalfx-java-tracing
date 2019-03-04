@@ -1,22 +1,23 @@
 package datadog.trace.agent.tooling;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.failSafe;
-import static datadog.trace.agent.tooling.Utils.getConfigEnabled;
 import static net.bytebuddy.matcher.ElementMatchers.any;
 
 import datadog.trace.agent.tooling.context.FieldBackedProvider;
 import datadog.trace.agent.tooling.context.InstrumentationContextProvider;
 import datadog.trace.agent.tooling.muzzle.Reference;
 import datadog.trace.agent.tooling.muzzle.ReferenceMatcher;
+import datadog.trace.api.Config;
 import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.utility.JavaModule;
@@ -38,7 +39,7 @@ public interface Instrumenter {
 
   @Slf4j
   abstract class Default implements Instrumenter {
-    private final Set<String> instrumentationNames;
+    private final SortedSet<String> instrumentationNames;
     private final String instrumentationPrimaryName;
     private final InstrumentationContextProvider contextProvider;
     protected final boolean enabled;
@@ -47,24 +48,11 @@ public interface Instrumenter {
         getClass().getPackage() == null ? "" : getClass().getPackage().getName();
 
     public Default(final String instrumentationName, final String... additionalNames) {
-      instrumentationNames = new HashSet<>(Arrays.asList(additionalNames));
+      instrumentationNames = new TreeSet<>(Arrays.asList(additionalNames));
       instrumentationNames.add(instrumentationName);
       instrumentationPrimaryName = instrumentationName;
 
-      // If default is enabled, we want to enable individually,
-      // if default is disabled, we want to disable individually.
-      final boolean defaultEnabled = defaultEnabled();
-      boolean anyEnabled = defaultEnabled;
-      for (final String name : instrumentationNames) {
-        final boolean configEnabled =
-            getConfigEnabled("dd.integration." + name + ".enabled", defaultEnabled);
-        if (defaultEnabled) {
-          anyEnabled &= configEnabled;
-        } else {
-          anyEnabled |= configEnabled;
-        }
-      }
-      enabled = anyEnabled;
+      enabled = Config.integrationEnabled(instrumentationNames, defaultEnabled());
       contextProvider = new FieldBackedProvider(this);
     }
 
@@ -86,6 +74,7 @@ public interface Instrumenter {
                       "Instrumentation class loader matcher unexpected exception: "
                           + getClass().getName()))
               .and(new MuzzleMatcher())
+              .and(new PostMatchHook())
               .transform(DDTransformers.defaultTransformers());
       agentBuilder = injectHelperClasses(agentBuilder);
       agentBuilder = contextProvider.instrumentationTransformer(agentBuilder);
@@ -157,6 +146,19 @@ public interface Instrumenter {
       }
     }
 
+    private class PostMatchHook implements AgentBuilder.RawMatcher {
+      @Override
+      public boolean matches(
+          final TypeDescription typeDescription,
+          final ClassLoader classLoader,
+          final JavaModule module,
+          final Class<?> classBeingRedefined,
+          final ProtectionDomain protectionDomain) {
+        postMatch(typeDescription, classLoader, module, classBeingRedefined, protectionDomain);
+        return true;
+      }
+    }
+
     /**
      * This method is implemented dynamically by compile-time bytecode transformations.
      *
@@ -179,8 +181,27 @@ public interface Instrumenter {
     /** @return A type matcher used to match the class under transform. */
     public abstract ElementMatcher<? super TypeDescription> typeMatcher();
 
+    /**
+     * A hook invoked after matching has succeeded and before transformers have run.
+     *
+     * <p>Implementation note: This hook runs inside of the bytebuddy matching phase.
+     *
+     * @param typeDescription type description of the matched type
+     * @param classLoader classloader loading the class under transform
+     * @param module java module
+     * @param classBeingRedefined null when the matched class is being loaded for the first time.
+     *     The instance of the active class during retransforms.
+     * @param protectionDomain protection domain of the class under load.
+     */
+    public void postMatch(
+        final TypeDescription typeDescription,
+        final ClassLoader classLoader,
+        final JavaModule module,
+        final Class<?> classBeingRedefined,
+        final ProtectionDomain protectionDomain) {}
+
     /** @return A map of matcher->advice */
-    public abstract Map<? extends ElementMatcher, String> transformers();
+    public abstract Map<? extends ElementMatcher<? super MethodDescription>, String> transformers();
 
     /**
      * A map of {class-name -> context-class-name}. Keys (and their subclasses) will be associated
@@ -191,17 +212,7 @@ public interface Instrumenter {
     }
 
     protected boolean defaultEnabled() {
-      return getConfigEnabled("dd.integrations.enabled", true);
-    }
-
-    // TODO: move common config helpers to Utils
-
-    public static String getPropOrEnv(final String name) {
-      return System.getProperty(name, System.getenv(propToEnvName(name)));
-    }
-
-    public static String propToEnvName(final String name) {
-      return name.toUpperCase().replace(".", "_");
+      return Config.getBooleanSettingFromEnvironment("integrations.enabled", true);
     }
   }
 }

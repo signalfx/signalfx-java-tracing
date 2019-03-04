@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace
 
 import datadog.opentracing.SpanFactory

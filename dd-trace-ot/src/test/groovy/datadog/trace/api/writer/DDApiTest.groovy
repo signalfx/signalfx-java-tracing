@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.api.writer
 
 import com.fasterxml.jackson.core.type.TypeReference

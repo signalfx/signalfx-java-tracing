@@ -2,6 +2,7 @@ package datadog.trace.instrumentation.hystrix;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -9,20 +10,23 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.api.DDTags;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import java.lang.reflect.Method;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 @AutoService(Instrumenter.class)
 public class HystrixCommandInstrumentation extends Instrumenter.Default {
+
+  private static final String OPERATION_NAME = "hystrix.cmd";
 
   public HystrixCommandInstrumentation() {
     super("hystrix");
@@ -36,11 +40,9 @@ public class HystrixCommandInstrumentation extends Instrumenter.Default {
   }
 
   @Override
-  public Map<ElementMatcher, String> transformers() {
-    final Map<ElementMatcher, String> transformers = new HashMap<>();
-    transformers.put(
+  public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
+    return singletonMap(
         isMethod().and(named("run").or(named("getFallback"))), TraceAdvice.class.getName());
-    return transformers;
   }
 
   public static class TraceAdvice {
@@ -58,10 +60,11 @@ public class HystrixCommandInstrumentation extends Instrumenter.Default {
           }
         }
       }
-      final String operationName = className + "." + method.getName();
+      final String resourceName = className + "." + method.getName();
 
       return GlobalTracer.get()
-          .buildSpan(operationName)
+          .buildSpan(OPERATION_NAME)
+          .withTag(DDTags.RESOURCE_NAME, resourceName)
           .withTag(Tags.COMPONENT.getKey(), "hystrix")
           .startActive(true);
     }

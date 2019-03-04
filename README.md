@@ -1,3 +1,4 @@
+// Modified by SignalFx
 # SignalFx Java Agent
 
 This is the SignalFx Java Agent, a JVM agent to automatically instrument your

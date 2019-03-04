@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing.decorators;
 
 import datadog.opentracing.DDSpanContext;

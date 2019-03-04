@@ -1,5 +1,6 @@
 apply from: "${rootDir}/gradle/java.gradle"
 
+minimumBranchCoverage = 0.6
 excludedClassesConverage += ['datadog.trace.agent.tooling.*']
 
 configurations {
@@ -9,7 +10,7 @@ configurations {
 
 dependencies {
   compile project(':dd-java-agent:agent-bootstrap')
-  compile group: 'com.blogspot.mydailyjava', name: 'weak-lock-free', version: '0.13'
+  compile group: 'com.blogspot.mydailyjava', name: 'weak-lock-free', version: '0.15'
   compile deps.bytebuddy
   compile deps.bytebuddyagent
   annotationProcessor deps.autoservice
@@ -19,6 +20,7 @@ dependencies {
 
   testCompile deps.opentracing
   testCompile project(':dd-java-agent:testing')
+  testCompile project(':utils:gc-utils')
 
   instrumentationMuzzle sourceSets.main.output
   instrumentationMuzzle configurations.compile

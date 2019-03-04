@@ -1,6 +1,7 @@
 package datadog.trace.instrumentation.java.concurrent;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -59,13 +61,14 @@ public final class FutureInstrumentation extends Instrumenter.Default {
       "akka.dispatch.ForkJoinExecutorConfigurator$AkkaForkJoinTask",
       "com.google.common.util.concurrent.SettableFuture",
       "com.google.common.util.concurrent.AbstractFuture$TrustedFuture",
-      "com.google.common.util.concurrent.AbstractFuture"
+      "com.google.common.util.concurrent.AbstractFuture",
+      "io.netty.util.concurrent.ScheduledFutureTask"
     };
     WHITELISTED_FUTURES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(whitelist)));
   }
 
   public FutureInstrumentation() {
-    super(ExecutorInstrumentation.EXEC_NAME);
+    super(AbstractExecutorInstrumentation.EXEC_NAME);
   }
 
   @Override
@@ -86,11 +89,6 @@ public final class FutureInstrumentation extends Instrumenter.Default {
   }
 
   @Override
-  public String[] helperClassNames() {
-    return new String[] {ExecutorInstrumentation.class.getName() + "$ConcurrentUtils"};
-  }
-
-  @Override
   public Map<String, String> contextStore() {
     final Map<String, String> map = new HashMap<>();
     map.put(Future.class.getName(), State.class.getName());
@@ -98,24 +96,22 @@ public final class FutureInstrumentation extends Instrumenter.Default {
   }
 
   @Override
-  public Map<ElementMatcher, String> transformers() {
-    final Map<ElementMatcher, String> transformers = new HashMap<>();
-    transformers.put(
+  public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
+    return singletonMap(
         named("cancel").and(returns(boolean.class)), CanceledFutureAdvice.class.getName());
-    return transformers;
   }
 
   public static class CanceledFutureAdvice {
     @Advice.OnMethodExit(suppress = Throwable.class)
-    public static void exit(
-        @Advice.This final Future<?> future, @Advice.Return final boolean canceled) {
-      if (canceled) {
-        final ContextStore<Future, State> contextStore =
-            InstrumentationContext.get(Future.class, State.class);
-        final State state = contextStore.get(future);
-        if (state != null) {
-          state.closeContinuation();
-        }
+    public static void exit(@Advice.This final Future<?> future) {
+      // Try to close continuation even if future was not cancelled:
+      // the expectation is that continuation should be closed after 'cancel'
+      // is called, one way or another
+      final ContextStore<Future, State> contextStore =
+          InstrumentationContext.get(Future.class, State.class);
+      final State state = contextStore.get(future);
+      if (state != null) {
+        state.closeContinuation();
       }
     }
   }

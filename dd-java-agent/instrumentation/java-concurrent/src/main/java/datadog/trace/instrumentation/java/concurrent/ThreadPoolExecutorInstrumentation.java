@@ -1,5 +1,6 @@
 package datadog.trace.instrumentation.java.concurrent;
 
+import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -7,12 +8,12 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -26,7 +27,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 public class ThreadPoolExecutorInstrumentation extends Instrumenter.Default {
 
   public ThreadPoolExecutorInstrumentation() {
-    super(ExecutorInstrumentation.EXEC_NAME);
+    super(AbstractExecutorInstrumentation.EXEC_NAME);
   }
 
   @Override
@@ -37,14 +38,15 @@ public class ThreadPoolExecutorInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      ExecutorInstrumentation.class.getName() + "$ConcurrentUtils",
+      ThreadPoolExecutorInstrumentation.class.getPackage().getName()
+          + ".ExecutorInstrumentationUtils",
       ThreadPoolExecutorInstrumentation.class.getName() + "$GenericRunnable",
     };
   }
 
   @Override
-  public Map<? extends ElementMatcher, String> transformers() {
-    return Collections.singletonMap(
+  public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
+    return singletonMap(
         isConstructor()
             .and(takesArgument(4, named("java.util.concurrent.BlockingQueue")))
             .and(takesArguments(7)),
@@ -55,7 +57,7 @@ public class ThreadPoolExecutorInstrumentation extends Instrumenter.Default {
     @Advice.OnMethodExit(suppress = Throwable.class)
     public static void disableIfQueueWrongType(
         @Advice.This final ThreadPoolExecutor executor,
-        @Advice.Argument(4) final BlockingQueue queue) {
+        @Advice.Argument(4) final BlockingQueue<Runnable> queue) {
 
       if (queue.size() == 0) {
         try {
@@ -64,7 +66,7 @@ public class ThreadPoolExecutorInstrumentation extends Instrumenter.Default {
         } catch (final ClassCastException | IllegalArgumentException e) {
           // These errors indicate the queue is fundamentally incompatible with wrapped runnables.
           // We must disable the executor instance to avoid passing wrapped runnables later.
-          ExecutorInstrumentation.ConcurrentUtils.disableExecutor(executor);
+          ExecutorInstrumentationUtils.disableExecutorForWrappedTasks(executor);
         } catch (final Exception e) {
           // Other errors might indicate the queue is not fully initialized.
           // We might want to disable for those too, but for now just ignore.

@@ -7,6 +7,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.api.Config;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +30,6 @@ import net.bytebuddy.matcher.ElementMatcher;
 @Slf4j
 @AutoService(Instrumenter.class)
 public class TraceConfigInstrumentation implements Instrumenter {
-  private static final String CONFIG_NAME = "dd.trace.methods";
 
   static final String PACKAGE_CLASS_NAME_REGEX = "[\\w.\\$]+";
   private static final String METHOD_LIST_REGEX = "\\s*(?:\\w+\\s*,)*\\s*(?:\\w+\\s*,?)\\s*";
@@ -47,7 +47,7 @@ public class TraceConfigInstrumentation implements Instrumenter {
   private final Map<String, Set<String>> classMethodsToTrace;
 
   public TraceConfigInstrumentation() {
-    final String configString = Default.getPropOrEnv(CONFIG_NAME);
+    final String configString = Config.getSettingFromEnvironment(Config.TRACE_METHODS, null);
     if (configString == null || configString.trim().isEmpty()) {
       classMethodsToTrace = Collections.emptyMap();
 
@@ -121,7 +121,7 @@ public class TraceConfigInstrumentation implements Instrumenter {
     }
 
     @Override
-    public Map<ElementMatcher, String> transformers() {
+    public Map<ElementMatcher<? super MethodDescription>, String> transformers() {
       ElementMatcher.Junction<MethodDescription> methodMatchers = null;
       for (final String methodName : methodNames) {
         if (methodMatchers == null) {
@@ -131,7 +131,7 @@ public class TraceConfigInstrumentation implements Instrumenter {
         }
       }
 
-      final Map<ElementMatcher, String> transformers = new HashMap<>();
+      final Map<ElementMatcher<? super MethodDescription>, String> transformers = new HashMap<>();
       transformers.put(methodMatchers, TraceAdvice.class.getName());
       return transformers;
     }

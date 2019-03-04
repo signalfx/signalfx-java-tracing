@@ -1,11 +1,11 @@
 package context
 
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.agent.test.TestUtils
+import datadog.trace.agent.test.utils.ClasspathUtils
 import datadog.trace.api.Config
+import datadog.trace.util.gc.GCUtils
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.utility.JavaModule
-import spock.lang.Ignore
 import spock.lang.Requires
 
 import java.lang.instrument.ClassDefinition
@@ -19,7 +19,6 @@ import static context.ContextTestInstrumentation.IncorrectKeyClassUsageKeyClass
 import static context.ContextTestInstrumentation.KeyClass
 import static context.ContextTestInstrumentation.UntransformableKeyClass
 
-@Ignore
 class FieldBackedProviderTest extends AgentTestRunner {
 
   @Override
@@ -103,7 +102,7 @@ class FieldBackedProviderTest extends AgentTestRunner {
     final int count = keyValue.get().incrementContextCount()
     WeakReference<KeyClass> instanceRef = new WeakReference(keyValue.get())
     keyValue.set(null)
-    TestUtils.awaitGC(instanceRef)
+    GCUtils.awaitGC(instanceRef)
 
     then:
     instanceRef.get() == null
@@ -129,8 +128,8 @@ class FieldBackedProviderTest extends AgentTestRunner {
 
   def "context classes are redefine safe"() {
     when:
-    ByteBuddyAgent.getInstrumentation().redefineClasses(new ClassDefinition(KeyClass, TestUtils.convertToByteArray(KeyClass)))
-    ByteBuddyAgent.getInstrumentation().redefineClasses(new ClassDefinition(UntransformableKeyClass, TestUtils.convertToByteArray(UntransformableKeyClass)))
+    ByteBuddyAgent.getInstrumentation().redefineClasses(new ClassDefinition(KeyClass, ClasspathUtils.convertToByteArray(KeyClass)))
+    ByteBuddyAgent.getInstrumentation().redefineClasses(new ClassDefinition(UntransformableKeyClass, ClasspathUtils.convertToByteArray(UntransformableKeyClass)))
 
     then:
     new KeyClass().isInstrumented()

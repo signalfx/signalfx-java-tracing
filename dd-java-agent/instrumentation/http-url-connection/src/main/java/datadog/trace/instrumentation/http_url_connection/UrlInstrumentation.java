@@ -1,6 +1,7 @@
 package datadog.trace.instrumentation.http_url_connection;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -8,17 +9,17 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.api.Config;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
-import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import java.net.URL;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -37,12 +38,10 @@ public class UrlInstrumentation extends Instrumenter.Default {
   }
 
   @Override
-  public Map<ElementMatcher, String> transformers() {
-    final Map<ElementMatcher, String> transformers = new HashMap<>();
-    transformers.put(
+  public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
+    return singletonMap(
         isMethod().and(isPublic()).and(named("openConnection")),
         ConnectionErrorAdvice.class.getName());
-    return transformers;
   }
 
   public static class ConnectionErrorAdvice {
@@ -59,22 +58,24 @@ public class UrlInstrumentation extends Instrumenter.Default {
         String protocol = url.getProtocol();
         protocol = protocol != null ? protocol : "url";
 
-        final Scope scope =
+        final Span span =
             GlobalTracer.get()
                 .buildSpan(protocol + ".request")
                 .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
                 .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
                 .withTag(Tags.COMPONENT.getKey(), COMPONENT)
-                .startActive(true);
+                .start();
 
-        final Span span = scope.span();
         Tags.HTTP_URL.set(span, url.toString());
         Tags.PEER_PORT.set(span, url.getPort() == -1 ? 80 : url.getPort());
         Tags.PEER_HOSTNAME.set(span, url.getHost());
+        if (Config.get().isHttpClientSplitByDomain()) {
+          span.setTag(DDTags.SERVICE_NAME, url.getHost());
+        }
 
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
-        scope.close();
+        span.finish();
       }
     }
   }

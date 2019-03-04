@@ -1,7 +1,7 @@
 package datadog.trace.instrumentation.springwebflux;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
-import static net.bytebuddy.matcher.ElementMatchers.declaresField;
+import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -12,38 +12,31 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import java.util.Collections;
 import java.util.Map;
+import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 @AutoService(Instrumenter.class)
-public final class RouterFunctionInstrumentation extends Instrumenter.Default {
-
-  public static final String PACKAGE = RouterFunctionInstrumentation.class.getPackage().getName();
+public final class RouterFunctionInstrumentation extends AbstractWebfluxInstrumentation {
 
   public RouterFunctionInstrumentation() {
-    super("spring-webflux", "spring-webflux-functional");
-  }
-
-  @Override
-  public String[] helperClassNames() {
-    return new String[] {PACKAGE + ".DispatcherHandlerMonoBiConsumer"};
+    super("spring-webflux-functional");
   }
 
   @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
     return not(isAbstract())
-        .and(declaresField(named("predicate")))
         .and(
             safeHasSuperType(
+                // TODO: this doesn't handle nested routes (DefaultNestedRouterFunction)
                 named(
-                    "org.springframework.web.reactive.function.server.RouterFunctions$AbstractRouterFunction")));
+                    "org.springframework.web.reactive.function.server.RouterFunctions$DefaultRouterFunction")));
   }
 
   @Override
-  public Map<ElementMatcher, String> transformers() {
-    return Collections.<ElementMatcher, String>singletonMap(
+  public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
+    return singletonMap(
         isMethod()
             .and(isPublic())
             .and(named("route"))

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.trace_annotation;
 
 import static io.opentracing.log.Fields.ERROR_OBJECT;
@@ -7,6 +8,7 @@ import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import net.bytebuddy.asm.Advice;
@@ -15,8 +17,19 @@ public class TraceAdvice {
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static Scope startSpan(@Advice.Origin final Method method) {
-    final Trace trace = method.getAnnotation(Trace.class);
-    String operationName = trace == null ? null : trace.operationName();
+    Annotation trace = method.getAnnotation(Trace.class);
+    if (trace == null) {
+      trace = method.getAnnotation(com.signalfx.tracing.api.Trace.class);
+    }
+    String operationName = null;
+    if (trace != null) {
+      // Java annotations do not support polymorphism.
+      if (trace.annotationType().equals(Trace.class)) {
+        operationName = ((Trace) trace).operationName();
+      } else {
+        operationName = ((com.signalfx.tracing.api.Trace) trace).operationName();
+      }
+    }
     if (operationName == null || operationName.isEmpty()) {
       final Class<?> declaringClass = method.getDeclaringClass();
       String className = declaringClass.getSimpleName();

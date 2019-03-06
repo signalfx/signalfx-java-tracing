@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.opentracing.decorators.ErrorFlag
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Trace
@@ -24,6 +25,52 @@ class TraceAnnotationsTest extends AgentTestRunner {
           serviceName "test"
           resourceName "SayTracedHello.sayHello"
           operationName "SayTracedHello.sayHello"
+          parent()
+          errored false
+          tags {
+            "$Tags.COMPONENT.key" "trace"
+            defaultTags()
+          }
+        }
+      }
+    }
+  }
+
+  def "test alternative simple case annotations"() {
+    setup:
+    // Test single span in new trace
+    SayTracedHello.sayHelloAlt()
+
+    expect:
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          serviceName "test"
+          resourceName "SayTracedHello.sayHelloAlt"
+          operationName "SayTracedHello.sayHelloAlt"
+          parent()
+          errored false
+          tags {
+            "$Tags.COMPONENT.key" "trace"
+            defaultTags()
+          }
+        }
+      }
+    }
+  }
+
+  def "test alternative complex case annotations"() {
+    setup:
+    // Test single span in new trace
+    SayTracedHello.sayBye()
+
+    expect:
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          serviceName "test"
+          resourceName "farewell"
+          operationName "farewell"
           parent()
           errored false
           tags {

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package dd.test.trace.annotation;
 
 import datadog.trace.api.DDTags;
@@ -23,11 +24,23 @@ public class SayTracedHello {
     return "HA!!";
   }
 
+  @com.signalfx.tracing.api.Trace()
+  public static String sayHelloAlt() {
+    new StringTag(DDTags.SERVICE_NAME)
+        .set(GlobalTracer.get().scopeManager().active().span(), "test");
+    return "hello!";
+  }
+
   @Trace(operationName = "NEW_TRACE")
   public static String sayHELLOsayHA() {
     new StringTag(DDTags.SERVICE_NAME)
         .set(GlobalTracer.get().scopeManager().active().span(), "test2");
     return sayHello() + sayHA();
+  }
+
+  @com.signalfx.tracing.api.Trace(operationName = "farewell")
+  public static String sayBye() {
+    return "bye";
   }
 
   @Trace(operationName = "ERROR")

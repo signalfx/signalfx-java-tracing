@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.trace_annotation;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -70,7 +71,8 @@ public final class TraceAnnotationsInstrumentation extends Instrumenter.Default 
     }
 
     ElementMatcher.Junction<NamedElement> methodTraceMatcher =
-        is(new TypeDescription.ForLoadedType(Trace.class));
+        is(new TypeDescription.ForLoadedType(Trace.class))
+            .or(is(new TypeDescription.ForLoadedType(com.signalfx.tracing.api.Trace.class)));
     for (final String annotationName : additionalTraceAnnotations) {
       methodTraceMatcher = methodTraceMatcher.or(named(annotationName));
     }

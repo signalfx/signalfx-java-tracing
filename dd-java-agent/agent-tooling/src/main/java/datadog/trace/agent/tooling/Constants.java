@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.tooling;
 
 /**
@@ -17,6 +18,7 @@ public final class Constants {
     "datadog.slf4j",
     "datadog.trace.bootstrap",
     "datadog.trace.api",
+    "signalfx.trace.api",
     "datadog.trace.context"
   };
 

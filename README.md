@@ -13,15 +13,21 @@ as the OpenTracing `GlobalTracer` to enable additional custom instrumentation.
 # Usage
 
 The SignalFx Java Agent uses a few environment variables for its configuration.
-You should set your application's service name via `SIGNALFX_SERVICE_NAME` and
-configure the trace endpoint URL via `SIGNALFX_AGENT_ENDPOINT` to point to your deployed
-SignalFx Smart Agent:
+You should set your application's service name via `SIGNALFX_SERVICE_NAME`:
 
 ```
 $ export SIGNALFX_SERVICE_NAME=my-app
-$ export SIGNALFX_AGENT_ENDPOINT=http://127.0.0.1:9080/v1/trace
 $ java -javaagent:signalfx-tracing.jar <rest of command-line arguments...>
 ```
+
+This invocation assumes that you have a [locally deployed SignalFx Smart
+Agent](https://docs.signalfx.com/en/latest/apm/apm-deployment/smart-agent.html)
+accessable on `localhost`.  If you want to send traces directly to the Smart
+Gateway or if your Smart Agent is only accessible on a different host (e.g. in
+a containerized environment), set the trace host via the `SIGNALFX_AGENT_HOST`
+envvar to the approprate value (default is `localhost`).  You can override the
+entire trace target URL with the `SIGNALFX_AGENT_ENDPOINT` envvar (default:
+`http://localhost:9080/v1/trace`).
 
 See [our example app that uses
 this](https://github.com/signalfx/tracing-examples/tree/master/java-agent) for

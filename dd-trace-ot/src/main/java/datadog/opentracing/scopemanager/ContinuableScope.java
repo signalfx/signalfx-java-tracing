@@ -1,10 +1,11 @@
+// Modified by SignalFx
 package datadog.opentracing.scopemanager;
 
+import com.signalfx.tracing.context.TraceScope;
 import datadog.opentracing.DDSpan;
 import datadog.opentracing.DDSpanContext;
 import datadog.opentracing.PendingTrace;
 import datadog.trace.context.ScopeListener;
-import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import java.io.Closeable;
 import java.lang.ref.WeakReference;

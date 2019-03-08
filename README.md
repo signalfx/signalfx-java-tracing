@@ -26,7 +26,7 @@ accessable on `localhost`.  If you want to send traces directly to the Smart
 Gateway or if your Smart Agent is only accessible on a different host (e.g. in
 a containerized environment), set the trace host via the `SIGNALFX_AGENT_HOST`
 envvar to the approprate value (default is `localhost`).  You can override the
-entire trace target URL with the `SIGNALFX_AGENT_ENDPOINT` envvar (default:
+entire trace target URL with the `SIGNALFX_ENDPOINT_URL` envvar (default:
 `http://localhost:9080/v1/trace`).
 
 See [our example app that uses

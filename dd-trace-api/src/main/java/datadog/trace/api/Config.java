@@ -47,7 +47,7 @@ public class Config {
   public static final String AGENT_PORT_LEGACY = "agent.port";
   public static final String AGENT_PATH = "agent.path";
   public static final String AGENT_USE_HTTPS = "agent.https";
-  public static final String AGENT_ENDPOINT = "agent.endpoint";
+  public static final String ENDPOINT_URL = "endpoint.url";
   public static final String PRIORITY_SAMPLING = "priority.sampling";
   public static final String TRACE_RESOLVER_ENABLED = "trace.resolver.enabled";
   public static final String SERVICE_MAPPING = "service.mapping";
@@ -113,7 +113,7 @@ public class Config {
   private final Integer agentPort;
   private final String agentPath;
   private final Boolean agentUseHTTPS;
-  @Getter private final URL agentEndpoint;
+  @Getter private final URL endpointUrl;
   @Getter private final boolean prioritySamplingEnabled;
   @Getter private final boolean traceResolverEnabled;
   @Getter private final Map<String, String> serviceMapping;
@@ -148,7 +148,7 @@ public class Config {
             TRACE_AGENT_PORT, getIntegerSettingFromEnvironment(AGENT_PORT_LEGACY, null));
     agentPath = getSettingFromEnvironment(AGENT_PATH, null);
     agentUseHTTPS = getBooleanSettingFromEnvironment(AGENT_USE_HTTPS, null);
-    agentEndpoint = getURLSettingFromEnvironment(AGENT_ENDPOINT, DEFAULT_AGENT_ENDPOINT);
+    endpointUrl = getURLSettingFromEnvironment(ENDPOINT_URL, DEFAULT_AGENT_ENDPOINT);
     prioritySamplingEnabled =
         getBooleanSettingFromEnvironment(PRIORITY_SAMPLING, DEFAULT_PRIORITY_SAMPLING_ENABLED);
     traceResolverEnabled =
@@ -205,7 +205,7 @@ public class Config {
             getPropertyIntegerValue(properties, AGENT_PORT_LEGACY, parent.agentPort));
     agentPath = properties.getProperty(AGENT_PATH, parent.agentPath);
     agentUseHTTPS = getPropertyBooleanValue(properties, AGENT_USE_HTTPS, parent.agentUseHTTPS);
-    agentEndpoint = getPropertyURLValue(properties, AGENT_ENDPOINT, parent.agentEndpoint);
+    endpointUrl = getPropertyURLValue(properties, ENDPOINT_URL, parent.endpointUrl);
     prioritySamplingEnabled =
         getPropertyBooleanValue(properties, PRIORITY_SAMPLING, parent.prioritySamplingEnabled);
     traceResolverEnabled =
@@ -252,28 +252,28 @@ public class Config {
     if (agentHost != null) {
       return agentHost;
     }
-    return agentEndpoint == null ? null : agentEndpoint.getHost();
+    return endpointUrl == null ? null : endpointUrl.getHost();
   }
 
   public Integer getAgentPort() {
     if (agentPort != null) {
       return agentPort;
     }
-    return agentEndpoint == null ? null : agentEndpoint.getPort();
+    return endpointUrl == null ? null : endpointUrl.getPort();
   }
 
   public Boolean getAgentUseHTTPS() {
     if (agentUseHTTPS != null) {
       return agentUseHTTPS;
     }
-    return agentEndpoint == null ? null : "https".equals(agentEndpoint.getProtocol());
+    return endpointUrl == null ? null : "https".equals(endpointUrl.getProtocol());
   }
 
   public String getAgentPath() {
     if (agentPath != null) {
       return agentPath;
     }
-    return agentEndpoint == null ? null : agentEndpoint.getPath();
+    return endpointUrl == null ? null : endpointUrl.getPath();
   }
 
   public Map<String, String> getMergedSpanTags() {

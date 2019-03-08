@@ -18,9 +18,9 @@ public final class Constants {
     "datadog.slf4j",
     "datadog.trace.bootstrap",
     "datadog.trace.api",
-    "signalfx.trace.api",
+    "com.signalfx.tracing.api",
     "datadog.trace.context",
-    "signalfx.trace.context"
+    "com.signalfx.tracing.context"
   };
 
   // This is used in IntegrationTestUtils.java

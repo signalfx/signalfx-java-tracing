@@ -6,7 +6,7 @@ import org.junit.contrib.java.lang.system.EnvironmentVariables
 import org.junit.contrib.java.lang.system.RestoreSystemProperties
 import spock.lang.Specification
 
-import static datadog.trace.api.Config.AGENT_ENDPOINT
+import static datadog.trace.api.Config.ENDPOINT_URL
 import static datadog.trace.api.Config.AGENT_HOST
 import static datadog.trace.api.Config.AGENT_PATH
 import static datadog.trace.api.Config.AGENT_PORT_LEGACY
@@ -65,7 +65,7 @@ class ConfigTest extends Specification {
     config.getAgentPort() == 9080
     config.getAgentPath() == "/v1/trace"
     config.getAgentUseHTTPS() == false
-    config.agentEndpoint.toString() == "http://localhost:9080/v1/trace"
+    config.endpointUrl.toString() == "http://localhost:9080/v1/trace"
     config.prioritySamplingEnabled == false
     config.traceResolverEnabled == true
     config.serviceMapping == [:]
@@ -92,7 +92,7 @@ class ConfigTest extends Specification {
     System.setProperty(prefix + AGENT_HOST, "somehost")
     System.setProperty(prefix + TRACE_AGENT_PORT, "123")
     System.setProperty(prefix + AGENT_PATH, "/v2/trace")
-    System.setProperty(prefix + AGENT_ENDPOINT, "https://example.com/")
+    System.setProperty(prefix + ENDPOINT_URL, "https://example.com/")
     System.setProperty(prefix + AGENT_PORT_LEGACY, "456")
     System.setProperty(prefix + PRIORITY_SAMPLING, "false")
     System.setProperty(prefix + TRACE_RESOLVER_ENABLED, "false")
@@ -161,13 +161,13 @@ class ConfigTest extends Specification {
 
   def "malformed endpoint url fails"() {
     setup:
-    System.setProperty(PREFIX + AGENT_ENDPOINT, "aasdf\$!@\$%%asfkjj/aasdfsadf:")
+    System.setProperty(PREFIX + ENDPOINT_URL, "aasdf\$!@\$%%asfkjj/aasdfsadf:")
 
     when:
     def config = new Config()
 
     then:
-    config.agentEndpoint == null
+    config.endpointUrl == null
   }
 
   def "sys props override env vars"() {

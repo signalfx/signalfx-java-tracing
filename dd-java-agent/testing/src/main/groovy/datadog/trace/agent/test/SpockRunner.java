@@ -36,9 +36,9 @@ public class SpockRunner extends Sputnik {
     "datadog.slf4j",
     "datadog.trace.bootstrap",
     "datadog.trace.api",
-    "signalfx.trace.api",
+    "com.signalfx.tracing.api",
     "datadog.trace.context",
-    "signalfx.trace.context"
+    "com.signalfx.tracing.context"
   };
 
   private static final String[] TEST_BOOTSTRAP_PREFIXES;

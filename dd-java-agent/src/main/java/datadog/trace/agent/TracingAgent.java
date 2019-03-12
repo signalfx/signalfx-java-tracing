@@ -1,3 +1,4 @@
+// Modified by SignalFx
 /*
  * Copyright 2017 Red Hat, Inc. and/or its affiliates
  * and other contributors as indicated by the @author tags.
@@ -244,9 +245,9 @@ public class TracingAgent {
    */
   private static boolean isAppUsingCustomLogManager() {
     final boolean debugEnabled =
-        "debug".equalsIgnoreCase(System.getProperty("datadog.slf4j.simpleLogger.defaultLogLevel"));
+        "debug".equalsIgnoreCase(System.getProperty("signalfx.slf4j.simpleLogger.defaultLogLevel"));
 
-    final String tracerCustomLogManSysprop = "dd.app.customlogmanager";
+    final String tracerCustomLogManSysprop = "signalfx.app.customlogmanager";
     final String customLogManagerProp = System.getProperty(tracerCustomLogManSysprop);
     final String customLogManagerEnv =
         System.getenv(tracerCustomLogManSysprop.replace('.', '_').toUpperCase());

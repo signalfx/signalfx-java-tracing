@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.tooling;
 
 import java.lang.reflect.Method;
@@ -19,6 +20,6 @@ public class DDJavaAgentInfo {
       v = "unknown";
     }
     VERSION = v;
-    log.info("dd-java-agent - version: {}", v);
+    log.info("signalfx-java-agent - version: {}", v);
   }
 }

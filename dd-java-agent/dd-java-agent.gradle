@@ -108,7 +108,7 @@ dependencies {
 
 tasks.withType(Test).configureEach {
   jvmArgs "-Ddd.writer.type=LogWriter", "-Ddd.service.name=java-app"
-  jvmArgs "-Ddatadog.slf4j.simpleLogger.defaultLogLevel=debug"
+  jvmArgs "-Dsignalfx.slf4j.simpleLogger.defaultLogLevel=debug"
   jvmArgs "-Dorg.slf4j.simpleLogger.defaultLogLevel=debug"
 
   doFirst {

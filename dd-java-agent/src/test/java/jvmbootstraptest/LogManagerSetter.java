@@ -1,11 +1,12 @@
+// Modified by SignalFx
 package jvmbootstraptest;
 
 import java.util.logging.LogManager;
 
 public class LogManagerSetter {
   public static void main(final String... args) throws Exception {
-    if (System.getProperty("dd.app.customlogmanager") != null) {
-      if (Boolean.valueOf(System.getProperty("dd.app.customlogmanager"))) {
+    if (System.getProperty("signalfx.app.customlogmanager") != null) {
+      if (Boolean.valueOf(System.getProperty("signalfx.app.customlogmanager"))) {
         System.setProperty("java.util.logging.manager", CustomLogManager.class.getName());
         customAssert(
             LogManager.getLogManager().getClass(),

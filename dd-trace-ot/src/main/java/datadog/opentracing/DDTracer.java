@@ -268,8 +268,6 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
       log.debug("Loading decorator: {}", decorator.getClass().getSimpleName());
       addDecorator(decorator);
     }
-
-    log.info("New instance: {}", this);
   }
 
   @Override

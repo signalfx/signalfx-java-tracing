@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.api;
 
 /**
@@ -6,8 +7,8 @@ package datadog.trace.api;
  * <p>Intended for use with MDC frameworks.
  */
 public class CorrelationIdentifier {
-  private static final String TRACE_ID_KEY = "dd.trace_id";
-  private static final String SPAN_ID_KEY = "dd.span_id";
+  private static final String TRACE_ID_KEY = "signalfx.trace_id";
+  private static final String SPAN_ID_KEY = "signalfx.span_id";
 
   /** @return The trace-id key to use with datadog logs integration */
   public static String getTraceIdKey() {

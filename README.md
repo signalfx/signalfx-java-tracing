@@ -45,10 +45,9 @@ DD's repo) on a regular basis, especially after releases.
 
 # Supported libraries and frameworks
 
-*Bold* libraries are enabled out of the box and are fully supported.  Non-bold
-libraries are in beta and must be enabled by setting the property
-`-Dsfx.integration.NAME.enabled=true`, where `NAME` is the name given in the
-table below.
+_Italicized_ libraries are in beta and must be explictly enabled by setting the
+property `-Dsignalfx.integration.NAME.enabled=true`, where `NAME` is the name
+given in the table below.
 
 | Library | Versions Supported | Instrumentation Name(s) | Notes |
 | ---     | ---                | ---                     | ---   |
@@ -66,19 +65,21 @@ table below.
 | **JDBC API** | * | `jdbc` | |
 | **Jedis (Redis client)** | 1.4.0+ | `jedis` | |
 | **Lettuce (Redis Client)** | 5.0.0+ | `lettuce` | |
-| Jetty Server | 8.0.0+ | `jetty` | |
+| _Jetty Server_ | 8.0.0+ | `jetty` | |
 | **JMS Messaging** | * | `jms` | |
 | **JSP** | 7+ | `jsp` | |
 | **Kafka Client** | 0.11.0.0+ | `kafka` | |
+| _Java MDC_ | * | `-Dsignalfx.logs.injection=true` on Java invocation | Injects `signalfx.trace_id` and `signalfx.span_id` to MDC contexts |
 | **Mongo Client** | 3.1+ | `mongo` | |
 | **Mongo Async Client** | 3.3+ | `mongo` | |
 | **Netty Client and Server** | 4.0+ | `netty` | |
 | **OkHTTP Client** | 3.0+ | `okhttp` | |
 | **Play Web Framework** | 2.4+ | `play` | |
 | **RabbitMQ Client** | 2.7.0+ | `rabbitmq` | |
-| Ratpack | 1.4+ | `ratpack` | |
+| _Ratpack_ | 1.4+ | `ratpack` | |
+| **Reactor Core** | 3.1.0+ | `reactor-core` | |
 | **Java Servlet** | 2+ | `servlet` | |
-| Spark Java | 2.3+ | `sparkjava` | |
+| _Spark Java_ | 2.3+ | `sparkjava` | |
 | **Spring Web** | 4.0+ | `spring-web` | |
 | **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
 | **Memcached (SpyMemcached)** | 2.10.0+ | `spymemcached` | |

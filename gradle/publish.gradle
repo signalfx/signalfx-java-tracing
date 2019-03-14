@@ -96,7 +96,8 @@ if (!isRoot) {
   }
 
   signing {
-    required = isCI
+    required = !version.endsWith('SNAPSHOT')
+    useGpgCmd()
     sign publishing.publications.mavenJava
   }
 }

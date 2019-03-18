@@ -1,10 +1,7 @@
-// Modified by SignalFx
 # SignalFx Java Agent
 
 This is the SignalFx Java Agent, a JVM agent to automatically instrument your
-Java application to capture and report distributed traces to SignalFx. This is
-a fork of the [DataDog Java APM
-project](https://github.com/DataDog/dd-trace-java)
+Java application to capture and report distributed traces to SignalFx.
 
 The SignalFx Java Agent automatically configures an OpenTracing-compatible
 tracer to capture and export trace spans. It also installs this tracer
@@ -32,16 +29,6 @@ entire trace target URL with the `SIGNALFX_ENDPOINT_URL` envvar (default:
 See [our example app that uses
 this](https://github.com/signalfx/tracing-examples/tree/master/java-agent) for
 more details on how to use and configure the SignalFx Java Agent.
-
-
-## Versioning
-
-For now, the agent will be versioned in conjunction with the DataDog APM agent
-that it is based on, with a SignalFx-specific patch version at the end, of the
-form `-sfxN`, where `N` is the SignalFx patch starting at `0`.  For
-example, the DD APM agent version `0.20.0` would be initially released by us as
-`0.20.0-sfx0`.  We will attempt to merge in changes from the upstream (i.e.
-DD's repo) on a regular basis, especially after releases.
 
 # Supported libraries and frameworks
 
@@ -85,3 +72,15 @@ given in the table below.
 | **Memcached (SpyMemcached)** | 2.10.0+ | `spymemcached` | |
 | **Vertx Web** | 4.1.0+  | N/A | This works through the Netty instrumentation |
 
+# License and Versioning
+
+The SignalFx Java Agent for Tracing is released under the terms of the Apache
+Software License version 2.0. See [the license file](./LICENSE) for more details.
+
+SignalFx's Java agent is a fork of the [DataDog Java APM
+project](https://github.com/DataDog/dd-trace-java); for the time being, the agent
+will be versioned in conjunction with the DataDog APM agent that it is based on,
+with a SignalFx-specific patch version at the end, of the form `-sfxN`, where `N`
+is the SignalFx patch starting at `0`. For example, the DD APM agent version
+`0.20.0` would be initially released by us as `0.20.0-sfx0`.  We will attempt to
+merge in changes from the upstream on a regular basis, especially after releases.

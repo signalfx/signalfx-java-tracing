@@ -40,7 +40,7 @@ given in the table below.
 | ---     | ---                | ---                     | ---   |
 | **Akka HTTP** | 10.0.0+ | `akka-http`, `akka-http-server`, `akka-http-client` | |
 | **Apache HTTP Client** | 4.0+ | `httpclient` | Also supports the DropWizard HTTP Client that subclasses the Apache one |
-| **AWS SDK Client** | 1.10.33+ | `aws-sdk` | |
+| **AWS SDK Client** | 1.11.0+ | `aws-sdk` | |
 | **CouchBase Client** | 2.0.0+ | `couchbase` | |
 | **Cassandra (DataStax client)** | 2.3.0+ | `cassandra` | |
 | **DropWizard Views** | * | `dropwizard`, `dropwizard-view` | |

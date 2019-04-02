@@ -58,6 +58,10 @@ configurations {
 }
 
 shadowJar {
+  if (project.hasProperty('relocatedNettyPackage')) {
+    relocate 'io.netty', project.property('relocatedNettyPackage').toString()
+  }
+
   dependencies {
     exclude(project(':dd-java-agent:agent-bootstrap'))
     exclude(project(':dd-trace-api'))

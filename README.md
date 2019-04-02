@@ -59,7 +59,7 @@ given in the table below.
 | _Java MDC_ | * | `-Dsignalfx.logs.injection=true` on Java invocation | Injects `signalfx.trace_id` and `signalfx.span_id` to MDC contexts |
 | **Mongo Client** | 3.1+ | `mongo` | |
 | **Mongo Async Client** | 3.3+ | `mongo` | |
-| **Netty Client and Server** | 4.0+ | `netty` | |
+| **Netty Client and Server** | 4.0+ | `netty` | Nonstandard HTTP status code tagging w/ ```-Dsignalfx.instrumentation.netty.{client,server}.nonstandard.http.status.<code>=true``` to circumvent Status5xxDecorator |
 | **OkHTTP Client** | 3.0+ | `okhttp` | |
 | **Play Web Framework** | 2.4+ | `play` | |
 | **RabbitMQ Client** | 2.7.0+ | `rabbitmq` | |

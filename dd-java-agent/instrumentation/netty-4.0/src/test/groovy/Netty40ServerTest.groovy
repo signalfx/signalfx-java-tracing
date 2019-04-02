@@ -1,8 +1,10 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
+import datadog.trace.instrumentation.netty40.NettyUtils
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -133,6 +135,63 @@ class Netty40ServerTest extends AgentTestRunner {
     HttpResponseStatus.OK                    | "GET /" | false
     HttpResponseStatus.NOT_FOUND             | "404"   | false
     HttpResponseStatus.INTERNAL_SERVER_ERROR | "GET /" | true
+  }
+
+  def "test #responseCode statusCode rewrite #rewrite"() {
+    setup:
+    EventLoopGroup eventLoopGroup = new NioEventLoopGroup()
+    int port = PortUtils.randomOpenPort()
+    initializeServer(eventLoopGroup, port, new HttpServerCodec(), responseCode)
+
+    def property = "signalfx.${NettyUtils.NETTY_REWRITTEN_SERVER_STATUS_PREFIX}${responseCode.code()}"
+    System.getProperties().setProperty(property, "$rewrite")
+
+    def request = new Request.Builder().url("http://localhost:$port/").get().build()
+    def response = client.newCall(request).execute()
+
+    expect:
+    response.code() == responseCode.code()
+
+    and:
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          tags {
+            "$Tags.COMPONENT.key" "netty"
+            "$Tags.HTTP_METHOD.key" "GET"
+            if (rewrite) {
+              "$Tags.HTTP_STATUS.key" null
+              "$NettyUtils.ORIG_HTTP_STATUS.key" responseCode.code()
+            } else {
+              "$Tags.HTTP_STATUS.key" responseCode.code()
+            }
+            "$Tags.HTTP_URL.key" "http://localhost:$port/"
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_PORT.key" Integer
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
+            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
+            if (error) {
+              tag("error", true)
+            }
+            defaultTags()
+          }
+        }
+      }
+    }
+
+    cleanup:
+    eventLoopGroup.shutdownGracefully()
+
+    where:
+    responseCode                             | error | rewrite
+    HttpResponseStatus.OK                    | false | false
+    HttpResponseStatus.OK                    | false | true
+    HttpResponseStatus.INTERNAL_SERVER_ERROR | true  | false
+    HttpResponseStatus.INTERNAL_SERVER_ERROR | false | true
+    HttpResponseStatus.BAD_GATEWAY           | true  | false
+    HttpResponseStatus.BAD_GATEWAY           | false | true
+    HttpResponseStatus.SERVICE_UNAVAILABLE   | true  | false
+    HttpResponseStatus.SERVICE_UNAVAILABLE   | false | true
   }
 
   def initializeServer(eventLoopGroup, port, handlers, responseCode) {

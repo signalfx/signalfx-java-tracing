@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.netty40.server;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.HOST;

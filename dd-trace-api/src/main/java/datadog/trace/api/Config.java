@@ -316,11 +316,11 @@ public class Config {
   }
 
   public static String getSettingFromEnvironment(final String name, final String defaultValue) {
-    String value = getSettingFromEnvironment(PREFIX, name, null);
+    String value = getSettingFromEnvironment(SIGNALFX_PREFIX, name, null);
     if (value == null) {
-      // Let the SignalFx prefix act as a fallback so we support both for testing/migration
+      // Let the original prefix act as a fallback so we support both for testing/migration
       // purposes.
-      value = getSettingFromEnvironment(SIGNALFX_PREFIX, name, null);
+      value = getSettingFromEnvironment(PREFIX, name, null);
     }
     return value == null ? defaultValue : value;
   }

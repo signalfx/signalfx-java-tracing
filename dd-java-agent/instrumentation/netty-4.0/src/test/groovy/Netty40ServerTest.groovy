@@ -1,10 +1,10 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
-import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
-import datadog.trace.instrumentation.netty40.NettyHacks
+import datadog.trace.instrumentation.netty40.NettyUtils
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
@@ -137,15 +137,14 @@ class Netty40ServerTest extends AgentTestRunner {
     HttpResponseStatus.INTERNAL_SERVER_ERROR | "GET /" | true
   }
 
-  def "test #responseCode status_code rewrite"() {
+  def "test #responseCode statusCode rewrite #rewrite"() {
     setup:
     EventLoopGroup eventLoopGroup = new NioEventLoopGroup()
     int port = PortUtils.randomOpenPort()
     initializeServer(eventLoopGroup, port, new HttpServerCodec(), responseCode)
 
-    System.getProperties().setProperty("dd." +
-      NettyHacks.NETTY_REWRITEN_STATUS_PREFIX +
-      HttpResponseStatus.SERVICE_UNAVAILABLE.code(), "true")
+    def property = "signalfx.${NettyUtils.NETTY_REWRITTEN_SERVER_STATUS_PREFIX}${responseCode.code()}"
+    System.getProperties().setProperty(property, "$rewrite")
 
     def request = new Request.Builder().url("http://localhost:$port/").get().build()
     def response = client.newCall(request).execute()
@@ -162,7 +161,7 @@ class Netty40ServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "GET"
             if (rewrite) {
               "$Tags.HTTP_STATUS.key" null
-              "$NettyHacks.ORIG_HTTP_STATUS.key" responseCode.code()
+              "$NettyUtils.ORIG_HTTP_STATUS.key" responseCode.code()
             } else {
               "$Tags.HTTP_STATUS.key" responseCode.code()
             }
@@ -184,10 +183,15 @@ class Netty40ServerTest extends AgentTestRunner {
     eventLoopGroup.shutdownGracefully()
 
     where:
-    responseCode                             | error  | rewrite
-    HttpResponseStatus.INTERNAL_SERVER_ERROR | true   | false
-    HttpResponseStatus.BAD_GATEWAY           | false  | false
-    HttpResponseStatus.SERVICE_UNAVAILABLE   | false  | true
+    responseCode                             | error | rewrite
+    HttpResponseStatus.OK                    | false | false
+    HttpResponseStatus.OK                    | false | true
+    HttpResponseStatus.INTERNAL_SERVER_ERROR | true  | false
+    HttpResponseStatus.INTERNAL_SERVER_ERROR | false | true
+    HttpResponseStatus.BAD_GATEWAY           | true  | false
+    HttpResponseStatus.BAD_GATEWAY           | false | true
+    HttpResponseStatus.SERVICE_UNAVAILABLE   | true  | false
+    HttpResponseStatus.SERVICE_UNAVAILABLE   | false | true
   }
 
   def initializeServer(eventLoopGroup, port, handlers, responseCode) {

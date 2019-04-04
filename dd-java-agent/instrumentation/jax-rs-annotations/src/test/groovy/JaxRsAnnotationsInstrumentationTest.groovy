@@ -1,5 +1,6 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
+import com.signalfx.tracing.api.TraceSetting
 import io.opentracing.tag.Tags
 
 import javax.ws.rs.DELETE
@@ -124,6 +125,66 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
     new ChildClassWithPath() {
       void call() {}
     }   | _
+  }
+
+  def "Setting allowedExceptions doesn't tag error"() {
+    setup:
+    try {
+      obj.call()
+    } catch (Throwable exc) {
+    }
+
+    expect:
+    assertTraces(1) {
+      trace(0, 2) {
+        span(0) {
+          operationName "GET /"
+          parent()
+          tags {
+            "$Tags.SPAN_KIND.key" "$Tags.SPAN_KIND_SERVER"
+            "$Tags.COMPONENT.key" "jax-rs"
+            "$Tags.HTTP_URL.key" "/"
+            "$Tags.HTTP_METHOD.key" "GET"
+            defaultTags()
+          }
+        }
+        span(1) {
+          operationName "${className}.call"
+          resourceName "${className}.call"
+          childOf span(0)
+          tags {
+            "$Tags.COMPONENT.key" "jax-rs-controller"
+            if (error) {
+              tag('error', true)
+              tag('error.stack', String)
+              tag('error.type', errorType)
+            }
+            defaultTags()
+          }
+        }
+      }
+    }
+
+    where:
+    error | errorType                           | obj
+    false | java.lang.NullPointerException.name | new Jax() {
+      @GET
+      @TraceSetting(allowedExceptions = [java.lang.NullPointerException])
+      @Path("/")
+      void call() throws Exception {
+        throw new java.lang.NullPointerException()
+      }
+    }
+    true  | Exception.name                      | new Jax() {
+      @GET
+      @TraceSetting(allowedExceptions = [java.lang.IncompatibleClassChangeError])
+      @Path("/")
+      void call() throws Exception {
+        throw new Exception()
+      }
+    }
+
+    className = getName(obj.class)
   }
 
   interface Jax {

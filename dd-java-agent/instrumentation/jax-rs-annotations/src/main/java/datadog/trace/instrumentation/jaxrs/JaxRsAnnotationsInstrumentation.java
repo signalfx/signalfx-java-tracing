@@ -9,6 +9,7 @@ import static net.bytebuddy.matcher.ElementMatchers.isAnnotatedWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 import com.google.auto.service.AutoService;
+import com.signalfx.tracing.api.TraceSetting;
 import datadog.trace.agent.tooling.Instrumenter;
 import io.opentracing.Scope;
 import io.opentracing.Span;
@@ -18,6 +19,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import javax.ws.rs.HttpMethod;
@@ -155,11 +157,25 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void stopSpan(
-        @Advice.Enter final Stack<Scope> scopes, @Advice.Thrown final Throwable throwable) {
+        @Advice.Origin final Method method,
+        @Advice.Enter final Stack<Scope> scopes,
+        @Advice.Thrown final Throwable throwable) {
       if (throwable != null) {
-        final Span span = scopes.peek().span();
-        Tags.ERROR.set(span, true);
-        span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
+        List<Class> allowedExceptions = TraceSetting.Annotated.getAllowedExceptions(method);
+
+        Boolean setErrorTag = true;
+        for (Class allowed : allowedExceptions) {
+          if (allowed.isInstance(throwable)) {
+            setErrorTag = false;
+            break;
+          }
+        }
+
+        if (setErrorTag) {
+          final Span span = scopes.peek().span();
+          Tags.ERROR.set(span, true);
+          span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
+        }
       }
 
       while (!scopes.isEmpty()) {

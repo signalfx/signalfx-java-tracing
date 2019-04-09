@@ -1,3 +1,4 @@
+//Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
@@ -18,10 +19,6 @@ import javax.servlet.http.HttpServletResponse
 import java.util.concurrent.atomic.AtomicBoolean
 
 class JettyHandlerTest extends AgentTestRunner {
-
-  static {
-    System.setProperty("dd.integration.jetty.enabled", "true")
-  }
 
   int port = PortUtils.randomOpenPort()
   Server server = new Server(port)

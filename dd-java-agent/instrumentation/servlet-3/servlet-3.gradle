@@ -1,3 +1,4 @@
+//Modified by SignalFx
 muzzle {
   pass {
     group = "javax.servlet"
@@ -46,4 +47,8 @@ dependencies {
   latestDepTestCompile group: 'org.eclipse.jetty', name: 'jetty-servlet', version: '+'
   latestDepTestCompile group: 'org.apache.tomcat.embed', name: 'tomcat-embed-core', version: '+'
   latestDepTestCompile group: 'org.apache.tomcat.embed', name: 'tomcat-embed-jasper', version: '+'
+}
+
+tasks.withType(Test).configureEach {
+  jvmArgs "-Dsignalfx.integration.jetty.enabled=false"
 }

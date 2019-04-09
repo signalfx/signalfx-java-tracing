@@ -1,3 +1,4 @@
+//Modified by SignalFx
 package datadog.trace.instrumentation.jetty8;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -20,11 +21,6 @@ public final class HandlerInstrumentation extends Instrumenter.Default {
 
   public HandlerInstrumentation() {
     super("jetty", "jetty-8");
-  }
-
-  @Override
-  public boolean defaultEnabled() {
-    return false;
   }
 
   @Override

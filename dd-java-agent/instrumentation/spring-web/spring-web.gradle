@@ -1,3 +1,4 @@
+// Modified by SignalFx
 muzzle {
   pass {
     group = 'org.springframework'
@@ -9,7 +10,26 @@ muzzle {
 
 apply from: "${rootDir}/gradle/java.gradle"
 
+apply plugin: 'org.unbroken-dome.test-sets'
+
+testSets {
+  v40Test {
+    dirName = 'v40Test'
+  }
+  latestv40DepTest { extendsFrom v40Test }
+
+  v50Test {
+    dirName = 'v50Test'
+  }
+  latestv50DepTest { extendsFrom v50Test }
+
+  latestDepTest {
+    extendsFrom latestv50DepTest
+  }
+}
+
 dependencies {
+  compileOnly(group: 'org.springframework', name: 'spring-web', version: '4.0.0.RELEASE')
   compileOnly group: 'org.springframework', name: 'spring-webmvc', version: '4.0.0.RELEASE'
   compileOnly group: 'javax.servlet', name: 'javax.servlet-api', version: '3.1.0'
 //  compileOnly group: 'org.springframework', name: 'spring-webmvc', version: '2.5.6'
@@ -22,10 +42,9 @@ dependencies {
   annotationProcessor deps.autoservice
   implementation deps.autoservice
 
-  testCompile(project(':dd-java-agent:testing')){
-    exclude(module: 'jetty-server') // incompatable servlet api
+  testCompile(project(':dd-java-agent:testing')) {
+    exclude(module: 'servlet-api')
   }
-
   // Include servlet instrumentation for verifying the tomcat requests
   testCompile project(':dd-java-agent:instrumentation:servlet-3')
 
@@ -37,4 +56,37 @@ dependencies {
   testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: '1.5.17.RELEASE'
   testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '1.5.17.RELEASE'
   testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-security', version: '1.5.17.RELEASE'
+
+  v40TestCompile(project(':dd-java-agent:testing')) {
+    exclude(module: 'servlet-api')
+  }
+  v40TestCompile project(':dd-java-agent:instrumentation:servlet-3')
+  v40TestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: '1.5.17.RELEASE'
+  v40TestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '1.5.17.RELEASE'
+  v40TestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-security', version: '1.5.17.RELEASE'
+  v40TestCompile group: 'javax.validation', name: 'validation-api', version: '1.1.0.Final'
+  v40TestCompile group: 'org.hibernate', name: 'hibernate-validator', version: '5.4.2.Final'
+  v40TestCompile group: 'org.spockframework', name: 'spock-spring', version: "$versions.spock"
+
+  latestv40DepTestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: '1.+'
+  latestv40DepTestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '1.+'
+  latestv40DepTestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-security', version: '1.+'
+
+  v50TestCompile(project(':dd-java-agent:testing')) {
+    exclude(module: 'servlet-api')
+  }
+  v50TestCompile project(':dd-java-agent:instrumentation:servlet-3')
+  v50TestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '2.0.0.RELEASE'
+  v50TestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: '2.0.0.RELEASE'
+  v50TestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-security', version: '2.0.0.RELEASE'
+  v50TestCompile group: 'javax.validation', name: 'validation-api', version: '1.1.0.Final'
+  v50TestCompile group: 'org.hibernate', name: 'hibernate-validator', version: '5.4.2.Final'
+  v50TestCompile group: 'org.spockframework', name: 'spock-spring', version: "$versions.spock"
+
+  latestv50DepTestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: '+'
+  latestv50DepTestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '+'
+  latestv50DepTestCompile group: 'org.springframework.boot', name: 'spring-boot-starter-security', version: '+'
 }
+
+test.dependsOn(v40Test, v50Test)
+latestDepTest.dependsOn(latestv40DepTest)

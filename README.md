@@ -67,7 +67,7 @@ given in the table below.
 | **Reactor Core** | 3.1.0+ | `reactor-core` | |
 | **Java Servlet** | 2+ | `servlet` | |
 | _Spark Java_ | 2.3+ | `sparkjava` | |
-| **Spring Web** | 4.0+ | `spring-web` | |
+| **Spring Web** | 4.0+ | `spring-web` | Includes DispatcherServlet, HandlerAdapter, and RestTemplate |
 | **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
 | **Memcached (SpyMemcached)** | 2.10.0+ | `spymemcached` | |
 | **Vertx Web** | 4.1.0+  | N/A | This works through the Netty instrumentation |

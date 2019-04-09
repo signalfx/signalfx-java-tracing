@@ -1,4 +1,4 @@
-//Modified by SignalFx
+// Modified by SignalFx
 package datadog.trace.instrumentation.jetty8;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;

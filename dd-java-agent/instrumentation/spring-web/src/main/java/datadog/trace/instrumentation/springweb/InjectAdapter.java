@@ -19,6 +19,6 @@ public class InjectAdapter implements TextMap {
 
   @Override
   public void put(String key, String value) {
-    httpHeaders.add(key, value);
+    httpHeaders.set(key, value);
   }
 }

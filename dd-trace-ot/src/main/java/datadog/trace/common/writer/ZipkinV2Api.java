@@ -52,18 +52,19 @@ public class ZipkinV2Api implements Api {
       out.close();
 
       final int responseCode = httpCon.getResponseCode();
+
+      final BufferedReader responseReader =
+          new BufferedReader(
+              new InputStreamReader(httpCon.getInputStream(), StandardCharsets.UTF_8));
+      final StringBuilder sb = new StringBuilder();
+
+      String line;
+      while ((line = responseReader.readLine()) != null) {
+        sb.append(line);
+      }
+      responseReader.close();
+
       if (responseCode != 200) {
-        final BufferedReader responseReader =
-            new BufferedReader(
-                new InputStreamReader(httpCon.getInputStream(), StandardCharsets.UTF_8));
-        final StringBuilder sb = new StringBuilder();
-
-        String line;
-        while ((line = responseReader.readLine()) != null) {
-          sb.append(line);
-        }
-        responseReader.close();
-
         log.warn("Bad response code sending traces to {}: {}", traceEndpoint, sb.toString());
       } else {
         log.debug("Successfully sent {} traces", traces.size());

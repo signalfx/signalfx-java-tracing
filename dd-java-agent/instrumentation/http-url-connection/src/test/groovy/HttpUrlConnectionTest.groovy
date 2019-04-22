@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
@@ -6,7 +7,9 @@ import io.opentracing.tag.Tags
 import io.opentracing.util.GlobalTracer
 import org.springframework.web.client.RestTemplate
 import spock.lang.AutoCleanup
+import spock.lang.Requires
 import spock.lang.Shared
+import sun.net.www.protocol.https.HttpsURLConnectionImpl
 
 import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
@@ -464,5 +467,15 @@ class HttpUrlConnectionTest extends AgentTestRunner {
 
     where:
     renameService << [false, true]
+  }
+
+  // This test makes no sense on IBM JVM because there is no HttpsURLConnectionImpl class there
+  @Requires({ !System.getProperty("java.vm.name").contains("IBM J9 VM") })
+  def "Make sure we can load HttpsURLConnectionImpl"() {
+    when:
+    def instance = new HttpsURLConnectionImpl(null, null, null)
+
+    then:
+    instance != null
   }
 }

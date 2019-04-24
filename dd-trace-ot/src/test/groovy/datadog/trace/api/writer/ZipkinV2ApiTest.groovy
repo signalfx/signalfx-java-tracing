@@ -102,7 +102,7 @@ class ZipkinV2ApiTest extends Specification {
       "kind"    : null,
       "timestamp"    : 100,
     ])]
-    [[SpanFactory.newSpanOf(100L).setTag("span.kind", "CLIENT")]] | [new TreeMap<>([
+    [[SpanFactory.newSpanOf(100L).setTag("span.kind", "CliEnt")]] | [new TreeMap<>([
       "traceId" : "0000000000000001",
       "id"  :     "0000000000000001",
       "parentId": "0000000000000000",
@@ -113,7 +113,21 @@ class ZipkinV2ApiTest extends Specification {
                     "resource.name": "fakeResource"],
       "name"     : "fakeOperation",
       "localEndpoint": ["serviceName": "fakeService"],
-      "kind"    : "CLIENT",
+      "kind"    : "CliEnt",
+      "timestamp"    : 100,
+    ])]
+    [[SpanFactory.newSpanOf(100L).setTag("span.kind", "SerVeR")]] | [new TreeMap<>([
+      "traceId" : "0000000000000001",
+      "id"  :     "0000000000000001",
+      "parentId": "0000000000000000",
+      "duration" : 0,
+      "tags"     : ["thread.name": Thread.currentThread().getName(),
+                    "thread.id": "${Thread.currentThread().id}",
+                    "span.type": "fakeType",
+                    "resource.name": "fakeResource"],
+      "name"     : "fakeResource",
+      "localEndpoint": ["serviceName": "fakeService"],
+      "kind"    : "SerVeR",
       "timestamp"    : 100,
     ])]
   }

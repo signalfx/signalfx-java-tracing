@@ -49,8 +49,8 @@ public class JettyHandlerAdvice {
     final Span span = scope.span();
     Tags.COMPONENT.set(span, "jetty-handler");
     Tags.HTTP_METHOD.set(span, req.getMethod());
-    Tags.HTTP_URL.set(span, req.getRequestURL().toString());
     span.setTag(DDTags.RESOURCE_NAME, resourceName);
+    Tags.HTTP_URL.set(span, req.getRequestURL().toString());
     if (req.getUserPrincipal() != null) {
       span.setTag(DDTags.USER_NAME, req.getUserPrincipal().getName());
     }

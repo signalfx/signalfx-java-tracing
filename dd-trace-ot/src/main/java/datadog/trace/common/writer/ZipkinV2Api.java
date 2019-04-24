@@ -2,6 +2,7 @@ package datadog.trace.common.writer;
 
 import static io.opentracing.tag.Tags.SPAN_KIND;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -131,6 +132,8 @@ public class ZipkinV2Api implements Api {
       tagNode.put(DDTags.RESOURCE_NAME, span.getResourceName());
     }
 
+    updateFromResourceTag(spanNode, tagNode);
+
     return spanNode;
   }
 
@@ -153,6 +156,28 @@ public class ZipkinV2Api implements Api {
       }
     }
     return null;
+  }
+
+  /**
+   * In order to have more informative operation names for web frameworks, we take advantage of the
+   * URLAsResourceName-normalized resource name tag value, and update the operation name.
+   */
+  private void updateFromResourceTag(ObjectNode spanNode, ObjectNode tagNode) {
+    final JsonNode taggedResourceName = tagNode.get(DDTags.RESOURCE_NAME);
+    if (taggedResourceName == null) {
+      return;
+    }
+
+    final String resourceName = taggedResourceName.textValue();
+    if (Strings.isNullOrEmpty(resourceName)) {
+      return;
+    }
+
+    final String spanKind = spanNode.get("kind").textValue();
+    if (!Strings.isNullOrEmpty(spanKind)
+        && spanKind.toLowerCase().equals(Tags.SPAN_KIND_SERVER.toLowerCase())) {
+      spanNode.put("name", resourceName);
+    }
   }
 
   private static HttpURLConnection getHttpURLConnection(final String endpoint) throws IOException {

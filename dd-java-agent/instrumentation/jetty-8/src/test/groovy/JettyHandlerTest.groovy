@@ -56,7 +56,7 @@ class JettyHandlerTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "jetty.request"
-          resourceName "GET ${handler.class.name}"
+          resourceName "GET /"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           parent()
@@ -113,7 +113,7 @@ class JettyHandlerTest extends AgentTestRunner {
           span(0) {
             serviceName "unnamed-java-app"
             operationName "jetty.request"
-            resourceName "GET ${handler.class.name}"
+            resourceName "GET /"
           }
         }
       }
@@ -150,7 +150,7 @@ class JettyHandlerTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "jetty.request"
-          resourceName "GET ${handler.class.name}"
+          resourceName "GET /"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           parent()
@@ -172,7 +172,7 @@ class JettyHandlerTest extends AgentTestRunner {
           span(0) {
             serviceName "unnamed-java-app"
             operationName "jetty.request"
-            resourceName "GET ${handler.class.name}"
+            resourceName "GET /"
             spanType DDSpanTypes.HTTP_SERVER
             errored true
             parent()

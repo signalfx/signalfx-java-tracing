@@ -7,6 +7,8 @@ The SignalFx Java Agent automatically configures an OpenTracing-compatible
 tracer to capture and export trace spans. It also installs this tracer
 as the OpenTracing `GlobalTracer` to enable additional custom instrumentation.
 
+_The SignalFx Java Agent is designed to work with Java runtime version 8 or above._
+
 # Usage
 
 The SignalFx Java Agent uses a few environment variables for its configuration.

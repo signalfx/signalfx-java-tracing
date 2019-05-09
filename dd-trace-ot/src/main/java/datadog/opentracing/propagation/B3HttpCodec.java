@@ -44,19 +44,21 @@ public class B3HttpCodec implements Injector, Extractor {
       carrier.put(PARENT_SPAN_ID_KEY, Ids.idToHex(context.getParentId()));
     }
 
-    int ps = context.getSamplingPriority();
-    switch (ps) {
-      case PrioritySampling.USER_KEEP:
-        // Set the debug flag if the user has manually marked the span to keep
-        carrier.put(FLAGS_KEY, "1");
-        // We don't need to set sampled in this case since it is implied
-        break;
-      case PrioritySampling.SAMPLER_KEEP:
-        carrier.put(SAMPLED_KEY, "1");
-        break;
-      case PrioritySampling.SAMPLER_DROP:
-      case PrioritySampling.USER_DROP:
-        carrier.put(SAMPLED_KEY, "0");
+    if (context.lockSamplingPriority()) {
+      int ps = context.getSamplingPriority();
+      switch (ps) {
+        case PrioritySampling.USER_KEEP:
+          // Set the debug flag if the user has manually marked the span to keep
+          carrier.put(FLAGS_KEY, "1");
+          // We don't need to set sampled in this case since it is implied
+          break;
+        case PrioritySampling.SAMPLER_KEEP:
+          carrier.put(SAMPLED_KEY, "1");
+          break;
+        case PrioritySampling.SAMPLER_DROP:
+        case PrioritySampling.USER_DROP:
+          carrier.put(SAMPLED_KEY, "0");
+      }
     }
 
     for (final Map.Entry<String, String> entry : context.baggageItems()) {

@@ -15,6 +15,7 @@ import datadog.trace.api.Config;
 import datadog.trace.api.interceptor.MutableSpan;
 import datadog.trace.api.interceptor.TraceInterceptor;
 import datadog.trace.api.sampling.PrioritySampling;
+import datadog.trace.common.sampling.AllSampler;
 import datadog.trace.common.sampling.RateByServiceSampler;
 import datadog.trace.common.sampling.Sampler;
 import datadog.trace.common.writer.DDAgentWriter;
@@ -488,6 +489,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
       final DDSpan span = new DDSpan(timestampMicro, buildSpanContext());
       if (sampler instanceof RateByServiceSampler) {
         ((RateByServiceSampler) sampler).initializeSamplingPriority(span);
+      } else if (sampler instanceof AllSampler) {
+        ((AllSampler) sampler).initializeSamplingPriority(span);
       }
       return span;
     }

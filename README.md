@@ -52,6 +52,7 @@ given in the table below.
 | **Hystrix** | 1.4.0+ | `hystrix` | |
 | **JAX-RS Client** | 2.0.0+ | `jaxrs` | Also supports DropWizard client 0.8.0+ |
 | **JDBC API** | * | `jdbc` | |
+| **Jersey** | 2.1+ | `jersey` | In tandem with JAX-RS Annotations |
 | **Jedis (Redis client)** | 1.4.0+ | `jedis` | |
 | **Lettuce (Redis Client)** | 5.0.0+ | `lettuce` | |
 | **Jetty Server** | 8.0.0+ | `jetty` | |

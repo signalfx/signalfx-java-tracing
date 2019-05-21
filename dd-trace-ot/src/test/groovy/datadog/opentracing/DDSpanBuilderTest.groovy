@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing
 
 import datadog.opentracing.propagation.ExtractedContext
@@ -412,6 +413,8 @@ class DDSpanBuilderTest extends Specification {
       (DDTags.THREAD_ID)       : Thread.currentThread().getId(),
       (Config.RUNTIME_ID_TAG)  : config.getRuntimeId(),
       (Config.LANGUAGE_TAG_KEY): Config.LANGUAGE_TAG_VALUE,
+      (Config.TRACING_LIBRARY_KEY): Config.TRACING_LIBRARY_VALUE,
+      (Config.TRACING_VERSION_KEY): Config.TRACING_VERSION_VALUE
     ]
 
     cleanup:

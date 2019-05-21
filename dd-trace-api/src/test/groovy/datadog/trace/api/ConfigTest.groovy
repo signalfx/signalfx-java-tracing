@@ -23,6 +23,10 @@ import static datadog.trace.api.Config.JMX_FETCH_STATSD_PORT
 import static datadog.trace.api.Config.JMX_TAGS
 import static datadog.trace.api.Config.LANGUAGE_TAG_KEY
 import static datadog.trace.api.Config.LANGUAGE_TAG_VALUE
+import static datadog.trace.api.Config.TRACING_LIBRARY_KEY
+import static datadog.trace.api.Config.TRACING_LIBRARY_VALUE
+import static datadog.trace.api.Config.TRACING_VERSION_KEY
+import static datadog.trace.api.Config.TRACING_VERSION_VALUE
 import static datadog.trace.api.Config.PARTIAL_FLUSH_MIN_SPANS
 import static datadog.trace.api.Config.PREFIX
 import static datadog.trace.api.Config.PRIORITY_SAMPLING
@@ -216,7 +220,7 @@ class ConfigTest extends Specification {
     config.prioritySamplingEnabled == false
     config.traceResolverEnabled == true
     config.serviceMapping == [:]
-    config.mergedSpanTags == [:]
+    config.mergedSpanTags == [(TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE, (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
     config.headerTags == [:]
     config.httpClientSplitByDomain == false
   }

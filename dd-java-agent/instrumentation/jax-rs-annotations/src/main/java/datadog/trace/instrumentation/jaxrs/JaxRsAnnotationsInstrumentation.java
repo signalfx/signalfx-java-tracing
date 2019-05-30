@@ -2,6 +2,7 @@
 package datadog.trace.instrumentation.jaxrs;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.instrumentation.jaxrs.JaxRsAnnotationsDecorator.DECORATE;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
@@ -15,15 +16,11 @@ import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.Path;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -44,6 +41,13 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
   }
 
   @Override
+  public String[] helperClassNames() {
+    return new String[] {
+      "datadog.trace.agent.decorator.BaseDecorator", packageName + ".JaxRsAnnotationsDecorator",
+    };
+  }
+
+  @Override
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
     return singletonMap(
         isAnnotatedWith(
@@ -61,45 +65,6 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Stack<Scope> nameSpan(@Advice.Origin final Method method) {
-
-      // TODO: do we need caching for this?
-      final LinkedList<Path> paths = new LinkedList<>();
-      Class<?> target = method.getDeclaringClass();
-      while (target != Object.class) {
-        final Path annotation = target.getAnnotation(Path.class);
-        if (annotation != null) {
-          paths.push(annotation);
-        }
-        target = target.getSuperclass();
-      }
-      final Path methodPath = method.getAnnotation(Path.class);
-      if (methodPath != null) {
-        paths.add(methodPath);
-      }
-      String httpMethod = null;
-      for (final Annotation ann : method.getDeclaredAnnotations()) {
-        if (ann.annotationType().getAnnotation(HttpMethod.class) != null) {
-          httpMethod = ann.annotationType().getSimpleName();
-        }
-      }
-
-      final StringBuilder resourceNameBuilder = new StringBuilder();
-      if (httpMethod != null) {
-        resourceNameBuilder.append(httpMethod);
-        resourceNameBuilder.append(" ");
-      }
-
-      final StringBuilder urlBuilder = new StringBuilder();
-      Path last = null;
-      for (final Path path : paths) {
-        if (!path.value().startsWith("/") && !(last != null && last.value().endsWith("/"))) {
-          resourceNameBuilder.append("/");
-          urlBuilder.append("/");
-        }
-        resourceNameBuilder.append(path.value());
-        urlBuilder.append(path.value());
-        last = path;
-      }
 
       final Class<?> clazz = method.getDeclaringClass();
       final String methodName = method.getName();
@@ -125,33 +90,14 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
         scopeStack.push(parentScope);
       }
 
-      Span span = parentScope.span();
-      Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_SERVER);
-      Tags.COMPONENT.set(span, "jax-rs");
-
-      final String resourceName = resourceNameBuilder.toString().trim();
-      if (!resourceName.isEmpty()) {
-        span.setOperationName(resourceName);
-      }
-
-      final String url = urlBuilder.toString().trim();
-      if (!url.isEmpty()) {
-        Tags.HTTP_URL.set(span, url);
-      }
-
-      if (httpMethod != null) {
-        Tags.HTTP_METHOD.set(span, httpMethod);
-      }
+      // Rename the parent span according to the path represented by these annotations.
+      DECORATE.updateParent(parentScope, method);
 
       // Now create a span representing the method execution.
-
-      final Scope controllerScope =
-          GlobalTracer.get()
-              .buildSpan(operationName)
-              .withTag(Tags.COMPONENT.getKey(), "jax-rs-controller")
-              .startActive(true);
-
+      final Scope controllerScope = GlobalTracer.get().buildSpan(operationName).startActive(true);
       scopeStack.push(controllerScope);
+      DECORATE.afterStart(controllerScope);
+
       return scopeStack;
     }
 

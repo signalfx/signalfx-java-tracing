@@ -1,7 +1,10 @@
 package datadog.trace.agent.decorator
 
+import datadog.trace.api.Config
 import io.opentracing.Span
 import io.opentracing.tag.Tags
+
+import static datadog.trace.agent.test.utils.TraceUtils.withConfigOverride
 
 class HttpServerDecoratorTest extends ServerDecoratorTest {
 
@@ -17,14 +20,71 @@ class HttpServerDecoratorTest extends ServerDecoratorTest {
     then:
     if (req) {
       1 * span.setTag(Tags.HTTP_METHOD.key, "test-method")
-      1 * span.setTag(Tags.HTTP_URL.key, "test-url")
-      1 * span.setTag(Tags.PEER_HOSTNAME.key, "test-host")
-      1 * span.setTag(Tags.PEER_PORT.key, 555)
+      1 * span.setTag(Tags.HTTP_URL.key, url)
     }
     0 * _
 
     where:
-    req << [null, [method: "test-method", url: "test-url", host: "test-host", port: 555]]
+    req                                                                    | url
+    null                                                                   | _
+    [method: "test-method", url: URI.create("http://test-url?some=query")] | "http://test-url/"
+    [method: "test-method", url: URI.create("http://a:80/")]               | "http://a/"
+    [method: "test-method", url: URI.create("https://10.0.0.1:443")]       | "https://10.0.0.1/"
+    [method: "test-method", url: URI.create("https://localhost:0/1/")]     | "https://localhost/1/"
+    [method: "test-method", url: URI.create("http://123:8080/some/path")]  | "http://123:8080/some/path"
+  }
+
+  def "test url handling"() {
+    setup:
+    def decorator = newDecorator()
+
+    when:
+    decorator.onRequest(span, req)
+
+    then:
+    if (expected) {
+      1 * span.setTag(Tags.HTTP_URL.key, expected)
+    }
+    1 * span.setTag(Tags.HTTP_METHOD.key, null)
+    0 * _
+
+    where:
+    url                                  | expected
+    null                                 | null
+    ""                                   | "/"
+    "/path?query"                        | "/path"
+    "https://host:0"                     | "https://host/"
+    "https://host/path"                  | "https://host/path"
+    "http://host:99/path?query#fragment" | "http://host:99/path"
+
+    req = [url: url == null ? null : new URI(url)]
+  }
+
+  def "test onConnection"() {
+    setup:
+    def decorator = newDecorator()
+
+    when:
+    decorator.onConnection(span, conn)
+
+    then:
+    if (conn) {
+      1 * span.setTag(Tags.PEER_HOSTNAME.key, "test-host")
+      1 * span.setTag(Tags.PEER_PORT.key, 555)
+      if (ipv4) {
+        1 * span.setTag(Tags.PEER_HOST_IPV4.key, "10.0.0.1")
+      } else if (ipv4 != null) {
+        1 * span.setTag(Tags.PEER_HOST_IPV6.key, "3ffe:1900:4545:3:200:f8ff:fe21:67cf")
+      }
+    }
+    0 * _
+
+    where:
+    ipv4  | conn
+    null  | null
+    null  | [host: "test-host", ip: null, port: 555]
+    true  | [host: "test-host", ip: "10.0.0.1", port: 555]
+    false | [host: "test-host", ip: "3ffe:1900:4545:3:200:f8ff:fe21:67cf", port: 555]
   }
 
   def "test onResponse"() {
@@ -32,7 +92,9 @@ class HttpServerDecoratorTest extends ServerDecoratorTest {
     def decorator = newDecorator()
 
     when:
-    decorator.onResponse(span, resp)
+    withConfigOverride(Config.HTTP_SERVER_ERROR_STATUSES, "$errorRange") {
+      decorator.onResponse(span, resp)
+    }
 
     then:
     if (status) {
@@ -44,15 +106,17 @@ class HttpServerDecoratorTest extends ServerDecoratorTest {
     0 * _
 
     where:
-    status | error | resp
-    200    | false | [status: 200]
-    399    | false | [status: 399]
-    400    | false | [status: 400]
-    499    | false | [status: 499]
-    500    | true  | [status: 500]
-    600    | true  | [status: 600]
-    null   | false | [status: null]
-    null   | false | null
+    status | error | errorRange | resp
+    200    | false | null       | [status: 200]
+    399    | false | null       | [status: 399]
+    400    | false | null       | [status: 400]
+    404    | true  | "404"      | [status: 404]
+    404    | true  | "400-500"  | [status: 404]
+    499    | false | null       | [status: 499]
+    500    | true  | null       | [status: 500]
+    600    | false | null       | [status: 600]
+    null   | false | null       | [status: null]
+    null   | false | null       | null
   }
 
   def "test assert null span"() {
@@ -74,7 +138,7 @@ class HttpServerDecoratorTest extends ServerDecoratorTest {
 
   @Override
   def newDecorator() {
-    return new HttpServerDecorator<Map, Map>() {
+    return new HttpServerDecorator<Map, Map, Map>() {
       @Override
       protected String[] instrumentationNames() {
         return ["test1", "test2"]
@@ -91,17 +155,22 @@ class HttpServerDecoratorTest extends ServerDecoratorTest {
       }
 
       @Override
-      protected String url(Map m) {
+      protected URI url(Map m) {
         return m.url
       }
 
       @Override
-      protected String hostname(Map m) {
+      protected String peerHostname(Map m) {
         return m.host
       }
 
       @Override
-      protected Integer port(Map m) {
+      protected String peerHostIP(Map m) {
+        return m.ip
+      }
+
+      @Override
+      protected Integer peerPort(Map m) {
         return m.port
       }
 

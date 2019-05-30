@@ -1,166 +1,174 @@
+// Modified by SignalFx
 package datadog.opentracing.propagation;
+
+import static datadog.opentracing.propagation.HttpCodec.ZERO;
+import static datadog.opentracing.propagation.HttpCodec.validateUInt64BitsID;
 
 import com.google.common.base.Strings;
 import datadog.opentracing.DDSpanContext;
 import datadog.trace.api.sampling.PrioritySampling;
-import datadog.trace.common.util.Ids;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.TextMap;
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * A codec designed for B3 HTTP transport via headers
+ * A codec designed for HTTP transport via headers using B3 headers
  *
- * <p>Spec is at https://github.com/openzipkin/b3-propagation
+ * <p>TODO: there is fair amount of code duplication between DatadogHttpCodec and this class,
+ * especially in part where TagContext is handled. We may want to refactor that and avoid special
+ * handling of TagContext in other places (i.e. CompoundExtractor).
  */
 @Slf4j
-public class B3HttpCodec implements Injector, Extractor {
-
-  // uint 64 bits max value, 2^64 - 1
-  static final BigInteger BIG_INTEGER_UINT64_MAX =
-      new BigInteger("2").pow(64).subtract(BigInteger.ONE);
+class B3HttpCodec {
 
   private static final String OT_BAGGAGE_PREFIX = "ot-baggage-";
   private static final String TRACE_ID_KEY = "x-b3-traceid";
   private static final String SPAN_ID_KEY = "x-b3-spanid";
   private static final String PARENT_SPAN_ID_KEY = "x-b3-parentspanid";
-  private static final String SAMPLED_KEY = "x-b3-sampled";
+  private static final String SAMPLING_PRIORITY_KEY = "x-b3-sampled";
   private static final String FLAGS_KEY = "x-b3-flags";
+  private static final int HEX_RADIX = 16;
 
-  public B3HttpCodec() {}
-
-  @Override
-  public void inject(final DDSpanContext context, final TextMap carrier) {
-    carrier.put(TRACE_ID_KEY, Ids.idToHex(context.getTraceId()));
-    carrier.put(SPAN_ID_KEY, Ids.idToHex(context.getSpanId()));
-    if (!Strings.isNullOrEmpty(context.getParentId())) {
-      carrier.put(PARENT_SPAN_ID_KEY, Ids.idToHex(context.getParentId()));
-    }
-
-    if (context.lockSamplingPriority()) {
-      int ps = context.getSamplingPriority();
-      switch (ps) {
-        case PrioritySampling.USER_KEEP:
-          // Set the debug flag if the user has manually marked the span to keep
-          carrier.put(FLAGS_KEY, "1");
-          // We don't need to set sampled in this case since it is implied
-          break;
-        case PrioritySampling.SAMPLER_KEEP:
-          carrier.put(SAMPLED_KEY, "1");
-          break;
-        case PrioritySampling.SAMPLER_DROP:
-        case PrioritySampling.USER_DROP:
-          carrier.put(SAMPLED_KEY, "0");
-      }
-    }
-
-    for (final Map.Entry<String, String> entry : context.baggageItems()) {
-      carrier.put(OT_BAGGAGE_PREFIX + entry.getKey(), encode(entry.getValue()));
-    }
-    log.debug("{} - Parent context injected", context.getTraceId());
+  private B3HttpCodec() {
+    // This class should not be created. This also makes code coverage checks happy.
   }
 
-  @Override
-  public SpanContext extract(final TextMap carrier) {
-    Map<String, String> baggage = Collections.emptyMap();
-    Map<String, String> tags = Collections.emptyMap();
-    String traceId = "0";
-    String spanId = "0";
-    int samplingPriority = PrioritySampling.UNSET;
+  public static class Injector implements HttpCodec.Injector {
 
-    for (final Map.Entry<String, String> entry : carrier) {
-      final String key = entry.getKey().toLowerCase();
-      final String val = entry.getValue();
+    @Override // dd
+    public void inject(final DDSpanContext context, final TextMap carrier) {
+      try {
+        // TODO: should we better store ids as BigInteger in context to avoid parsing it
+        // twice.
+        final BigInteger traceId = new BigInteger(context.getTraceId());
+        final BigInteger spanId = new BigInteger(context.getSpanId());
 
-      if (val == null) {
-        continue;
-      }
+        carrier.put(TRACE_ID_KEY, traceId.toString(HEX_RADIX).toLowerCase());
+        carrier.put(SPAN_ID_KEY, spanId.toString(HEX_RADIX).toLowerCase());
 
-      // No need to decode parent span id since we don't use it for anything.
-      if (TRACE_ID_KEY.equalsIgnoreCase(key)) {
-        traceId = validateUInt64BitsID(Ids.hexToId(val));
-      } else if (SPAN_ID_KEY.equalsIgnoreCase(key)) {
-        spanId = validateUInt64BitsID(Ids.hexToId(val));
-      } else if (key.startsWith(OT_BAGGAGE_PREFIX)) {
-        if (baggage.isEmpty()) {
-          baggage = new HashMap<>();
+        if (!Strings.isNullOrEmpty(context.getParentId())) {
+          final BigInteger parentId = new BigInteger(context.getParentId());
+          carrier.put(PARENT_SPAN_ID_KEY, parentId.toString(HEX_RADIX).toLowerCase());
         }
-        baggage.put(key.replace(OT_BAGGAGE_PREFIX, ""), decode(val));
-      } else if (SAMPLED_KEY.equalsIgnoreCase(key)) {
-        if ("1".equals(val)) {
-          samplingPriority = PrioritySampling.SAMPLER_KEEP;
-        } else if ("0".equals(val)) {
-          samplingPriority = PrioritySampling.SAMPLER_DROP;
-        } else {
-          log.debug("Unknown B3 sampled header value: {}", val);
+
+        if (context.lockSamplingPriority()) {
+          int ps = context.getSamplingPriority();
+          switch (ps) {
+            case PrioritySampling.USER_KEEP:
+              // Set the debug flag if the user has manually marked the span to keep
+              carrier.put(FLAGS_KEY, "1");
+              // We don't need to set sampled in this case since it is implied
+              break;
+            case PrioritySampling.SAMPLER_KEEP:
+              carrier.put(SAMPLING_PRIORITY_KEY, "1");
+              break;
+            case PrioritySampling.SAMPLER_DROP:
+            case PrioritySampling.USER_DROP:
+              carrier.put(SAMPLING_PRIORITY_KEY, "0");
+          }
         }
-      } else if (FLAGS_KEY.equalsIgnoreCase(key)) {
-        if ("1".equals(val)) {
-          samplingPriority = PrioritySampling.USER_KEEP;
+
+        for (final Map.Entry<String, String> entry : context.baggageItems()) {
+          carrier.put(OT_BAGGAGE_PREFIX + entry.getKey(), HttpCodec.encode(entry.getValue()));
         }
+
+        log.debug("{} - B3 parent context injected", context.getTraceId());
+      } catch (final NumberFormatException e) {
+        log.debug(
+            "Cannot parse context id(s): {} {}", context.getTraceId(), context.getSpanId(), e);
+      }
+    }
+  }
+
+  public static class Extractor implements HttpCodec.Extractor {
+
+    private final Map<String, String> taggedHeaders;
+
+    public Extractor(final Map<String, String> taggedHeaders) {
+      this.taggedHeaders = new HashMap<>();
+      for (final Map.Entry<String, String> mapping : taggedHeaders.entrySet()) {
+        this.taggedHeaders.put(mapping.getKey().trim().toLowerCase(), mapping.getValue());
       }
     }
 
-    SpanContext context = null;
-    if (!"0".equals(traceId)) {
-      final ExtractedContext ctx =
-          new ExtractedContext(traceId, spanId, samplingPriority, baggage, tags);
-      ctx.lockSamplingPriority();
-
-      log.debug("{} - Parent context extracted", ctx.getTraceId());
-      context = ctx;
+    public Extractor() {
+      this.taggedHeaders = new HashMap<>();
     }
 
-    return context;
-  }
+    @Override
+    public SpanContext extract(final TextMap carrier) {
+      try {
+        Map<String, String> tags = Collections.emptyMap();
+        String traceId = ZERO;
+        String spanId = ZERO;
+        int samplingPriority = PrioritySampling.UNSET;
 
-  private String encode(final String value) {
-    String encoded = value;
-    try {
-      encoded = URLEncoder.encode(value, "UTF-8");
-    } catch (final UnsupportedEncodingException e) {
-      log.info("Failed to encode value - {}", value);
-    }
-    return encoded;
-  }
+        for (final Map.Entry<String, String> entry : carrier) {
+          final String key = entry.getKey().toLowerCase();
+          final String value = entry.getValue();
 
-  private String decode(final String value) {
-    String decoded = value;
-    try {
-      decoded = URLDecoder.decode(value, "UTF-8");
-    } catch (final UnsupportedEncodingException e) {
-      log.info("Failed to decode value - {}", value);
-    }
-    return decoded;
-  }
+          if (value == null) {
+            continue;
+          }
 
-  /**
-   * Helper method to validate an ID String to verify that it is an unsigned 64 bits number and is
-   * within range.
-   *
-   * @param val the String that contains the ID
-   * @return the ID in String format if it passes validations
-   * @throws IllegalArgumentException if val is not a number or if the number is out of range
-   */
-  private String validateUInt64BitsID(final String val) throws IllegalArgumentException {
-    try {
-      final BigInteger validate = new BigInteger(val);
-      if (validate.compareTo(BigInteger.ZERO) == -1
-          || validate.compareTo(BIG_INTEGER_UINT64_MAX) == 1) {
-        throw new IllegalArgumentException(
-            "ID out of range, must be between 0 and 2^64-1, got: " + val);
+          if (TRACE_ID_KEY.equalsIgnoreCase(key)) {
+            final String trimmedValue;
+            final int length = value.length();
+            if (length > 32) {
+              log.debug("Header {} exceeded max length of 32: {}", TRACE_ID_KEY, value);
+              continue;
+            } else if (length > 16) {
+              trimmedValue = value.substring(length - 16);
+            } else {
+              trimmedValue = value;
+            }
+            traceId = validateUInt64BitsID(trimmedValue, HEX_RADIX);
+          } else if (SPAN_ID_KEY.equalsIgnoreCase(key)) {
+            spanId = validateUInt64BitsID(value, HEX_RADIX);
+          } else if (SAMPLING_PRIORITY_KEY.equalsIgnoreCase(key)) {
+            samplingPriority = convertSamplingPriority(value);
+          }
+
+          if (taggedHeaders.containsKey(key)) {
+            if (tags.isEmpty()) {
+              tags = new HashMap<>();
+            }
+            tags.put(taggedHeaders.get(key), HttpCodec.decode(value));
+          }
+        }
+
+        if (!ZERO.equals(traceId)) {
+          final ExtractedContext context =
+              new ExtractedContext(
+                  traceId,
+                  spanId,
+                  samplingPriority,
+                  null,
+                  Collections.<String, String>emptyMap(),
+                  tags);
+          context.lockSamplingPriority();
+
+          log.debug("{} - Parent context extracted", context.getTraceId());
+          return context;
+        } else if (!tags.isEmpty()) {
+          log.debug("Tags context extracted");
+          return new TagContext(null, tags);
+        }
+      } catch (final RuntimeException e) {
+        log.debug("Exception when extracting context", e);
       }
-      return val;
-    } catch (final NumberFormatException nfe) {
-      throw new IllegalArgumentException(
-          "Expecting a number for trace ID or span ID, but got: " + val, nfe);
+
+      return null;
+    }
+
+    private int convertSamplingPriority(final String samplingPriority) {
+      return Integer.parseInt(samplingPriority) == 1
+          ? PrioritySampling.SAMPLER_KEEP
+          : PrioritySampling.SAMPLER_DROP;
     }
   }
 }

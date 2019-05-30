@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.ClassFileVersion;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.AsmVisitorWrapper;
 import net.bytebuddy.description.field.FieldDescription;
@@ -71,14 +72,15 @@ import net.bytebuddy.utility.JavaModule;
 @Slf4j
 public class FieldBackedProvider implements InstrumentationContextProvider {
 
-  /*
-  Note: the value here has to be inside on of the prefixes in
-  datadog.trace.agent.tooling.Utils#BOOTSTRAP_PACKAGE_PREFIXES. This ensures that 'isolating' (or 'module')
-  classloaders like jboss and osgi see injected classes. This works because we instrument those classloaders
-  to load everything inside bootstrap packages.
+  /**
+   * Note: the value here has to be inside on of the prefixes in
+   * datadog.trace.agent.tooling.Utils#BOOTSTRAP_PACKAGE_PREFIXES. This ensures that 'isolating' (or
+   * 'module') classloaders like jboss and osgi see injected classes. This works because we
+   * instrument those classloaders to load everything inside bootstrap packages.
    */
   private static final String DYNAMIC_CLASSES_PACKAGE =
       "datadog.trace.bootstrap.instrumentation.context.";
+
   private static final String INJECTED_FIELDS_MARKER_CLASS_NAME =
       Utils.getInternalName(FieldBackedContextStoreAppliedMarker.class.getName());
 
@@ -126,9 +128,9 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
   public AgentBuilder.Identified.Extendable instrumentationTransformer(
       AgentBuilder.Identified.Extendable builder) {
     if (instrumenter.contextStore().size() > 0) {
-      /*
-      Install transformer that rewrites accesses to context store with specialized bytecode that invokes appropriate
-      storage implementation.
+      /**
+       * Install transformer that rewrites accesses to context store with specialized bytecode that
+       * invokes appropriate storage implementation.
        */
       builder =
           builder.transform(getTransformerForASMVisitor(getContextStoreReadsRewritingVisitor()));
@@ -346,9 +348,9 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
 
     if (fieldInjectionEnabled) {
       for (final Map.Entry<String, String> entry : instrumenter.contextStore().entrySet()) {
-        /*
-        For each context store defined in a current instrumentation we create an agent builder
-        that injects necessary fields.
+        /**
+         * For each context store defined in a current instrumentation we create an agent builder
+         * that injects necessary fields.
          */
         builder =
             builder
@@ -383,13 +385,14 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
           final JavaModule module,
           final Class<?> classBeingRedefined,
           final ProtectionDomain protectionDomain) {
-        /*
-        The idea here is that we can add fields if class is just being loaded (classBeingRedefined == null)
-        and we have to add same fields again if class we added fields before is being transformed again.
-        Note: here we assume that Class#getInterfaces() returns list of interfaces defined immediately on a
-        given class, not inherited from its parents. It looks like current JVM implementation does exactly
-        this but javadoc is not explicit about that.
-        */
+        /**
+         * The idea here is that we can add fields if class is just being loaded
+         * (classBeingRedefined == null) and we have to add same fields again if class we added
+         * fields before is being transformed again. Note: here we assume that Class#getInterfaces()
+         * returns list of interfaces defined immediately on a given class, not inherited from its
+         * parents. It looks like current JVM implementation does exactly this but javadoc is not
+         * explicit about that.
+         */
         return classBeingRedefined == null
             || Arrays.asList(classBeingRedefined.getInterfaces())
                 .contains(FieldBackedContextStoreAppliedMarker.class);
@@ -427,9 +430,13 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
           private final TypeDescription contextType =
               new TypeDescription.ForLoadedType(Object.class);
           private final String fieldName = getContextFieldName(keyClassName);
+          private final String getterMethodName = getContextGetterName(keyClassName);
+          private final String setterMethodName = getContextSetterName(keyClassName);
           private final TypeDescription interfaceType =
               getFieldAccessorInterface(keyClassName, contextClassName);
           private boolean foundField = false;
+          private boolean foundGetter = false;
+          private boolean foundSetter = false;
 
           @Override
           public void visit(
@@ -462,11 +469,40 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
           }
 
           @Override
+          public MethodVisitor visitMethod(
+              final int access,
+              final String name,
+              final String descriptor,
+              final String signature,
+              final String[] exceptions) {
+            if (name.equals(getterMethodName)) {
+              foundGetter = true;
+            }
+            if (name.equals(setterMethodName)) {
+              foundSetter = true;
+            }
+            return super.visitMethod(access, name, descriptor, signature, exceptions);
+          }
+
+          @Override
           public void visitEnd() {
+            // Checking only for field existence is not enough as libraries like CGLIB only copy
+            // public/protected methods and not fields (neither public nor private ones) when
+            // they enhance a class.
+            // For this reason we check separately for the field and for the two accessors.
             if (!foundField) {
               cv.visitField(
-                  Opcodes.ACC_PRIVATE, fieldName, contextType.getDescriptor(), null, null);
+                  // Field should be transient to avoid being serialized with the object.
+                  Opcodes.ACC_PRIVATE | Opcodes.ACC_TRANSIENT,
+                  fieldName,
+                  contextType.getDescriptor(),
+                  null,
+                  null);
+            }
+            if (!foundGetter) {
               addGetter();
+            }
+            if (!foundSetter) {
               addSetter();
             }
             super.visitEnd();
@@ -474,7 +510,7 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
 
           /** Just 'standard' getter implementation */
           private void addGetter() {
-            final MethodVisitor mv = getAccessorMethodVisitor(getContextGetterName(keyClassName));
+            final MethodVisitor mv = getAccessorMethodVisitor(getterMethodName);
             mv.visitCode();
             mv.visitVarInsn(Opcodes.ALOAD, 0);
             mv.visitFieldInsn(
@@ -489,7 +525,7 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
 
           /** Just 'standard' setter implementation */
           private void addSetter() {
-            final MethodVisitor mv = getAccessorMethodVisitor(getContextSetterName(keyClassName));
+            final MethodVisitor mv = getAccessorMethodVisitor(setterMethodName);
             mv.visitCode();
             mv.visitVarInsn(Opcodes.ALOAD, 0);
             mv.visitVarInsn(Opcodes.ALOAD, 1);
@@ -595,6 +631,8 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
               getFieldAccessorInterface(keyClassName, contextClassName);
           private final String accessorInterfaceInternalName = accessorInterface.getInternalName();
           private final String instrumentedTypeInternalName = instrumentedType.getInternalName();
+          private final boolean frames =
+              implementationContext.getClassFileVersion().isAtLeast(ClassFileVersion.JAVA_V6);
 
           @Override
           public MethodVisitor visitMethod(
@@ -654,7 +692,9 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
                 true);
             mv.visitInsn(Opcodes.ARETURN);
             mv.visitLabel(elseLabel);
-            mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+            if (frames) {
+              mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+            }
             mv.visitVarInsn(Opcodes.ALOAD, 0);
             mv.visitVarInsn(Opcodes.ALOAD, 1);
             mv.visitMethodInsn(
@@ -707,7 +747,9 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
                 true);
             mv.visitJumpInsn(Opcodes.GOTO, endLabel);
             mv.visitLabel(elseLabel);
-            mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+            if (frames) {
+              mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+            }
             mv.visitVarInsn(Opcodes.ALOAD, 0);
             mv.visitVarInsn(Opcodes.ALOAD, 1);
             mv.visitVarInsn(Opcodes.ALOAD, 2);
@@ -718,7 +760,9 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
                 Utils.getMethodDefinition(instrumentedType, "mapPut").getDescriptor(),
                 false);
             mv.visitLabel(endLabel);
-            mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+            if (frames) {
+              mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+            }
             mv.visitInsn(Opcodes.RETURN);
             mv.visitMaxs(0, 0);
             mv.visitEnd();
@@ -753,7 +797,9 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
             mv.visitVarInsn(Opcodes.ALOAD, 1);
             mv.visitInsn(Opcodes.ARETURN);
             mv.visitLabel(elseLabel);
-            mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+            if (frames) {
+              mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+            }
             mv.visitVarInsn(Opcodes.ALOAD, 0);
             mv.visitVarInsn(Opcodes.ALOAD, 1);
             mv.visitMethodInsn(

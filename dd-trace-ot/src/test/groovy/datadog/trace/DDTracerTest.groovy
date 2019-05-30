@@ -2,6 +2,7 @@
 package datadog.trace
 
 import datadog.opentracing.DDTracer
+import datadog.opentracing.propagation.HttpCodec
 import datadog.trace.api.Config
 import datadog.trace.common.sampling.AllSampler
 import datadog.trace.common.sampling.RateByServiceSampler
@@ -32,7 +33,7 @@ class DDTracerTest extends Specification {
     // assert that a trace agent isn't running locally as that messes up the test.
     try {
       (new Socket("localhost", 8126)).close()
-      throw new IllegalStateException("Trace Agent unexpectedly running locally.")
+      throw new IllegalStateException("An agent is already running locally on port 8126. Please stop it if you want to run tests locally.")
     } catch (final ConnectException ioe) {
       // trace agent is not running locally.
     }
@@ -47,7 +48,10 @@ class DDTracerTest extends Specification {
     tracer.sampler instanceof AllSampler
     tracer.writer.toString() == "DDAgentWriter { api=ZipkinV2Api { traceEndpoint=http://localhost:9080/v1/trace } }"
 
-    tracer.spanContextDecorators.size() == 13
+    tracer.spanContextDecorators.size() == 15
+
+    tracer.injector instanceof HttpCodec.CompoundInjector
+    tracer.extractor instanceof HttpCodec.CompoundExtractor
   }
 
 
@@ -81,7 +85,8 @@ class DDTracerTest extends Specification {
     when:
     def config = new Config()
     def tracer = new DDTracer(config)
-    def taggedHeaders = tracer.extractor.taggedHeaders
+    // Datadog extractor gets placed first
+    def taggedHeaders = tracer.extractor.extractors[0].taggedHeaders
 
     then:
     tracer.defaultSpanTags == map
@@ -124,8 +129,8 @@ class DDTracerTest extends Specification {
     tracer.serviceName == DEFAULT_SERVICE_NAME
     tracer.sampler == sampler
     tracer.writer == writer
-    tracer.runtimeTags[Config.RUNTIME_ID_TAG].size() > 0 // not null or empty
-    tracer.runtimeTags[Config.LANGUAGE_TAG_KEY] == Config.LANGUAGE_TAG_VALUE
+    tracer.localRootSpanTags[Config.RUNTIME_ID_TAG].size() > 0 // not null or empty
+    tracer.localRootSpanTags[Config.LANGUAGE_TAG_KEY] == Config.LANGUAGE_TAG_VALUE
   }
 
   @Ignore
@@ -136,11 +141,26 @@ class DDTracerTest extends Specification {
 
     expect:
     tracer.writer instanceof DDAgentWriter
-    tracer.traceCount.is(((DDAgentWriter) tracer.writer).getApi().traceCount)
+    tracer.writer.traceCount.is(((DDAgentWriter) tracer.writer).traceCount)
 
     where:
     key               | value
     PRIORITY_SAMPLING | "true"
     PRIORITY_SAMPLING | "false"
+  }
+
+  def "root tags are applied only to root spans"() {
+    setup:
+    def tracer = new DDTracer('my_service', new ListWriter(), new AllSampler(), '', ['only_root': 'value'], [:], [:], [:])
+    def root = tracer.buildSpan('my_root').start()
+    def child = tracer.buildSpan('my_child').asChildOf(root).start()
+
+    expect:
+    root.context().tags.containsKey('only_root')
+    !child.context().tags.containsKey('only_root')
+
+    cleanup:
+    child.finish()
+    root.finish()
   }
 }

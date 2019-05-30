@@ -18,8 +18,8 @@ public final class Constants {
     "datadog.slf4j",
     "datadog.trace.bootstrap",
     "datadog.trace.api",
-    "com.signalfx.tracing.api",
     "datadog.trace.context",
+    "com.signalfx.tracing.api",
     "com.signalfx.tracing.context"
   };
 
@@ -42,6 +42,16 @@ public final class Constants {
     "org.msgpack",
     "com.fasterxml.jackson",
     "org.yaml.snakeyaml",
+    // disruptor
+    "com.lmax.disruptor",
+    // okHttp
+    "okhttp3",
+    "okio",
+    "jnr",
+    "org.objectweb.asm",
+    "com.kenai",
+    // Custom RxJava Utility
+    "rx.DDTracingUtil",
   };
 
   private Constants() {}

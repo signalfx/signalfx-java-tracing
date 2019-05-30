@@ -1,8 +1,8 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.opentracing.tag.Tags
 import io.vertx.core.Vertx
@@ -33,8 +33,8 @@ class VertxServerTest extends AgentTestRunner {
     setup:
     def request = new Request.Builder()
       .url("http://localhost:$port/test")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("x-b3-traceid", "7b")
+      .header("x-b3-spanid", "1c8")
       .get()
       .build()
     def response = client.newCall(request).execute()
@@ -60,9 +60,9 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_STATUS.key" 200
             "$Tags.HTTP_URL.key" "http://localhost:$port/test"
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             defaultTags(true)
           }
         }
@@ -97,9 +97,9 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_STATUS.key" responseCode.code()
             "$Tags.HTTP_URL.key" "http://localhost:$port/$path"
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             if (error) {
               tag("error", true)
             }

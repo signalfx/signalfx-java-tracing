@@ -6,10 +6,14 @@ import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.nameMatches;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
+import static net.bytebuddy.matcher.ElementMatchers.none;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
+import datadog.trace.api.Config;
 import datadog.trace.bootstrap.WeakMap;
 import java.lang.instrument.Instrumentation;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,6 +22,7 @@ import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
+import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.bytebuddy.utility.JavaModule;
 
@@ -38,8 +43,12 @@ public class AgentInstaller {
     return INSTRUMENTATION;
   }
 
-  public static ResettableClassFileTransformer installBytebuddyAgent(final Instrumentation inst) {
-    return installBytebuddyAgent(inst, new AgentBuilder.Listener[0]);
+  public static void installBytebuddyAgent(final Instrumentation inst) {
+    if (Config.get().isTraceEnabled()) {
+      installBytebuddyAgent(inst, new AgentBuilder.Listener[0]);
+    } else {
+      log.debug("Tracing is disabled, not installing instrumentations.");
+    }
   }
 
   /**
@@ -56,9 +65,10 @@ public class AgentInstaller {
         new AgentBuilder.Default()
             .disableClassFormatChanges()
             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+            .with(new RedefinitionLoggingListener())
             .with(AgentBuilder.DescriptionStrategy.Default.POOL_ONLY)
             .with(POOL_STRATEGY)
-            .with(new LoggingListener())
+            .with(new TransformLoggingListener())
             .with(new ClassLoadListener())
             .with(LOCATION_STRATEGY)
             // FIXME: we cannot enable it yet due to BB/JVM bug, see
@@ -107,11 +117,15 @@ public class AgentInstaller {
             .or(nameStartsWith("jdk."))
             .or(nameStartsWith("org.aspectj."))
             .or(nameStartsWith("org.groovy."))
+            .or(nameStartsWith("org.codehaus.groovy.macro."))
+            .or(nameStartsWith("com.intellij.rt.debugger."))
             .or(nameStartsWith("com.p6spy."))
             .or(nameStartsWith("com.newrelic."))
             .or(nameContains("javassist"))
             .or(nameContains(".asm."))
-            .or(nameMatches("com\\.mchange\\.v2\\.c3p0\\..*Proxy"));
+            .or(nameMatches("com\\.mchange\\.v2\\.c3p0\\..*Proxy"))
+            .or(matchesConfiguredExcludes());
+
     for (final AgentBuilder.Listener listener : listeners) {
       agentBuilder = agentBuilder.with(listener);
     }
@@ -126,6 +140,22 @@ public class AgentInstaller {
     return agentBuilder.installOn(inst);
   }
 
+  private static ElementMatcher.Junction<Object> matchesConfiguredExcludes() {
+    final List<String> excludedClasses = Config.get().getExcludedClasses();
+    ElementMatcher.Junction matcher = none();
+    for (String excludedClass : excludedClasses) {
+      excludedClass = excludedClass.trim();
+      if (excludedClass.endsWith("*")) {
+        // remove the trailing *
+        final String prefix = excludedClass.substring(0, excludedClass.length() - 1);
+        matcher = matcher.or(nameStartsWith(prefix));
+      } else {
+        matcher = matcher.or(named(excludedClass));
+      }
+    }
+    return matcher;
+  }
+
   private static void registerWeakMapProvider() {
     if (!WeakMap.Provider.isProviderRegistered()) {
       WeakMap.Provider.registerIfAbsent(new WeakMapSuppliers.WeakConcurrent());
@@ -135,7 +165,33 @@ public class AgentInstaller {
   }
 
   @Slf4j
-  static class LoggingListener implements AgentBuilder.Listener {
+  static class RedefinitionLoggingListener implements AgentBuilder.RedefinitionStrategy.Listener {
+
+    @Override
+    public void onBatch(final int index, final List<Class<?>> batch, final List<Class<?>> types) {}
+
+    @Override
+    public Iterable<? extends List<Class<?>>> onError(
+        final int index,
+        final List<Class<?>> batch,
+        final Throwable throwable,
+        final List<Class<?>> types) {
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "Exception while retransforming " + batch.size() + " classes: " + batch, throwable);
+      }
+      return Collections.emptyList();
+    }
+
+    @Override
+    public void onComplete(
+        final int amount,
+        final List<Class<?>> types,
+        final Map<List<Class<?>>, Throwable> failures) {}
+  }
+
+  @Slf4j
+  static class TransformLoggingListener implements AgentBuilder.Listener {
 
     @Override
     public void onError(
@@ -158,7 +214,7 @@ public class AgentInstaller {
         final JavaModule module,
         final boolean loaded,
         final DynamicType dynamicType) {
-      log.debug("Transformed {} -- {}", typeDescription, classLoader);
+      log.debug("Transformed {} -- {}", typeDescription.getName(), classLoader);
     }
 
     @Override
@@ -166,21 +222,27 @@ public class AgentInstaller {
         final TypeDescription typeDescription,
         final ClassLoader classLoader,
         final JavaModule module,
-        final boolean loaded) {}
+        final boolean loaded) {
+      //      log.debug("onIgnored {}", typeDescription.getName());
+    }
 
     @Override
     public void onComplete(
         final String typeName,
         final ClassLoader classLoader,
         final JavaModule module,
-        final boolean loaded) {}
+        final boolean loaded) {
+      //      log.debug("onComplete {}", typeName);
+    }
 
     @Override
     public void onDiscovery(
         final String typeName,
         final ClassLoader classLoader,
         final JavaModule module,
-        final boolean loaded) {}
+        final boolean loaded) {
+      //      log.debug("onDiscovery {}", typeName);
+    }
   }
 
   /**

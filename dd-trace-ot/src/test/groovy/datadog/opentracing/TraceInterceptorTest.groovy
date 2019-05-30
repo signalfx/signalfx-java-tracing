@@ -1,5 +1,6 @@
 package datadog.opentracing
 
+import datadog.trace.api.Config
 import datadog.trace.api.GlobalTracer
 import datadog.trace.api.interceptor.MutableSpan
 import datadog.trace.api.interceptor.TraceInterceptor
@@ -139,12 +140,14 @@ class TraceInterceptorTest extends Specification {
     tags["number-tag"] == 5.0
     tags["string-tag"] == "howdy"
 
-    tags["span.type"] == "modifiedST-null"
     tags["thread.name"] != null
     tags["thread.id"] != null
     tags["runtime-id"] != null
     tags["language"] != null
-    tags.size() == 8
+
+    tags[Config.TRACING_LIBRARY_KEY] == Config.TRACING_LIBRARY_VALUE
+    tags[Config.TRACING_VERSION_KEY] == Config.TRACING_VERSION_VALUE
+    tags.size() == 9
   }
 
   def "register interceptor through bridge"() {

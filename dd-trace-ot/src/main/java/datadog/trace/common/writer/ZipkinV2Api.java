@@ -2,6 +2,7 @@ package datadog.trace.common.writer;
 
 import static io.opentracing.tag.Tags.SPAN_KIND;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -19,6 +20,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -44,11 +46,58 @@ public class ZipkinV2Api implements Api {
 
   @Override
   public boolean sendTraces(final List<List<DDSpan>> traces) {
+    final List<byte[]> serializedTraces = new ArrayList<>(traces.size());
+    int sizeInBytes = 0;
+    for (final List<DDSpan> trace : traces) {
+      System.out.println("ZipkinV2Api.sendTraces: " + trace.toString());
+      try {
+        final byte[] serializedTrace = serializeTrace(trace);
+        System.out.println("ZipkinV2Api.sendTraces: " + new String(serializedTrace));
+        sizeInBytes += serializedTrace.length;
+        serializedTraces.add(serializedTrace);
+        System.out.println("ZipkinV2Api.sendTraces: " + serializedTraces.toString());
+      } catch (final JsonProcessingException e) {
+        log.warn("Error serializing trace", e);
+      }
+    }
+
+    return sendSerializedTraces(serializedTraces.size(), sizeInBytes, serializedTraces);
+  }
+
+  @Override
+  public byte[] serializeTrace(final List<DDSpan> trace) throws JsonProcessingException {
+    ArrayNode spanArr = objectMapper.createArrayNode();
+    for (DDSpan span : trace) {
+      spanArr.add(encodeSpan(span));
+    }
+    return objectMapper.writeValueAsBytes(spanArr);
+  }
+
+  @Override
+  public boolean sendSerializedTraces(
+      final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces) {
     try {
       final HttpURLConnection httpCon = getHttpURLConnection(traceEndpoint);
-
       final OutputStream out = httpCon.getOutputStream();
-      objectMapper.writeValue(out, encodeTraces(traces));
+
+      int traceCount = 0;
+
+      out.write('[');
+      for (final byte[] trace : traces) {
+        traceCount++;
+        if (trace.length == 2) {
+          // empty trace
+          continue;
+        }
+        // don't write nested array brackets
+        out.write(trace, 1, trace.length - 2);
+
+        // don't write comma for final span
+        if (traceCount != traces.size()) {
+          out.write(',');
+        }
+      }
+      out.write(']');
       out.flush();
       out.close();
 

@@ -65,6 +65,7 @@ class ZipkinV2ApiTest extends Specification {
     client.traceEndpoint == "http://localhost:${agent.address.port}/v1/trace"
     client.sendTraces(traces)
     agent.lastRequest.contentType == "application/json"
+    agent.lastRequest.contentLength == agent.lastRequest.body.length
     convertList(agent.lastRequest.body) == expectedRequestBody
 
     cleanup:
@@ -81,7 +82,6 @@ class ZipkinV2ApiTest extends Specification {
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
-                    "span.type": "fakeType",
                     "resource.name": "fakeResource"],
       "name"     : "fakeOperation",
       "kind": null,
@@ -95,7 +95,6 @@ class ZipkinV2ApiTest extends Specification {
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
-                    "span.type": "fakeType",
                     "resource.name": "my-resource"],
       "name"     : "fakeOperation",
       "localEndpoint": ["serviceName": "fakeService"],
@@ -109,7 +108,6 @@ class ZipkinV2ApiTest extends Specification {
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
-                    "span.type": "fakeType",
                     "resource.name": "fakeResource"],
       "name"     : "fakeOperation",
       "localEndpoint": ["serviceName": "fakeService"],
@@ -123,7 +121,6 @@ class ZipkinV2ApiTest extends Specification {
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
-                    "span.type": "fakeType",
                     "resource.name": "fakeResource"],
       "name"     : "fakeResource",
       "localEndpoint": ["serviceName": "fakeService"],

@@ -6,11 +6,16 @@ import datadog.trace.api.Config
 import datadog.trace.util.gc.GCUtils
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.utility.JavaModule
+import net.sf.cglib.proxy.Enhancer
+import net.sf.cglib.proxy.MethodInterceptor
+import net.sf.cglib.proxy.MethodProxy
 import spock.lang.Requires
 
 import java.lang.instrument.ClassDefinition
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 import java.util.concurrent.atomic.AtomicReference
 
 import static context.ContextTestInstrumentation.IncorrectCallUsageKeyClass
@@ -40,8 +45,12 @@ class FieldBackedProviderTest extends AgentTestRunner {
   def "#keyClassName structure modified = #shouldModifyStructure"() {
     setup:
     boolean hasField = false
+    boolean isPrivate = false
+    boolean isTransient = false
     for (Field field : keyClass.getDeclaredFields()) {
       if (field.getName().startsWith("__datadog")) {
+        isPrivate = Modifier.isPrivate(field.getModifiers())
+        isTransient = Modifier.isTransient(field.getModifiers())
         hasField = true
         break
       }
@@ -60,6 +69,8 @@ class FieldBackedProviderTest extends AgentTestRunner {
 
     expect:
     hasField == shouldModifyStructure
+    isPrivate == shouldModifyStructure
+    isTransient == shouldModifyStructure
     hasMarkerInterface == shouldModifyStructure
     hasAccessorInterface == shouldModifyStructure
     keyClass.newInstance().isInstrumented() == shouldModifyStructure
@@ -95,6 +106,25 @@ class FieldBackedProviderTest extends AgentTestRunner {
     instance1                     | _
     new KeyClass()                | _
     new UntransformableKeyClass() | _
+  }
+
+  def "works with cglib enhanced instances which duplicates context getter and setter methods"() {
+    setup:
+    Enhancer enhancer = new Enhancer()
+    enhancer.setSuperclass(KeyClass)
+    enhancer.setCallback(new MethodInterceptor() {
+      @Override
+      Object intercept(Object arg0, Method arg1, Object[] arg2,
+                       MethodProxy arg3) throws Throwable {
+        return arg3.invokeSuper(arg0, arg2)
+      }
+    })
+
+    when:
+    (KeyClass) enhancer.create()
+
+    then:
+    noExceptionThrown()
   }
 
   def "backing map should not create strong refs to key class instances #keyValue.get().getClass().getName()"() {

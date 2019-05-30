@@ -18,20 +18,12 @@ model {
     play {
       platform play: playVersion, scala: scalaVersion, java: '1.8'
       injectedRoutesGenerator = true
-      sources {
-        scala {
-          source.srcDir "src/main/scala"
-        }
-        extraRoutes(RoutesSourceSet) {
-          source.srcDir "src/main/conf"
-        }
-      }
     }
   }
   distributions {
     playBinary {
       contents {
-        from("src/main/conf") {
+        from("conf") {
           into "conf"
         }
       }
@@ -85,9 +77,10 @@ tasks.register("startServer", com.github.psxpaul.task.ExecFork) {
   // these params tells the ExecFork plugin to block on startServer task until the port is opened or the string is seen in the ouput
   waitForPort = playHttpPort
   waitForOutput = "Listening for HTTP on /127.0.0.1:${playHttpPort}"
+  timeout = 240
   environment = [
-    'JAVA_OPTS' :  "-javaagent:${project(':dd-java-agent').tasks.shadowJar.archivePath}"
-    + " -Ddd.writer.type=LoggingWriter" + " -Ddd.service.name=java-app"
+    'JAVA_OPTS': "-javaagent:${project(':dd-java-agent').tasks.shadowJar.archivePath}"
+      + " -Ddd.writer.type=LoggingWriter" + " -Ddd.service.name=java-app"
       + " -Dsignalfx.slf4j.simpleLogger.defaultLogLevel=debug"
       + " -Dorg.slf4j.simpleLogger.defaultLogLevel=debug"
       + " -Dconfig.file=${workingDir}/conf/application.conf -Dhttp.port=${playHttpPort}"
@@ -95,6 +88,9 @@ tasks.register("startServer", com.github.psxpaul.task.ExecFork) {
   ]
 
   dependsOn 'stage'
+
+  // When tests are disabled this would still be run, so disable this manually
+  onlyIf { !project.rootProject.hasProperty("skipTests") }
 }
 
 tasks.register("deletePIDFile") {

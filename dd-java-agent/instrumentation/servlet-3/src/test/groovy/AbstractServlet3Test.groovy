@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
@@ -59,8 +60,8 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
       .url("http://localhost:$port/$context/$path")
       .get()
     if (distributedTracing) {
-      requestBuilder.header("x-datadog-trace-id", "123")
-      requestBuilder.header("x-datadog-parent-id", "456")
+      requestBuilder.header("x-b3-traceid", "7b")
+      requestBuilder.header("x-b3-spanid", "1c8")
     }
     if (auth) {
       requestBuilder.header("Authorization", Credentials.basic(user, pass))
@@ -89,7 +90,9 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.HTTP_SERVER
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.origin.type" { it == "TestServlet3\$$origin" || it == ApplicationFilterChain.name }
             "servlet.context" "/$context"
             "http.status_code" 200
@@ -124,8 +127,8 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
       .url("http://localhost:$port/$context/dispatch/$path?depth=$depth")
       .get()
     if (distributedTracing) {
-      requestBuilder.header("x-datadog-trace-id", "123")
-      requestBuilder.header("x-datadog-parent-id", "456")
+      requestBuilder.header("x-b3-traceid", "7b")
+      requestBuilder.header("x-b3-spanid", "1c8")
     }
     def response = client.newCall(requestBuilder.build()).execute()
 
@@ -155,7 +158,9 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
               "http.method" "GET"
               "span.kind" "server"
               "component" "java-web-servlet"
-              "span.type" DDSpanTypes.HTTP_SERVER
+              "peer.hostname" "127.0.0.1"
+              "peer.ipv4" "127.0.0.1"
+              "peer.port" Integer
               "span.origin.type" { it == "TestServlet3\$Dispatch$origin" || it == ApplicationFilterChain.name }
               "http.status_code" 200
               "servlet.context" "/$context"
@@ -179,7 +184,9 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.HTTP_SERVER
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.origin.type" {
               it == "TestServlet3\$$origin" || it == "TestServlet3\$DispatchRecursive" || it == ApplicationFilterChain.name
             }
@@ -211,7 +218,9 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.HTTP_SERVER
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.origin.type" { it == "TestServlet3\$Dispatch$origin" || it == ApplicationFilterChain.name }
             "http.status_code" 200
             "servlet.context" "/$context"
@@ -242,8 +251,8 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
       .url("http://localhost:$port/$context/dispatch/$path")
       .get()
     if (distributedTracing) {
-      requestBuilder.header("x-datadog-trace-id", "123")
-      requestBuilder.header("x-datadog-parent-id", "456")
+      requestBuilder.header("x-b3-traceid", "7b")
+      requestBuilder.header("x-b3-spanid", "1c8")
     }
     def response = client.newCall(requestBuilder.build()).execute()
 
@@ -269,7 +278,9 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.HTTP_SERVER
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.origin.type" { it == "TestServlet3\$Dispatch$origin" || it == ApplicationFilterChain.name }
             "http.status_code" 200
             "servlet.context" "/$context"
@@ -291,7 +302,9 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.HTTP_SERVER
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.origin.type" {
               it == "TestServlet3\$$origin" || it == "TestServlet3\$DispatchRecursive" || it == ApplicationFilterChain.name
             }
@@ -330,6 +343,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
             span(0) {
               operationName "servlet.request"
               resourceName "GET /$context/dispatch/async"
+              spanType DDSpanTypes.HTTP_SERVER
               parent()
             }
           }
@@ -338,6 +352,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
           span(0) {
             operationName "servlet.request"
             resourceName "GET /$context/async"
+            spanType DDSpanTypes.HTTP_SERVER
             if (dispatched) {
               childOf TEST_WRITER[i][0]
             } else {
@@ -379,7 +394,9 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.HTTP_SERVER
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.origin.type" { it == "TestServlet3\$$origin" || it == ApplicationFilterChain.name }
             "servlet.context" "/$context"
             "http.status_code" 500
@@ -423,7 +440,9 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
             "http.method" "GET"
             "span.kind" "server"
             "component" "java-web-servlet"
-            "span.type" DDSpanTypes.HTTP_SERVER
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.origin.type" { it == "TestServlet3\$$origin" || it == ApplicationFilterChain.name }
             "servlet.context" "/$context"
             "http.status_code" 500

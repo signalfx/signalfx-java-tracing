@@ -3,34 +3,38 @@ package datadog.trace.api.writer
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
 import datadog.opentracing.SpanFactory
 import datadog.trace.common.writer.DDApi
 import datadog.trace.common.writer.DDApi.ResponseListener
-import org.msgpack.jackson.dataformat.MessagePackFactory
 import spock.lang.Specification
 
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
 
 class DDApiTest extends Specification {
-  static mapper = new ObjectMapper(new MessagePackFactory())
+  static mapper = DDApi.OBJECT_MAPPER
 
   def "sending an empty list of traces returns no errors"() {
     setup:
     def agent = httpServer {
       handlers {
         put("v0.4/traces") {
-          def status = request.contentLength > 0 ? 200 : 500
-          response.status(status).send()
+          if (request.contentType != "application/msgpack") {
+            response.status(400).send("wrong type: $request.contentType")
+          } else if (request.contentLength <= 0) {
+            response.status(400).send("no content")
+          } else {
+            response.status(200).send()
+          }
         }
       }
     }
-    def client = new DDApi("localhost", agent.address.port)
+    def client = new DDApi("localhost", agent.address.port, null)
 
     expect:
-    client.tracesEndpoint == "http://localhost:${agent.address.port}/v0.4/traces"
+    client.tracesUrl.toString() == "http://localhost:${agent.address.port}/v0.4/traces"
     client.sendTraces([])
 
     cleanup:
@@ -46,10 +50,10 @@ class DDApiTest extends Specification {
         }
       }
     }
-    def client = new DDApi("localhost", agent.address.port)
+    def client = new DDApi("localhost", agent.address.port, null)
 
     expect:
-    client.tracesEndpoint == "http://localhost:${agent.address.port}/v0.3/traces"
+    client.tracesUrl.toString() == "http://localhost:${agent.address.port}/v0.3/traces"
     !client.sendTraces([])
 
     cleanup:
@@ -65,11 +69,10 @@ class DDApiTest extends Specification {
         }
       }
     }
-    def client = new DDApi("localhost", agent.address.port)
+    def client = new DDApi("localhost", agent.address.port, null)
 
     expect:
-    client.tracesEndpoint == "http://localhost:${agent.address.port}/v0.4/traces"
-    client.getTraceCounter().addAndGet(traces.size()) >= 0
+    client.tracesUrl.toString() == "http://localhost:${agent.address.port}/v0.4/traces"
     client.sendTraces(traces)
     agent.lastRequest.contentType == "application/msgpack"
     agent.lastRequest.headers.get("Datadog-Meta-Lang") == "java"
@@ -83,12 +86,12 @@ class DDApiTest extends Specification {
 
     // Populate thread info dynamically as it is different when run via gradle vs idea.
     where:
-    traces                                                               | expectedRequestBody
-    []                                                                   | []
-    [SpanFactory.newSpanOf(1L).setTag("service", "my-service")]     | [new TreeMap<>([
+    traces                                                                 | expectedRequestBody
+    []                                                                     | []
+    [[SpanFactory.newSpanOf(1L).setTag("service", "my-service")]]     | [[new TreeMap<>([
       "duration" : 0,
       "error"    : 0,
-      "meta"     : ["span.type": "fakeType", "thread.name": Thread.currentThread().getName(), "thread.id": "${Thread.currentThread().id}"],
+      "meta"     : ["thread.name": Thread.currentThread().getName(), "thread.id": "${Thread.currentThread().id}"],
       "metrics"  : [:],
       "name"     : "fakeOperation",
       "parent_id": 0,
@@ -98,11 +101,11 @@ class DDApiTest extends Specification {
       "start"    : 1000,
       "trace_id" : 1,
       "type"     : "fakeType"
-    ])]
-    [SpanFactory.newSpanOf(100L).setTag("resource.name", "my-resource")] | [new TreeMap<>([
+    ])]]
+    [[SpanFactory.newSpanOf(100L).setTag("resource.name", "my-resource")]] | [[new TreeMap<>([
       "duration" : 0,
       "error"    : 0,
-      "meta"     : ["span.type": "fakeType", "thread.name": Thread.currentThread().getName(), "thread.id": "${Thread.currentThread().id}"],
+      "meta"     : ["thread.name": Thread.currentThread().getName(), "thread.id": "${Thread.currentThread().id}"],
       "metrics"  : [:],
       "name"     : "fakeOperation",
       "parent_id": 0,
@@ -112,7 +115,7 @@ class DDApiTest extends Specification {
       "start"    : 100000,
       "trace_id" : 1,
       "type"     : "fakeType"
-    ])]
+    ])]]
   }
 
   def "Api ResponseListeners see 200 responses"() {
@@ -129,20 +132,17 @@ class DDApiTest extends Specification {
         }
       }
     }
-    def client = new DDApi("localhost", agent.address.port)
+    def client = new DDApi("localhost", agent.address.port, null)
     client.addResponseListener(responseListener)
-    def traceCounter = client.getTraceCounter()
-    traceCounter.set(3)
 
     when:
-    client.sendTraces([])
+    client.sendTraces([[], [], []])
     then:
     agentResponse.get() == '{"hello":"test"}'
     agent.lastRequest.headers.get("Datadog-Meta-Lang") == "java"
     agent.lastRequest.headers.get("Datadog-Meta-Lang-Version") == System.getProperty("java.version", "unknown")
     agent.lastRequest.headers.get("Datadog-Meta-Tracer-Version") == "Stubbed-Test-Version"
     agent.lastRequest.headers.get("X-Datadog-Trace-Count") == "3" // false data shows the value provided via traceCounter.
-    traceCounter.get() == 0
 
     cleanup:
     agent.close()
@@ -158,10 +158,10 @@ class DDApiTest extends Specification {
         }
       }
     }
-    def client = new DDApi("localhost", v3Agent.address.port)
+    def client = new DDApi("localhost", v3Agent.address.port, null)
 
     expect:
-    client.tracesEndpoint == "http://localhost:${v3Agent.address.port}/v0.3/traces"
+    client.tracesUrl.toString() == "http://localhost:${v3Agent.address.port}/v0.3/traces"
     client.sendTraces([])
 
     cleanup:
@@ -185,10 +185,10 @@ class DDApiTest extends Specification {
       }
     }
     def port = badPort ? 999 : agent.address.port
-    def client = new DDApi("localhost", port)
+    def client = new DDApi("localhost", port, null)
 
     expect:
-    client.tracesEndpoint == "http://localhost:${port}/$endpointVersion/traces"
+    client.tracesUrl.toString() == "http://localhost:${port}/$endpointVersion/traces"
 
     cleanup:
     agent.close()
@@ -201,11 +201,39 @@ class DDApiTest extends Specification {
     "v0.3"          | 30000      | false
   }
 
-  static List<TreeMap<String, Object>> convertList(byte[] bytes) {
-    return mapper.readValue(bytes, new TypeReference<List<TreeMap<String, Object>>>() {})
+  def "verify content length"() {
+    setup:
+    def receivedContentLength = new AtomicLong()
+    def agent = httpServer {
+      handlers {
+        put("v0.4/traces") {
+          receivedContentLength.set(request.contentLength)
+          response.status(200).send()
+        }
+      }
+    }
+    def client = new DDApi("localhost", agent.address.port, null)
+
+    when:
+    def success = client.sendTraces(traces)
+    then:
+    success
+    receivedContentLength.get() == expectedLength
+
+    cleanup:
+    agent.close()
+
+    where:
+    expectedLength | traces
+    1              | []
+    3              | [[], []]
+    16             | (1..15).collect { [] }
+    19             | (1..16).collect { [] }
+    65538          | (1..((1 << 16) - 1)).collect { [] }
+    65541          | (1..(1 << 16)).collect { [] }
   }
 
-  static TreeMap<String, Object> convertMap(byte[] bytes) {
-    return mapper.readValue(bytes, new TypeReference<TreeMap<String, Object>>() {})
+  static List<List<TreeMap<String, Object>>> convertList(byte[] bytes) {
+    return mapper.readValue(bytes, new TypeReference<List<List<TreeMap<String, Object>>>>() {})
   }
 }

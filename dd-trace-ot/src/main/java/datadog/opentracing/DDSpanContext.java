@@ -1,9 +1,12 @@
+// Modified by SignalFx
 package datadog.opentracing;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import datadog.opentracing.decorators.AbstractDecorator;
 import datadog.trace.api.DDTags;
 import datadog.trace.api.sampling.PrioritySampling;
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +47,9 @@ public class DDSpanContext implements io.opentracing.SpanContext {
 
   /** Tags are associated to the current span, they will not propagate to the children span */
   private final Map<String, Object> tags = new ConcurrentHashMap<>();
+
+  /** Logs are associated to the current span, they will not propagate to the children span */
+  private final List<AbstractMap.SimpleEntry<Long, Map<String, ?>>> logs = new ArrayList<>();
 
   /** The service name is required, otherwise the span are dropped by the agent */
   private volatile String serviceName;
@@ -319,6 +325,23 @@ public class DDSpanContext implements io.opentracing.SpanContext {
       tags.put(DDTags.SPAN_TYPE, spanType);
     }
     return Collections.unmodifiableMap(tags);
+  }
+
+  /**
+   * Add a logged event map to the span. Logs are not propagated to the children.
+   *
+   * @param timestamp the timestamp of the event.
+   * @param map the event map for the tag.
+   */
+  public synchronized void log(final long timestamp, final Map<String, ?> map) {
+    // explicit generic type seems to be required
+    AbstractMap.SimpleEntry<Long, Map<String, ?>> logged =
+        new AbstractMap.SimpleEntry<Long, Map<String, ?>>(timestamp, map);
+    logs.add(logged);
+  }
+
+  public synchronized List<AbstractMap.SimpleEntry<Long, Map<String, ?>>> getLogs() {
+    return Collections.unmodifiableList(logs);
   }
 
   @Override

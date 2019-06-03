@@ -74,7 +74,7 @@ class ZipkinV2ApiTest extends Specification {
     where:
     traces                                                               | expectedRequestBody
     []                                                                   | []
-    [[SpanFactory.newSpanOf(1L).setTag("service", "my-service")]]     | [new TreeMap<>([
+    [[SpanFactory.newSpanOf(1L).setTag("service", "my-service").log(1000L, "some event")]]     | [new TreeMap<>([
       "traceId" : "0000000000000001",
       "id"  :     "0000000000000001",
       "parentId": "0000000000000000",
@@ -83,6 +83,7 @@ class ZipkinV2ApiTest extends Specification {
                     "thread.id": "${Thread.currentThread().id}",
                     "span.type": "fakeType",
                     "resource.name": "fakeResource"],
+      "annotations": [["timestamp" : 1000, "value": "{\"event\":\"some event\"}"]],
       "name"     : "fakeOperation",
       "kind": null,
       "localEndpoint": ["serviceName": "my-service"],
@@ -97,12 +98,13 @@ class ZipkinV2ApiTest extends Specification {
                     "thread.id": "${Thread.currentThread().id}",
                     "span.type": "fakeType",
                     "resource.name": "my-resource"],
+      "annotations": [],
       "name"     : "fakeOperation",
       "localEndpoint": ["serviceName": "fakeService"],
       "kind"    : null,
       "timestamp"    : 100,
     ])]
-    [[SpanFactory.newSpanOf(100L).setTag("span.kind", "CliEnt")]] | [new TreeMap<>([
+    [[SpanFactory.newSpanOf(100L).setTag("span.kind", "CliEnt").log(1000L, "some event").log(2000L, Collections.singletonMap("another event", 1))]] | [new TreeMap<>([
       "traceId" : "0000000000000001",
       "id"  :     "0000000000000001",
       "parentId": "0000000000000000",
@@ -111,6 +113,7 @@ class ZipkinV2ApiTest extends Specification {
                     "thread.id": "${Thread.currentThread().id}",
                     "span.type": "fakeType",
                     "resource.name": "fakeResource"],
+      "annotations": [["timestamp" : 1000, "value": "{\"event\":\"some event\"}"], ["timestamp" : 2000, "value":"{\"another event\":1}"]],
       "name"     : "fakeOperation",
       "localEndpoint": ["serviceName": "fakeService"],
       "kind"    : "CliEnt",
@@ -125,6 +128,7 @@ class ZipkinV2ApiTest extends Specification {
                     "thread.id": "${Thread.currentThread().id}",
                     "span.type": "fakeType",
                     "resource.name": "fakeResource"],
+      "annotations": [],
       "name"     : "fakeResource",
       "localEndpoint": ["serviceName": "fakeService"],
       "kind"    : "SerVeR",

@@ -2,6 +2,7 @@ package datadog.trace.common.writer;
 
 import static io.opentracing.tag.Tags.SPAN_KIND;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -19,6 +20,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -133,6 +135,21 @@ public class ZipkinV2Api implements Api {
     }
 
     updateFromResourceTag(spanNode, tagNode);
+
+    ArrayNode annotations = spanNode.putArray("annotations");
+    for (AbstractMap.SimpleEntry<Long, Map<String, ?>> item : span.getLogs()) {
+      final ObjectNode annotation = objectMapper.createObjectNode();
+      annotation.put("timestamp", item.getKey());
+      JsonNode value = objectMapper.valueToTree(item.getValue());
+      try {
+        String encodedValue = objectMapper.writeValueAsString(value);
+        annotation.put("value", encodedValue);
+      } catch (JsonProcessingException e) {
+        log.warn("Failed creating annotation");
+        continue;
+      }
+      annotations.add(annotation);
+    }
 
     return spanNode;
   }

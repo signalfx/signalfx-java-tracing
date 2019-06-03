@@ -1,5 +1,8 @@
+// Modified by SignalFx
 package datadog.trace.api.interceptor;
 
+import java.util.AbstractMap;
+import java.util.List;
 import java.util.Map;
 
 public interface MutableSpan {
@@ -37,6 +40,16 @@ public interface MutableSpan {
   MutableSpan setTag(final String tag, final boolean value);
 
   MutableSpan setTag(final String tag, final Number value);
+
+  List<AbstractMap.SimpleEntry<Long, Map<String, ?>>> getLogs();
+
+  MutableSpan log(final java.util.Map<java.lang.String, ?> map);
+
+  MutableSpan log(final long l, final java.util.Map<java.lang.String, ?> map);
+
+  MutableSpan log(final java.lang.String s);
+
+  MutableSpan log(final long l, final java.lang.String s);
 
   Boolean isError();
 

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing
 
 import datadog.opentracing.propagation.ExtractedContext
@@ -292,5 +293,29 @@ class DDSpanTest extends Specification {
     'manual.keep' | false
     'manual.drop' | 1
     'manual.keep' | 1
+  }
+
+  def "span tags are settable"() {
+    setup:
+    def span = tracer.buildSpan("root").start()
+    def one = TimeUnit.MILLISECONDS.toMicros(1)
+    def two = TimeUnit.MILLISECONDS.toMicros(2)
+    def time = System.currentTimeMillis()
+
+    span.log(one, "some event")
+    span.log(two, ["my event": "event"])
+    span.log(two, ["my event": "another event"])
+    span.log(time, ["event" : true])
+
+    def expectedOne = new AbstractMap.SimpleEntry(one , ["event": "some event"])
+    def expectedTwo = new AbstractMap.SimpleEntry(two, ["my event": "event"])
+    def expectedThree = new AbstractMap.SimpleEntry(two, ["my event": "another event"])
+    def expectedFour = new AbstractMap.SimpleEntry(time, ["event" : true])
+
+    expect:
+    span.getLogs() == [expectedOne, expectedTwo, expectedThree, expectedFour]
+
+    cleanup:
+    span.finish()
   }
 }

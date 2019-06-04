@@ -1,6 +1,10 @@
+// Modified by SignalFx
 package datadog.opentracing;
 
+import static io.opentracing.log.Fields.ERROR_KIND;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static io.opentracing.log.Fields.MESSAGE;
+import static io.opentracing.log.Fields.STACK;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -18,7 +22,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.ref.WeakReference;
 import java.math.BigInteger;
+import java.util.AbstractMap;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -153,10 +160,14 @@ public class DDSpan implements Span, MutableSpan {
   }
 
   private boolean extractError(final Map<String, ?> map) {
-    if (map.get(ERROR_OBJECT) instanceof Throwable) {
-      final Throwable error = (Throwable) map.get(ERROR_OBJECT);
-      setErrorMeta(error);
-      return true;
+    final Object errorObject = map.get(ERROR_OBJECT);
+    if (errorObject instanceof Throwable) {
+      // if custom instrumentation don't use setErrorMeta
+      if (!map.containsKey(ERROR_KIND) && !map.containsKey(MESSAGE) && !map.containsKey(STACK)) {
+        final Throwable error = (Throwable) errorObject;
+        setErrorMeta(error);
+        return true;
+      }
     }
     return false;
   }
@@ -227,8 +238,9 @@ public class DDSpan implements Span, MutableSpan {
    */
   @Override
   public final DDSpan log(final Map<String, ?> map) {
+    final long currentTime = Clock.currentMicroTime();
     if (!extractError(map)) {
-      log.debug("`log` method is not implemented. Doing nothing");
+      context().log(currentTime, map);
     }
     return this;
   }
@@ -239,7 +251,7 @@ public class DDSpan implements Span, MutableSpan {
   @Override
   public final DDSpan log(final long l, final Map<String, ?> map) {
     if (!extractError(map)) {
-      log.debug("`log` method is not implemented. Doing nothing");
+      context().log(l, map);
     }
     return this;
   }
@@ -249,7 +261,7 @@ public class DDSpan implements Span, MutableSpan {
    */
   @Override
   public final DDSpan log(final String s) {
-    log.debug("`log` method is not implemented. Provided log: {}", s);
+    this.log(Collections.singletonMap("event", s));
     return this;
   }
 
@@ -258,8 +270,14 @@ public class DDSpan implements Span, MutableSpan {
    */
   @Override
   public final DDSpan log(final long l, final String s) {
-    log.debug("`log` method is not implemented. Provided log: {}", s);
+    this.log(l, Collections.singletonMap("event", s));
     return this;
+  }
+
+  @Override
+  @JsonIgnore
+  public List<AbstractMap.SimpleEntry<Long, Map<String, ?>>> getLogs() {
+    return context().getLogs();
   }
 
   @Override

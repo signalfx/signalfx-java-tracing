@@ -1,7 +1,7 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import okhttp3.Request
 import spock.lang.Shared
@@ -32,8 +32,8 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
     setup:
     def request = new Request.Builder()
       .url("http://localhost:$port/test")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("x-b3-traceid", "7b")
+      .header("x-b3-spanid", "1c8")
       .get()
       .build()
     def response = client.newCall(request).execute()
@@ -57,7 +57,6 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "http://localhost:$port/test"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.COMPONENT.key" "akka-http-server"
           }
         }
@@ -99,7 +98,6 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "http://localhost:$port/$endpoint"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.COMPONENT.key" "akka-http-server"
             errorTags RuntimeException, errorMessage
           }
@@ -139,7 +137,6 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "http://localhost:$port/server-error"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.COMPONENT.key" "akka-http-server"
             "$Tags.ERROR.key" true
           }
@@ -178,7 +175,6 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
             "$Tags.HTTP_URL.key" "http://localhost:$port/not-found"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.COMPONENT.key" "akka-http-server"
           }
         }

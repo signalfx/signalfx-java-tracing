@@ -1,9 +1,13 @@
 // Modified by SignalFx
 package datadog.opentracing
 
+import datadog.opentracing.propagation.ExtractedContext
+import datadog.opentracing.propagation.TagContext
 import datadog.trace.api.sampling.PrioritySampling
 import datadog.trace.common.sampling.RateByServiceSampler
 import datadog.trace.common.writer.ListWriter
+import io.opentracing.SpanContext
+import spock.lang.Shared
 import spock.lang.Specification
 
 import java.util.concurrent.TimeUnit
@@ -13,6 +17,9 @@ import static datadog.trace.api.Config.DEFAULT_SERVICE_NAME
 class DDSpanTest extends Specification {
   def writer = new ListWriter()
   def tracer = new DDTracer(DEFAULT_SERVICE_NAME, writer, new RateByServiceSampler(), [:])
+
+  @Shared
+  def defaultSamplingPriority = PrioritySampling.SAMPLER_KEEP
 
   def "getters and setters"() {
     setup:
@@ -25,6 +32,7 @@ class DDSpanTest extends Specification {
         "fakeOperation",
         "fakeResource",
         PrioritySampling.UNSET,
+        null,
         Collections.<String, String> emptyMap(),
         false,
         "fakeType",
@@ -184,18 +192,107 @@ class DDSpanTest extends Specification {
     child2.getMetrics().get(DDSpanContext.PRIORITY_SAMPLING_KEY) == null
   }
 
-  def "getRootSpan returns the root span"() {
+  def "origin set only on root span"() {
     setup:
-    def root = tracer.buildSpan("root").start()
+    def parent = tracer.buildSpan("testParent").asChildOf(extractedContext).start().context()
+    def child = tracer.buildSpan("testChild1").asChildOf(parent).start().context()
+
+    expect:
+    parent.origin == "some-origin"
+    parent.@origin == "some-origin" // Access field directly instead of getter.
+    child.origin == "some-origin"
+    child.@origin == null // Access field directly instead of getter.
+
+    where:
+    extractedContext                                           | _
+    new TagContext("some-origin", [:])                         | _
+    new ExtractedContext("1", "2", 0, "some-origin", [:], [:]) | _
+  }
+
+  def "isRootSpan() in and not in the context of distributed tracing"() {
+    setup:
+    def root = tracer.buildSpan("root").asChildOf((SpanContext)extractedContext).start()
     def child = tracer.buildSpan("child").asChildOf(root).start()
 
     expect:
-    root.getRootSpan() == root
-    child.getRootSpan() == root
+    root.isRootSpan() == isTraceRootSpan
+    !child.isRootSpan()
 
     cleanup:
     child.finish()
     root.finish()
+
+    where:
+    extractedContext | isTraceRootSpan
+    null | true
+    new ExtractedContext("123", "456", 1, "789", [:], [:]) | false
+  }
+
+  def "getApplicationRootSpan() in and not in the context of distributed tracing"() {
+    setup:
+    def root = tracer.buildSpan("root").asChildOf((SpanContext)extractedContext).start()
+    def child = tracer.buildSpan("child").asChildOf(root).start()
+
+    expect:
+    root.localRootSpan == root
+    child.localRootSpan == root
+    // Checking for backward compatibility method names
+    root.rootSpan == root
+    child.rootSpan == root
+
+    cleanup:
+    child.finish()
+    root.finish()
+
+    where:
+    extractedContext | isTraceRootSpan
+    null | true
+    new ExtractedContext("123", "456", 1, "789", [:], [:]) | false
+  }
+
+  def "setting forced tracing via tag"() {
+
+    setup:
+    def span = tracer.buildSpan("root").start()
+    if (tagName) {
+      span.setTag(tagName, tagValue)
+    }
+
+    expect:
+    span.getSamplingPriority() == expectedPriority
+
+    cleanup:
+    span.finish()
+
+    where:
+    tagName | tagValue | expectedPriority
+    'manual.drop' | true | PrioritySampling.USER_DROP
+    'manual.keep' | true | PrioritySampling.USER_KEEP
+  }
+
+  def "not setting forced tracing via tag or setting it wrong value not causing exception"() {
+
+    setup:
+    def span = tracer.buildSpan("root").start()
+    if (tagName) {
+      span.setTag(tagName, tagValue)
+    }
+
+    expect:
+    span.getSamplingPriority() == defaultSamplingPriority
+
+    cleanup:
+    span.finish()
+
+    where:
+    tagName | tagValue
+    // When no tag is set default to
+    null | null
+    // Setting to not known value
+    'manual.drop' | false
+    'manual.keep' | false
+    'manual.drop' | 1
+    'manual.keep' | 1
   }
 
   def "span tags are settable"() {

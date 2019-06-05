@@ -1,6 +1,6 @@
 package datadog.trace.instrumentation.couchbase.client;
 
-import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static datadog.trace.instrumentation.couchbase.client.CouchbaseClientDecorator.DECORATE;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
@@ -12,12 +12,11 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import com.couchbase.client.java.CouchbaseCluster;
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.noop.NoopSpan;
-import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -48,6 +47,10 @@ public class CouchbaseBucketInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
+      "datadog.trace.agent.decorator.BaseDecorator",
+      "datadog.trace.agent.decorator.ClientDecorator",
+      "datadog.trace.agent.decorator.DatabaseClientDecorator",
+      packageName + ".CouchbaseClientDecorator",
       getClass().getName() + "$TraceSpanStart",
       getClass().getName() + "$TraceSpanFinish",
       getClass().getName() + "$TraceSpanError",
@@ -111,16 +114,16 @@ public class CouchbaseBucketInstrumentation extends Instrumenter.Default {
           declaringClass.getSimpleName().replace("CouchbaseAsync", "").replace("DefaultAsync", "");
       final String resourceName = className + "." + method.getName();
 
-      // just replace the no-op span.
-      spanRef.set(
+      final Span span =
           GlobalTracer.get()
               .buildSpan("couchbase.call")
-              .withTag(Tags.COMPONENT.getKey(), "couchbase-client")
-              .withTag(DDTags.SERVICE_NAME, "couchbase")
               .withTag(DDTags.RESOURCE_NAME, resourceName)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.COUCHBASE)
               .withTag("bucket", bucket)
-              .start());
+              .start();
+      try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
+        // just replace the no-op span.
+        spanRef.set(DECORATE.afterStart(span));
+      }
     }
   }
 
@@ -136,7 +139,10 @@ public class CouchbaseBucketInstrumentation extends Instrumenter.Default {
       final Span span = spanRef.getAndSet(null);
 
       if (span != null) {
-        span.finish();
+        try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
+          DECORATE.beforeFinish(span);
+          span.finish();
+        }
       }
     }
   }
@@ -152,9 +158,11 @@ public class CouchbaseBucketInstrumentation extends Instrumenter.Default {
     public void call(final Throwable throwable) {
       final Span span = spanRef.getAndSet(null);
       if (span != null) {
-        Tags.ERROR.set(span, true);
-        span.log(singletonMap(ERROR_OBJECT, throwable));
-        span.finish();
+        try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
+          DECORATE.onError(span, throwable);
+          DECORATE.beforeFinish(span);
+          span.finish();
+        }
       }
     }
   }

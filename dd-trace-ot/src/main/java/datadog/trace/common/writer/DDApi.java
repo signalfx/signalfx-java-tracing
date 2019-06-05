@@ -1,23 +1,30 @@
 // Modified by SignalFx
 package datadog.trace.common.writer;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import datadog.opentracing.DDSpan;
 import datadog.opentracing.DDTraceOTInfo;
-import java.io.BufferedReader;
+import datadog.trace.common.writer.unixdomainsockets.UnixDomainSocketFactory;
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.HttpUrl;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okio.BufferedSink;
+import org.msgpack.core.MessagePack;
+import org.msgpack.core.MessagePacker;
 import org.msgpack.jackson.dataformat.MessagePackFactory;
 
 /** The API pointing to a DD agent */
@@ -29,28 +36,41 @@ public class DDApi implements Api {
   private static final String DATADOG_META_TRACER_VERSION = "Datadog-Meta-Tracer-Version";
   private static final String X_DATADOG_TRACE_COUNT = "X-Datadog-Trace-Count";
 
-  private static final String TRACES_ENDPOINT_V3 = "/v0.3/traces";
-  private static final String TRACES_ENDPOINT_V4 = "/v0.4/traces";
+  private static final int HTTP_TIMEOUT = 1; // 1 second for conenct/read/write operations
+  private static final String TRACES_ENDPOINT_V3 = "v0.3/traces";
+  private static final String TRACES_ENDPOINT_V4 = "v0.4/traces";
   private static final long MILLISECONDS_BETWEEN_ERROR_LOG = TimeUnit.MINUTES.toMillis(5);
 
-  private final String tracesEndpoint;
   private final List<ResponseListener> responseListeners = new ArrayList<>();
 
-  private final AtomicInteger traceCount = new AtomicInteger(0);
   private volatile long nextAllowedLogTime = 0;
 
-  private static final ObjectMapper objectMapper = new ObjectMapper(new MessagePackFactory());
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new MessagePackFactory());
+  private static final MediaType MSGPACK = MediaType.get("application/msgpack");
 
-  public DDApi(final String host, final int port) {
-    this(host, port, traceEndpointAvailable("http://" + host + ":" + port + TRACES_ENDPOINT_V4));
+  private final OkHttpClient httpClient;
+  private final HttpUrl tracesUrl;
+
+  public DDApi(final String host, final int port, final String unixDomainSocketPath) {
+    this(
+        host,
+        port,
+        traceEndpointAvailable(getUrl(host, port, TRACES_ENDPOINT_V4), unixDomainSocketPath),
+        unixDomainSocketPath);
   }
 
-  DDApi(final String host, final int port, final boolean v4EndpointsAvailable) {
+  DDApi(
+      final String host,
+      final int port,
+      final boolean v4EndpointsAvailable,
+      final String unixDomainSocketPath) {
+    httpClient = buildHttpClient(unixDomainSocketPath);
+
     if (v4EndpointsAvailable) {
-      this.tracesEndpoint = "http://" + host + ":" + port + TRACES_ENDPOINT_V4;
+      tracesUrl = getUrl(host, port, TRACES_ENDPOINT_V4);
     } else {
       log.debug("API v0.4 endpoints not available. Downgrading to v0.3");
-      this.tracesEndpoint = "http://" + host + ":" + port + TRACES_ENDPOINT_V3;
+      tracesUrl = getUrl(host, port, TRACES_ENDPOINT_V3);
     }
   }
 
@@ -58,10 +78,6 @@ public class DDApi implements Api {
     if (!responseListeners.contains(listener)) {
       responseListeners.add(listener);
     }
-  }
-
-  public AtomicInteger getTraceCounter() {
-    return traceCount;
   }
 
   /**
@@ -72,77 +88,117 @@ public class DDApi implements Api {
    */
   @Override
   public boolean sendTraces(final List<List<DDSpan>> traces) {
-    final int totalSize = traceCount == null ? traces.size() : traceCount.getAndSet(0);
-    try {
-      final HttpURLConnection httpCon = getHttpURLConnection(tracesEndpoint);
-      httpCon.setRequestProperty(X_DATADOG_TRACE_COUNT, String.valueOf(totalSize));
-
-      final OutputStream out = httpCon.getOutputStream();
-      objectMapper.writeValue(out, traces);
-      out.flush();
-      out.close();
-
-      String responseString = null;
-      {
-        final BufferedReader responseReader =
-            new BufferedReader(
-                new InputStreamReader(httpCon.getInputStream(), StandardCharsets.UTF_8));
-        final StringBuilder sb = new StringBuilder();
-
-        String line = null;
-        while ((line = responseReader.readLine()) != null) {
-          sb.append(line);
-        }
-        responseReader.close();
-
-        responseString = sb.toString();
-      }
-
-      final int responseCode = httpCon.getResponseCode();
-      if (responseCode != 200) {
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "Error while sending {} of {} traces to the DD agent. Status: {}, ResponseMessage: ",
-              traces.size(),
-              totalSize,
-              responseCode,
-              httpCon.getResponseMessage());
-        } else if (nextAllowedLogTime < System.currentTimeMillis()) {
-          nextAllowedLogTime = System.currentTimeMillis() + MILLISECONDS_BETWEEN_ERROR_LOG;
-          log.warn(
-              "Error while sending {} of {} traces to the DD agent. Status: {} (going silent for {} seconds)",
-              traces.size(),
-              totalSize,
-              responseCode,
-              httpCon.getResponseMessage(),
-              TimeUnit.MILLISECONDS.toMinutes(MILLISECONDS_BETWEEN_ERROR_LOG));
-        }
-        return false;
-      }
-
-      log.debug("Successfully sent {} of {} traces to the DD agent.", traces.size(), totalSize);
-
+    final List<byte[]> serializedTraces = new ArrayList<>(traces.size());
+    int sizeInBytes = 0;
+    for (final List<DDSpan> trace : traces) {
       try {
-        if (null != responseString
-            && !"".equals(responseString.trim())
-            && !"OK".equalsIgnoreCase(responseString.trim())) {
-          final JsonNode response = objectMapper.readTree(responseString);
-          for (final ResponseListener listener : responseListeners) {
-            listener.onResponse(tracesEndpoint, response);
-          }
-        }
-      } catch (final IOException e) {
-        log.debug("Failed to parse DD agent response: " + responseString, e);
+        final byte[] serializedTrace = serializeTrace(trace);
+        sizeInBytes += serializedTrace.length;
+        serializedTraces.add(serializedTrace);
+      } catch (final JsonProcessingException e) {
+        log.warn("Error serializing trace", e);
       }
-      return true;
+    }
 
+    return sendSerializedTraces(serializedTraces.size(), sizeInBytes, serializedTraces);
+  }
+
+  @Override
+  public byte[] serializeTrace(final List<DDSpan> trace) throws JsonProcessingException {
+    return OBJECT_MAPPER.writeValueAsBytes(trace);
+  }
+
+  @Override
+  public boolean sendSerializedTraces(
+      final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces) {
+    try {
+      final RequestBody body =
+          new RequestBody() {
+            @Override
+            public MediaType contentType() {
+              return MSGPACK;
+            }
+
+            @Override
+            public long contentLength() {
+              final int traceCount = traces.size();
+              // Need to allocate additional to handle MessagePacker.packArrayHeader
+              if (traceCount < (1 << 4)) {
+                return sizeInBytes + 1; // byte
+              } else if (traceCount < (1 << 16)) {
+                return sizeInBytes + 3; // byte + short
+              } else {
+                return sizeInBytes + 5; // byte + int
+              }
+            }
+
+            @Override
+            public void writeTo(final BufferedSink sink) throws IOException {
+              final OutputStream out = sink.outputStream();
+              final MessagePacker packer = MessagePack.newDefaultPacker(out);
+              packer.packArrayHeader(traces.size());
+              for (final byte[] trace : traces) {
+                packer.writePayload(trace);
+              }
+              packer.close();
+              out.close();
+            }
+          };
+      final Request request =
+          prepareRequest(tracesUrl)
+              .addHeader(X_DATADOG_TRACE_COUNT, String.valueOf(representativeCount))
+              .put(body)
+              .build();
+
+      try (final Response response = httpClient.newCall(request).execute()) {
+        if (response.code() != 200) {
+          if (log.isDebugEnabled()) {
+            log.debug(
+                "Error while sending {} of {} traces to the DD agent. Status: {}, Response: {}, Body: {}",
+                traces.size(),
+                representativeCount,
+                response.code(),
+                response.message(),
+                response.body().string());
+          } else if (nextAllowedLogTime < System.currentTimeMillis()) {
+            nextAllowedLogTime = System.currentTimeMillis() + MILLISECONDS_BETWEEN_ERROR_LOG;
+            log.warn(
+                "Error while sending {} of {} traces to the DD agent. Status: {} (going silent for {} minutes)",
+                traces.size(),
+                representativeCount,
+                response.code(),
+                response.message(),
+                TimeUnit.MILLISECONDS.toMinutes(MILLISECONDS_BETWEEN_ERROR_LOG));
+          }
+          return false;
+        }
+
+        log.debug(
+            "Successfully sent {} of {} traces to the DD agent.",
+            traces.size(),
+            representativeCount);
+
+        final String responseString = response.body().string().trim();
+        try {
+          if (!"".equals(responseString) && !"OK".equalsIgnoreCase(responseString)) {
+            final JsonNode parsedResponse = OBJECT_MAPPER.readTree(responseString);
+            final String endpoint = tracesUrl.toString();
+            for (final ResponseListener listener : responseListeners) {
+              listener.onResponse(endpoint, parsedResponse);
+            }
+          }
+        } catch (final JsonParseException e) {
+          log.debug("Failed to parse DD agent response: " + responseString, e);
+        }
+        return true;
+      }
     } catch (final IOException e) {
       if (log.isDebugEnabled()) {
         log.debug(
             "Error while sending "
                 + traces.size()
                 + " of "
-                + totalSize
+                + representativeCount
                 + " traces to the DD agent.",
             e);
       } else if (nextAllowedLogTime < System.currentTimeMillis()) {
@@ -150,7 +206,7 @@ public class DDApi implements Api {
         log.warn(
             "Error while sending {} of {} traces to the DD agent. {}: {} (going silent for {} minutes)",
             traces.size(),
-            totalSize,
+            representativeCount,
             e.getClass().getName(),
             e.getMessage(),
             TimeUnit.MILLISECONDS.toMinutes(MILLISECONDS_BETWEEN_ERROR_LOG));
@@ -159,56 +215,65 @@ public class DDApi implements Api {
     }
   }
 
-  private static boolean traceEndpointAvailable(final String endpoint) {
-    return endpointAvailable(endpoint, Collections.emptyList(), true);
-  }
-
-  private static boolean serviceEndpointAvailable(final String endpoint) {
-    return endpointAvailable(endpoint, Collections.emptyMap(), true);
+  private static boolean traceEndpointAvailable(
+      final HttpUrl url, final String unixDomainSocketPath) {
+    return endpointAvailable(url, unixDomainSocketPath, Collections.emptyList(), true);
   }
 
   private static boolean endpointAvailable(
-      final String endpoint, final Object data, final boolean retry) {
+      final HttpUrl url,
+      final String unixDomainSocketPath,
+      final Object data,
+      final boolean retry) {
     try {
-      final HttpURLConnection httpCon = getHttpURLConnection(endpoint);
+      final OkHttpClient client = buildHttpClient(unixDomainSocketPath);
+      final RequestBody body = RequestBody.create(MSGPACK, OBJECT_MAPPER.writeValueAsBytes(data));
+      final Request request = prepareRequest(url).put(body).build();
 
-      // This is potentially called in premain, so we want to fail fast.
-      httpCon.setConnectTimeout((int) TimeUnit.SECONDS.toMillis(1));
-      httpCon.setReadTimeout((int) TimeUnit.SECONDS.toMillis(1));
-
-      final OutputStream out = httpCon.getOutputStream();
-      objectMapper.writeValue(out, data);
-      out.flush();
-      out.close();
-
-      return httpCon.getResponseCode() == 200;
+      try (final Response response = client.newCall(request).execute()) {
+        return response.code() == 200;
+      }
     } catch (final IOException e) {
       if (retry) {
-        return endpointAvailable(endpoint, data, false);
+        return endpointAvailable(url, unixDomainSocketPath, data, false);
       }
     }
     return false;
   }
 
-  private static HttpURLConnection getHttpURLConnection(final String endpoint) throws IOException {
-    final HttpURLConnection httpCon;
-    final URL url = new URL(endpoint);
-    httpCon = (HttpURLConnection) url.openConnection();
-    httpCon.setDoOutput(true);
-    httpCon.setDoInput(true);
-    httpCon.setRequestMethod("PUT");
-    httpCon.setRequestProperty("Content-Type", "application/msgpack");
-    httpCon.setRequestProperty(DATADOG_META_LANG, "java");
-    httpCon.setRequestProperty(DATADOG_META_LANG_VERSION, DDTraceOTInfo.JAVA_VERSION);
-    httpCon.setRequestProperty(DATADOG_META_LANG_INTERPRETER, DDTraceOTInfo.JAVA_VM_NAME);
-    httpCon.setRequestProperty(DATADOG_META_TRACER_VERSION, DDTraceOTInfo.VERSION);
+  private static OkHttpClient buildHttpClient(final String unixDomainSocketPath) {
+    OkHttpClient.Builder builder = new OkHttpClient.Builder();
+    if (unixDomainSocketPath != null) {
+      builder = builder.socketFactory(new UnixDomainSocketFactory(new File(unixDomainSocketPath)));
+    }
+    return builder
+        .connectTimeout(HTTP_TIMEOUT, TimeUnit.SECONDS)
+        .writeTimeout(HTTP_TIMEOUT, TimeUnit.SECONDS)
+        .readTimeout(HTTP_TIMEOUT, TimeUnit.SECONDS)
+        .build();
+  }
 
-    return httpCon;
+  private static HttpUrl getUrl(final String host, final int port, final String endPoint) {
+    return new HttpUrl.Builder()
+        .scheme("http")
+        .host(host)
+        .port(port)
+        .addEncodedPathSegments(endPoint)
+        .build();
+  }
+
+  private static Request.Builder prepareRequest(final HttpUrl url) {
+    return new Request.Builder()
+        .url(url)
+        .addHeader(DATADOG_META_LANG, "java")
+        .addHeader(DATADOG_META_LANG_VERSION, DDTraceOTInfo.JAVA_VERSION)
+        .addHeader(DATADOG_META_LANG_INTERPRETER, DDTraceOTInfo.JAVA_VM_NAME)
+        .addHeader(DATADOG_META_TRACER_VERSION, DDTraceOTInfo.VERSION);
   }
 
   @Override
   public String toString() {
-    return "DDApi { tracesEndpoint=" + tracesEndpoint + " }";
+    return "DDApi { tracesUrl=" + tracesUrl + " }";
   }
 
   public interface ResponseListener {

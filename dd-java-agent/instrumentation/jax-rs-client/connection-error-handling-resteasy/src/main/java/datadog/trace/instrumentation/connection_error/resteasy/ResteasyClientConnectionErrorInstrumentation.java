@@ -43,7 +43,9 @@ public final class ResteasyClientConnectionErrorInstrumentation extends Instrume
 
   @Override
   public String[] helperClassNames() {
-    return new String[] {getClass().getName() + "$WrappedFuture"};
+    return new String[] {
+      getClass().getName() + "$WrappedFuture",
+    };
   }
 
   @Override
@@ -79,9 +81,9 @@ public final class ResteasyClientConnectionErrorInstrumentation extends Instrume
     @Advice.OnMethodExit(suppress = Throwable.class)
     public static void handleError(
         @Advice.FieldValue("configuration") final ClientConfiguration context,
-        @Advice.Return(readOnly = false) Future future) {
+        @Advice.Return(readOnly = false) Future<?> future) {
       if (!(future instanceof WrappedFuture)) {
-        future = new WrappedFuture(future, context);
+        future = new WrappedFuture<>(future, context);
       }
     }
   }

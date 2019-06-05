@@ -5,6 +5,8 @@ import datadog.trace.api.Config
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 
+import java.util.regex.Pattern
+
 class TagsAssert {
   private final String spanParentId
   private final Map<String, Object> tags
@@ -34,9 +36,14 @@ class TagsAssert {
     assertedTags.add("thread.id")
     assertedTags.add(Config.RUNTIME_ID_TAG)
     assertedTags.add(Config.LANGUAGE_TAG_KEY)
+    assertedTags.add(Config.TRACING_LIBRARY_KEY)
+    assertedTags.add(Config.TRACING_VERSION_KEY)
 
     assert tags["thread.name"] != null
-    assert tags["thread.id"] != null
+    assert tags["thread.name"] != null
+    assert tags[Config.TRACING_LIBRARY_KEY] == Config.TRACING_LIBRARY_VALUE
+    assert tags[Config.TRACING_VERSION_KEY] == Config.TRACING_VERSION_VALUE
+
     if ("0" == spanParentId || distributedRootSpan) {
       assert tags[Config.RUNTIME_ID_TAG] == Config.get().runtimeId
       assert tags[Config.LANGUAGE_TAG_KEY] == Config.LANGUAGE_TAG_VALUE
@@ -50,13 +57,13 @@ class TagsAssert {
     errorTags(errorType, null)
   }
 
-  def errorTags(Class<Throwable> errorType, Object message) {
-    methodMissing("error", [true].toArray())
-    methodMissing("error.type", [errorType.name].toArray())
-    methodMissing("error.stack", [String].toArray())
+  def errorTags(Class<Throwable> errorType, message) {
+    tag("error", true)
+    tag("error.type", errorType.name)
+    tag("error.stack", String)
 
     if (message != null) {
-      methodMissing("error.msg", [message].toArray())
+      tag("error.msg", message)
     }
   }
 
@@ -65,7 +72,9 @@ class TagsAssert {
       return
     }
     assertedTags.add(name)
-    if (value instanceof Class) {
+    if (value instanceof Pattern) {
+      assert tags[name] =~ value
+    } else if (value instanceof Class) {
       assert ((Class) value).isInstance(tags[name])
     } else if (value instanceof Closure) {
       assert ((Closure) value).call(tags[name])

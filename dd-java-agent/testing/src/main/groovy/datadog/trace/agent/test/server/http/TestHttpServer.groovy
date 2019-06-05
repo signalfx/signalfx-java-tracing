@@ -46,7 +46,6 @@ class TestHttpServer implements AutoCloseable {
 
   private TestHttpServer() {
     internalServer = new Server(0)
-    internalServer.stopAtShutdown = true
   }
 
   def start() {
@@ -59,6 +58,8 @@ class TestHttpServer implements AutoCloseable {
     handlerList.handlers = handlers.configured
     internalServer.handler = handlerList
     internalServer.start()
+    // set after starting, otherwise two callbacks get added.
+    internalServer.stopAtShutdown = true
 
     address = new URI("http://localhost:${internalServer.connectors[0].localPort}")
     System.out.println("Started server $this on port ${address.getPort()}")
@@ -298,6 +299,7 @@ class TestHttpServer implements AutoCloseable {
         assert body != null
 
         send()
+        resp.setContentLength(body.bytes.length)
         resp.writer.print(body)
       }
     }

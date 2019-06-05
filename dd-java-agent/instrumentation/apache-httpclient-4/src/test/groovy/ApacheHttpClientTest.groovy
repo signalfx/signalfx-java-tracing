@@ -1,149 +1,31 @@
-import datadog.opentracing.DDSpan
-import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.agent.test.asserts.TraceAssert
-import datadog.trace.api.Config
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
-import io.opentracing.tag.Tags
-import org.apache.http.HttpResponse
-import org.apache.http.client.HttpClient
+import datadog.trace.agent.test.base.HttpClientTest
+import datadog.trace.instrumentation.apachehttpclient.ApacheHttpClientDecorator
 import org.apache.http.client.methods.HttpGet
-import org.apache.http.impl.client.BasicResponseHandler
 import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.http.message.BasicHeader
-import spock.lang.AutoCleanup
 import spock.lang.Shared
 
-import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
-import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
-import static datadog.trace.agent.test.utils.TraceUtils.withConfigOverride
+class ApacheHttpClientTest extends HttpClientTest<ApacheHttpClientDecorator> {
 
-class ApacheHttpClientTest extends AgentTestRunner {
+  @Shared
+  def client = new DefaultHttpClient()
 
-  @AutoCleanup
-  @Shared
-  def server = httpServer {
-    handlers {
-      prefix("success") {
-        handleDistributedRequest()
-        String msg = "Hello."
-        response.status(200).send(msg)
-      }
-      prefix("redirect") {
-        handleDistributedRequest()
-        redirect(server.address.resolve("/success").toURL().toString())
-      }
-      prefix("another-redirect") {
-        handleDistributedRequest()
-        redirect(server.address.resolve("/redirect").toURL().toString())
-      }
-    }
-  }
-  @Shared
-  int port = server.address.port
-  @Shared
-  def successUrl = server.address.resolve("/success")
-  @Shared
-  def redirectUrl = server.address.resolve("/redirect")
-  @Shared
-  def twoRedirectsUrl = server.address.resolve("/another-redirect")
-  @Shared
-  def handler = new BasicResponseHandler()
-
-  final HttpClient client = new DefaultHttpClient()
-
-  def "trace request with propagation"() {
-    when:
-
-    String response = withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
-      runUnderTrace("parent") {
-        if (responseHandler) {
-          client.execute(new HttpGet(successUrl), responseHandler)
-        } else {
-          client.execute(new HttpGet(successUrl)).entity.content.text
-        }
-      }
+  @Override
+  int doRequest(String method, URI uri, Map<String, String> headers, Closure callback) {
+    assert method == "GET"
+    HttpGet request = new HttpGet(uri)
+    headers.entrySet().each {
+      request.addHeader(new BasicHeader(it.key, it.value))
     }
 
-    then:
-    response == "Hello."
-    // one trace on the server, one trace on the client
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][1])
-      trace(1, 2) {
-        parentSpan(it, 0)
-        successClientSpan(it, 1, span(0), renameService)
-      }
-    }
-
-    where:
-    responseHandler << [null, handler]
-    renameService << [false, true]
+    def response = client.execute(request)
+    callback?.call()
+    response.entity.getContent().close() // Make sure the connection is closed.
+    response.statusLine.statusCode
   }
 
-  def "trace request without propagation"() {
-    setup:
-    HttpGet request = new HttpGet(successUrl)
-    request.addHeader(new BasicHeader("is-dd-server", "false"))
-
-    when:
-    HttpResponse response = withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
-      runUnderTrace("parent") {
-        client.execute(request)
-      }
-    }
-
-    then:
-    response.getStatusLine().getStatusCode() == 200
-    // only one trace (client).
-    assertTraces(1) {
-      trace(0, 2) {
-        parentSpan(it, 0)
-        successClientSpan(it, 1, span(0), renameService)
-      }
-    }
-
-    where:
-    renameService << [false, true]
-  }
-
-  def parentSpan(TraceAssert trace, int index, Throwable exception = null) {
-    trace.span(index) {
-      parent()
-      serviceName "unnamed-java-app"
-      operationName "parent"
-      resourceName "parent"
-      errored exception != null
-      tags {
-        defaultTags()
-        if (exception) {
-          errorTags(exception.class)
-        }
-      }
-    }
-  }
-
-  def successClientSpan(TraceAssert trace, int index, DDSpan parent, boolean renameService, status = 200, route = "success", Throwable exception = null) {
-    trace.span(index) {
-      childOf parent
-      serviceName renameService ? "localhost" : "unnamed-java-app"
-      operationName "http.request"
-      resourceName "GET /$route"
-      errored exception != null
-      tags {
-        defaultTags()
-        if (exception) {
-          errorTags(exception.class)
-        }
-        "$Tags.COMPONENT.key" "apache-httpclient"
-        "$Tags.HTTP_STATUS.key" status
-        "$Tags.HTTP_URL.key" "http://localhost:$port/$route"
-        "$Tags.PEER_HOSTNAME.key" "localhost"
-        "$Tags.PEER_PORT.key" server.address.port
-        "$Tags.HTTP_METHOD.key" "GET"
-        "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-        "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
-      }
-    }
+  @Override
+  ApacheHttpClientDecorator decorator() {
+    return ApacheHttpClientDecorator.DECORATE
   }
 }

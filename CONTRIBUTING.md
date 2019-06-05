@@ -12,7 +12,7 @@ This project includes a `.editorconfig` file for basic editor settings.  This fi
 Java files must be formatted using [google-java-format](https://github.com/google/google-java-format).  Please run the following task to ensure files are formatted before committing:
 
 ```shell 
-./gradlew :googleJavaFormat
+./gradlew googleJavaFormat
 ```
 
 Other source files (Groovy, Scala, etc) should ideally be formatted by Intellij Idea's default formatting, but are not enforced.
@@ -22,8 +22,8 @@ Other source files (Groovy, Scala, etc) should ideally be formatted by Intellij 
 Suggested plugins and settings:
 
 * Editor > Code Style > Java/Groovy > Imports
-  * Class count to use import with '*': `10` (some number sufficiently large that is unlikely to matter)
-  * Names count to use static import with '*': `10`
+  * Class count to use import with '*': `50` (some number sufficiently large that is unlikely to matter)
+  * Names count to use static import with '*': `50`
   * With java use the following import layout (groovy should still use the default) to ensure consistency with google-java-format:
     ![import layout](https://user-images.githubusercontent.com/734411/43430811-28442636-94ae-11e8-86f1-f270ddcba023.png)
 * [Google Java Format](https://plugins.jetbrains.com/plugin/8527-google-java-format)

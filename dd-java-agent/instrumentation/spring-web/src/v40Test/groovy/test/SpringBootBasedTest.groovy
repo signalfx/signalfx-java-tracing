@@ -45,8 +45,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/"
             "http.method" "GET"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 200
@@ -67,7 +69,6 @@ class SpringBootBasedTest extends AgentTestRunner {
             "http.url" "http://localhost:$port/"
             "http.method" "GET"
             "span.kind" "client"
-            "span.type" "http"
             "component" "rest-template"
             "http.status_code" 200
             "peer.hostname" "localhost"
@@ -102,8 +103,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/param/$param/"
             "http.method" "GET"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" status.value
@@ -128,7 +131,6 @@ class SpringBootBasedTest extends AgentTestRunner {
             "http.url" "http://localhost:$port/param/$param/"
             "http.method" "GET"
             "span.kind" "client"
-            "span.type" "http"
             "component" "rest-template"
             "http.status_code" status.value
             "peer.hostname" "localhost"
@@ -165,8 +167,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/error"
             "http.method" "GET"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 401
@@ -185,8 +189,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/param/asdf1234/"
             "http.method" "GET"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 401
@@ -205,7 +211,6 @@ class SpringBootBasedTest extends AgentTestRunner {
             "http.url" "http://localhost:$port/param/asdf1234/"
             "http.method" "GET"
             "span.kind" "client"
-            "span.type" "http"
             "component" "rest-template"
             "http.status_code" 401
             "peer.hostname" "localhost"
@@ -238,8 +243,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/invalid"
             "http.method" "GET"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 404
@@ -259,8 +266,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/error"
             "http.method" "GET"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 404
@@ -280,7 +289,6 @@ class SpringBootBasedTest extends AgentTestRunner {
             "http.url" "http://localhost:$port/invalid"
             "http.method" "GET"
             "span.kind" "client"
-            "span.type" "http"
             "component" "rest-template"
             "http.status_code" 404
             "peer.hostname" "localhost"
@@ -315,8 +323,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/error/qwerty/"
             "http.method" "GET"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 500
@@ -337,8 +347,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/error"
             "http.method" "GET"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 500
@@ -359,7 +371,6 @@ class SpringBootBasedTest extends AgentTestRunner {
             "http.url" "http://localhost:$port/error/qwerty/"
             "http.method" "GET"
             "span.kind" "client"
-            "span.type" "http"
             "component" "rest-template"
             "http.status_code" 500
             "peer.hostname" "localhost"
@@ -389,8 +400,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/validated"
             "http.method" "POST"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 200
@@ -411,7 +424,6 @@ class SpringBootBasedTest extends AgentTestRunner {
             "http.url" "http://localhost:$port/validated"
             "http.method" "POST"
             "span.kind" "client"
-            "span.type" "http"
             "component" "rest-template"
             "http.status_code" 200
             "peer.hostname" "localhost"
@@ -446,8 +458,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/validated"
             "http.method" "POST"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 400
@@ -471,8 +485,10 @@ class SpringBootBasedTest extends AgentTestRunner {
           tags {
             "http.url" "http://localhost:$port/error"
             "http.method" "POST"
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             "span.kind" "server"
-            "span.type" "web"
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "component" "java-web-servlet"
             "http.status_code" 400
@@ -492,7 +508,6 @@ class SpringBootBasedTest extends AgentTestRunner {
             "http.url" "http://localhost:$port/validated"
             "http.method" "POST"
             "span.kind" "client"
-            "span.type" "http"
             "component" "rest-template"
             "http.status_code" 400
             "peer.hostname" "localhost"
@@ -523,11 +538,12 @@ class SpringBootBasedTest extends AgentTestRunner {
       serviceName "unnamed-java-app"
       operationName name
       resourceName name
+      spanType DDSpanTypes.HTTP_SERVER
       childOf(trace.span(0))
       errored errorType != null
       tags {
-        "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
         "$Tags.COMPONENT.key" "spring-web-controller"
+        "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
         if (errorType) {
           "error.msg" String
           errorTags(errorType)

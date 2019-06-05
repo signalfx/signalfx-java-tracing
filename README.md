@@ -44,7 +44,7 @@ given in the table below.
 | **Apache HTTP Client** | 4.0+ | `httpclient` | Also supports the DropWizard HTTP Client that subclasses the Apache one |
 | **AWS SDK Client** | 1.11.0+ | `aws-sdk` | |
 | **CouchBase Client** | 2.0.0+ | `couchbase` | |
-| **Cassandra (DataStax client)** | 2.3.0+ | `cassandra` | |
+| **Cassandra (DataStax client)** | 3.0+ | `cassandra` | |
 | **DropWizard Views** | * | `dropwizard`, `dropwizard-view` | |
 | **ElasticSearch Client** | 2+ | `elasticsearch` | Supports both REST and transport clients |
 | **gRPC (Client and Server)** | 1.5.0+ | `grpc` | |

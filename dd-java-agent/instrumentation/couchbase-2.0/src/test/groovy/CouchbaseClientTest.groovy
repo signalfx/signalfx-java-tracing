@@ -3,7 +3,6 @@ import com.couchbase.client.java.document.JsonDocument
 import com.couchbase.client.java.document.json.JsonObject
 import com.couchbase.client.java.query.N1qlQuery
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import util.AbstractCouchbaseTest
 
@@ -20,11 +19,13 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
           serviceName "couchbase"
           resourceName "ClusterManager.hasBucket"
           operationName "couchbase.call"
+          spanType DDSpanTypes.COUCHBASE
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
             "$Tags.COMPONENT.key" "couchbase-client"
+            "$Tags.DB_TYPE.key" "couchbase"
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }
@@ -47,11 +48,13 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
           serviceName "couchbase"
           resourceName "Bucket.upsert"
           operationName "couchbase.call"
+          spanType DDSpanTypes.COUCHBASE
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
             "$Tags.COMPONENT.key" "couchbase-client"
+            "$Tags.DB_TYPE.key" "couchbase"
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "bucket" bkt.name()
             defaultTags()
           }
@@ -74,11 +77,13 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
           serviceName "couchbase"
           resourceName "Bucket.get"
           operationName "couchbase.call"
+          spanType DDSpanTypes.COUCHBASE
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
             "$Tags.COMPONENT.key" "couchbase-client"
+            "$Tags.DB_TYPE.key" "couchbase"
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "bucket" bkt.name()
             defaultTags()
           }
@@ -117,11 +122,13 @@ class CouchbaseClientTest extends AbstractCouchbaseTest {
           serviceName "couchbase"
           resourceName "Bucket.query"
           operationName "couchbase.call"
+          spanType DDSpanTypes.COUCHBASE
           errored false
           parent()
           tags {
-            "$DDTags.SPAN_TYPE" DDSpanTypes.COUCHBASE
             "$Tags.COMPONENT.key" "couchbase-client"
+            "$Tags.DB_TYPE.key" "couchbase"
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "bucket" bkt.name()
             defaultTags()
           }

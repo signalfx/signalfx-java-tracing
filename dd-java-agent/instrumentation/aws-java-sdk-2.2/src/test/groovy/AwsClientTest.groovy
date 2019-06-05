@@ -1,11 +1,12 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.core.async.AsyncResponseTransformer
+import software.amazon.awssdk.core.exception.SdkClientException
+import software.amazon.awssdk.http.apache.ApacheHttpClient
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ec2.Ec2AsyncClient
 import software.amazon.awssdk.services.ec2.Ec2Client
@@ -19,6 +20,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import spock.lang.AutoCleanup
 import spock.lang.Shared
 
+import java.time.Duration
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicReference
 
@@ -41,13 +43,11 @@ class AwsClientTest extends AgentTestRunner {
       }
     }
   }
-  @Shared
-  def serverUrl = new URI("http://localhost:$server.address.port")
 
   def "send #operation request with builder {#builder.class.getName()} mocked response"() {
     setup:
     def client = builder
-      .endpointOverride(serverUrl)
+      .endpointOverride(server.address)
       .region(Region.AP_NORTHEAST_1)
       .credentialsProvider(CREDENTIALS_PROVIDER)
       .build()
@@ -61,24 +61,23 @@ class AwsClientTest extends AgentTestRunner {
     expect:
     response != null
 
-    // It looks like url doesn't contain trailing slash on empty path for some reason
-    def expectedUrl = path == "/" ? "${server.address}" : "${server.address}${path}"
-
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
           serviceName "java-aws-sdk"
           operationName "aws.http"
           resourceName "$service.$operation"
+          spanType DDSpanTypes.HTTP_CLIENT
           errored false
           parent()
           tags {
             "$Tags.COMPONENT.key" "java-aws-sdk"
             "$Tags.HTTP_STATUS.key" 200
-            "$Tags.HTTP_URL.key" expectedUrl
+            "$Tags.HTTP_URL.key" "${server.address}${path}"
             "$Tags.HTTP_METHOD.key" "$method"
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_PORT.key" server.address.port
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "aws.service" "$service"
             "aws.operation" "${operation}"
             "aws.agent" "java-aws-sdk"
@@ -89,24 +88,24 @@ class AwsClientTest extends AgentTestRunner {
         span(1) {
           operationName "http.request"
           resourceName "$method $path"
+          spanType DDSpanTypes.HTTP_CLIENT
           errored false
           childOf(span(0))
           tags {
             "$Tags.COMPONENT.key" "apache-httpclient"
             "$Tags.HTTP_STATUS.key" 200
-            "$Tags.HTTP_URL.key" expectedUrl
+            "$Tags.HTTP_URL.key" "${server.address}${path}"
             "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_PORT.key" server.address.port
             "$Tags.HTTP_METHOD.key" "$method"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             defaultTags()
           }
         }
       }
     }
-    server.lastRequest.headers.get("x-datadog-trace-id") == TEST_WRITER[0][0].traceId
-    server.lastRequest.headers.get("x-datadog-parent-id") == TEST_WRITER[0][0].spanId
+    server.lastRequest.headers.get("x-b3-traceid") == null
+    server.lastRequest.headers.get("x-b3-spanid") == null
 
     where:
     service | operation           | method | path                  | requestId                              | call                                                                                         | body               | builder
@@ -131,7 +130,7 @@ class AwsClientTest extends AgentTestRunner {
   def "send #operation async request with builder {#builder.class.getName()} mocked response"() {
     setup:
     def client = builder
-      .endpointOverride(serverUrl)
+      .endpointOverride(server.address)
       .region(Region.AP_NORTHEAST_1)
       .credentialsProvider(CREDENTIALS_PROVIDER)
       .build()
@@ -144,9 +143,6 @@ class AwsClientTest extends AgentTestRunner {
 
     expect:
     response != null
-
-    // It looks like url doesn't contain trailing slash on empty path for some reason
-    def expectedUrl = path == "/" ? "${server.address}" : "${server.address}${path}"
 
     // Order is not guaranteed in these traces, so reorder them if needed to put aws trace first
     if (TEST_WRITER[0][0].operationName != "aws.http") {
@@ -161,15 +157,17 @@ class AwsClientTest extends AgentTestRunner {
           serviceName "java-aws-sdk"
           operationName "aws.http"
           resourceName "$service.$operation"
+          spanType DDSpanTypes.HTTP_CLIENT
           errored false
           parent()
           tags {
             "$Tags.COMPONENT.key" "java-aws-sdk"
             "$Tags.HTTP_STATUS.key" 200
-            "$Tags.HTTP_URL.key" expectedUrl
+            "$Tags.HTTP_URL.key" "${server.address}${path}"
             "$Tags.HTTP_METHOD.key" "$method"
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_PORT.key" server.address.port
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             "aws.service" "$service"
             "aws.operation" "${operation}"
             "aws.agent" "java-aws-sdk"
@@ -183,24 +181,25 @@ class AwsClientTest extends AgentTestRunner {
         span(0) {
           operationName "netty.client.request"
           resourceName "$method $path"
+          spanType DDSpanTypes.HTTP_CLIENT
           errored false
           parent()
           tags {
             "$Tags.COMPONENT.key" "netty-client"
             "$Tags.HTTP_STATUS.key" 200
-            "$Tags.HTTP_URL.key" expectedUrl
+            "$Tags.HTTP_URL.key" "${server.address}${path}"
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" server.address.port
             "$Tags.HTTP_METHOD.key" "$method"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             defaultTags()
           }
         }
       }
     }
-    server.lastRequest.headers.get("x-datadog-trace-id") == TEST_WRITER[0][0].traceId
-    server.lastRequest.headers.get("x-datadog-parent-id") == TEST_WRITER[0][0].spanId
+    server.lastRequest.headers.get("x-b3-traceid") == null
+    server.lastRequest.headers.get("x-b3-spanid") == null
 
     where:
     service | operation           | method | path                  | requestId                              | call                                                                                                                             | body               | builder
@@ -219,8 +218,78 @@ class AwsClientTest extends AgentTestRunner {
             <RequestId>0ac9cda2-bbf4-11d3-f92b-31fa5e8dbc99</RequestId>
           </ResponseMetadata>
         </DeleteOptionGroupResponse>
-      """          | RdsAsyncClient.builder()
+      """       | RdsAsyncClient.builder()
   }
 
-  // TODO: add timeout tests?
+  def "timeout and retry errors captured"() {
+    setup:
+    def server = httpServer {
+      handlers {
+        all {
+          Thread.sleep(500)
+          response.status(200).send()
+        }
+      }
+    }
+    def client = S3Client.builder()
+      .endpointOverride(server.address)
+      .region(Region.AP_NORTHEAST_1)
+      .credentialsProvider(CREDENTIALS_PROVIDER)
+      .httpClientBuilder(ApacheHttpClient.builder().socketTimeout(Duration.ofMillis(50)))
+      .build()
+
+    when:
+    client.getObject(GetObjectRequest.builder().bucket("someBucket").key("someKey").build())
+
+    then:
+    thrown SdkClientException
+
+    assertTraces(1) {
+      trace(0, 5) {
+        span(0) {
+          serviceName "java-aws-sdk"
+          operationName "aws.http"
+          resourceName "S3.GetObject"
+          spanType DDSpanTypes.HTTP_CLIENT
+          errored true
+          parent()
+          tags {
+            "$Tags.COMPONENT.key" "java-aws-sdk"
+            "$Tags.HTTP_URL.key" "$server.address/someBucket/someKey"
+            "$Tags.HTTP_METHOD.key" "GET"
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_PORT.key" server.address.port
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "aws.service" "S3"
+            "aws.operation" "GetObject"
+            "aws.agent" "java-aws-sdk"
+            errorTags SdkClientException, "Unable to execute HTTP request: Read timed out"
+            defaultTags()
+          }
+        }
+        (1..4).each {
+          span(it) {
+            operationName "http.request"
+            resourceName "GET /someBucket/someKey"
+            spanType DDSpanTypes.HTTP_CLIENT
+            errored true
+            childOf(span(0))
+            tags {
+              "$Tags.COMPONENT.key" "apache-httpclient"
+              "$Tags.HTTP_URL.key" "$server.address/someBucket/someKey"
+              "$Tags.PEER_HOSTNAME.key" "localhost"
+              "$Tags.PEER_PORT.key" server.address.port
+              "$Tags.HTTP_METHOD.key" "GET"
+              "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+              errorTags SocketTimeoutException, "Read timed out"
+              defaultTags()
+            }
+          }
+        }
+      }
+    }
+
+    cleanup:
+    server.close()
+  }
 }

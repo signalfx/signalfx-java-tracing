@@ -65,6 +65,7 @@ class ZipkinV2ApiTest extends Specification {
     client.traceEndpoint == "http://localhost:${agent.address.port}/v1/trace"
     client.sendTraces(traces)
     agent.lastRequest.contentType == "application/json"
+    agent.lastRequest.contentLength == agent.lastRequest.body.length
     convertList(agent.lastRequest.body) == expectedRequestBody
 
     cleanup:
@@ -81,7 +82,6 @@ class ZipkinV2ApiTest extends Specification {
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
-                    "span.type": "fakeType",
                     "resource.name": "fakeResource"],
       "annotations": [["timestamp" : 1000, "value": "{\"event\":\"some event\"}"]],
       "name"     : "fakeOperation",
@@ -96,7 +96,6 @@ class ZipkinV2ApiTest extends Specification {
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
-                    "span.type": "fakeType",
                     "resource.name": "my-resource"],
       "annotations": [],
       "name"     : "fakeOperation",
@@ -111,7 +110,6 @@ class ZipkinV2ApiTest extends Specification {
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
-                    "span.type": "fakeType",
                     "resource.name": "fakeResource"],
       "annotations": [["timestamp" : 1000, "value": "{\"event\":\"some event\"}"], ["timestamp" : 2000, "value":"{\"another event\":1}"]],
       "name"     : "fakeOperation",
@@ -126,7 +124,6 @@ class ZipkinV2ApiTest extends Specification {
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
-                    "span.type": "fakeType",
                     "resource.name": "fakeResource"],
       "annotations": [],
       "name"     : "fakeResource",

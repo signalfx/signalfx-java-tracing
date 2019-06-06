@@ -3,7 +3,6 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import okhttp3.OkHttpClient
 import org.mortbay.jetty.Handler
 import org.mortbay.jetty.HttpConnection
@@ -41,7 +40,8 @@ class JettyHandlerTest extends AgentTestRunner {
     }
     server.setHandler(handler)
     server.start()
-    def request = new okhttp3.Request.Builder() .url("http://localhost:$port/")
+    def request = new okhttp3.Request.Builder()
+      .url("http://localhost:$port/")
       .get()
       .build()
     def response = client.newCall(request).execute()
@@ -64,8 +64,10 @@ class JettyHandlerTest extends AgentTestRunner {
             "span.kind" "server"
             "component" "jetty-handler"
             "span.origin.type" handler.class.name
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "http.status_code" 200
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             defaultTags()
           }
         }
@@ -110,7 +112,10 @@ class JettyHandlerTest extends AgentTestRunner {
             "span.kind" "server"
             "component" "jetty-handler"
             "span.origin.type" handler.class.name
-            "span.type" DDSpanTypes.HTTP_SERVER
+            "http.status_code" 200
+            "peer.hostname" "127.0.0.1"
+            "peer.ipv4" "127.0.0.1"
+            "peer.port" Integer
             errorTags RuntimeException
             defaultTags()
           }

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jetty6;
 
 import io.opentracing.propagation.TextMap;

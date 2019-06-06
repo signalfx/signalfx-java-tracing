@@ -1,8 +1,8 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jetty6;
 
-import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static datadog.trace.instrumentation.jetty6.JettyDecorator.DECORATE;
 
-import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
@@ -11,7 +11,6 @@ import io.opentracing.SpanContext;
 import io.opentracing.propagation.Format;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
-import java.util.Collections;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import net.bytebuddy.asm.Advice;
@@ -32,28 +31,24 @@ public class JettyHandlerAdvice {
     final SpanContext extractedContext =
         GlobalTracer.get()
             .extract(Format.Builtin.HTTP_HEADERS, new HttpServletRequestExtractAdapter(req));
-    final String resourceName = req.getMethod() + " " + source.getClass().getName();
     final Scope scope =
         GlobalTracer.get()
             .buildSpan("jetty.request")
             .asChildOf(extractedContext)
-            .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_SERVER)
-            .withTag("servlet.context", req.getContextPath())
             .withTag("span.origin.type", source.getClass().getName())
             .startActive(false);
 
+    final Span span = scope.span();
+    final String resourceName = source.getClass().getName();
+    span.setTag(DDTags.RESOURCE_NAME, resourceName);
+
+    DECORATE.afterStart(span);
+    DECORATE.onConnection(span, req);
+    // http url must be set after resource name for URLAsResourceName decorator
+    DECORATE.onRequest(span, req);
+
     if (scope instanceof TraceScope) {
       ((TraceScope) scope).setAsyncPropagation(true);
-    }
-
-    final Span span = scope.span();
-    Tags.COMPONENT.set(span, "jetty-handler");
-    Tags.HTTP_METHOD.set(span, req.getMethod());
-    span.setTag(DDTags.RESOURCE_NAME, resourceName);
-    Tags.HTTP_URL.set(span, req.getRequestURL().toString());
-    if (req.getUserPrincipal() != null) {
-      span.setTag(DDTags.USER_NAME, req.getUserPrincipal().getName());
     }
     return scope;
   }
@@ -68,11 +63,16 @@ public class JettyHandlerAdvice {
     if (scope != null) {
       final Span span = scope.span();
 
+      if (req.getUserPrincipal() != null) {
+        span.setTag(DDTags.USER_NAME, req.getUserPrincipal().getName());
+      }
+
+      Response response = HttpConnection.getCurrentConnection().getResponse();
+      DECORATE.onResponse(span, resp);
+
       if (throwable != null) {
-        Tags.ERROR.set(span, Boolean.TRUE);
-        span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
+        DECORATE.onError(span, throwable);
       } else {
-        Response response = HttpConnection.getCurrentConnection().getResponse();
         Tags.HTTP_STATUS.set(span, response.getStatus());
       }
 
@@ -80,6 +80,7 @@ public class JettyHandlerAdvice {
         ((TraceScope) scope).setAsyncPropagation(false);
       }
 
+      DECORATE.beforeFinish(span);
       scope.close();
       span.finish(); // Finish the span manually since finishSpanOnClose was false
     }

@@ -1,0 +1,52 @@
+muzzle {
+  pass {
+    group = "org.mortbay.jetty"
+    module = 'jetty'
+    versions = "[6.1.26,)"
+    assertInverse = true
+  }
+
+  pass {
+    group = "org.mortbay.jetty"
+    module = 'jetty-util'
+    versions = "[6.1.26,)"
+    assertInverse = true
+  }
+}
+
+apply from: "${rootDir}/gradle/java.gradle"
+
+apply plugin: 'org.unbroken-dome.test-sets'
+
+testSets {
+  latestDepTest {
+    dirName = 'test'
+  }
+}
+
+dependencies {
+  // compileOnly group: 'javax.servlet', name: 'javax.servlet-api', version: '3.0.1'
+  compileOnly group: 'javax.servlet', name: 'servlet-api', version: '2.5'
+  // compileOnly group: 'org.mortbay.jetty', name: 'servlet-api', version: '2.5.20110712'
+  // compileOnly group: 'org.mortbay.jetty', name: 'jetty-util', version: '6.1.26'
+  compileOnly group: 'org.mortbay.jetty', name: 'jetty', version: '6.1.26'
+
+  compile project(':dd-trace-ot')
+  compile project(':dd-java-agent:agent-tooling')
+
+  compile deps.bytebuddy
+  compile deps.opentracing
+  annotationProcessor deps.autoservice
+  implementation deps.autoservice
+
+  testCompile(project(':dd-java-agent:testing')) {
+    exclude group: 'org.mortbay.jetty', module: 'jetty'
+  }
+  testCompile group: 'org.mortbay.jetty', name: 'jetty', version: '6.1.26'
+  testCompile group: 'org.mortbay.jetty', name: 'jetty-util', version: '6.1.26'
+  compileOnly group: 'org.mortbay.jetty', name: 'servlet-api', version: '2.5.20110712'
+
+  latestDepTestCompile group: 'org.mortbay.jetty', name: 'jetty', version: '+'
+  latestDepTestCompile group: 'org.mortbay.jetty', name: 'jetty-util', version: '+'
+  latestDepTestCompile group: 'org.mortbay.jetty', name: 'servlet-api', version: '+'
+}

@@ -79,7 +79,7 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
           parent()
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "GET /$route"
+          resourceName "/$route"
           spanType DDSpanTypes.HTTP_CLIENT
           errored expectedError
           tags {
@@ -127,7 +127,7 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
           parent()
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "GET /test"
+          resourceName "/test"
           spanType DDSpanTypes.HTTP_CLIENT
           errored true
           tags {
@@ -207,7 +207,7 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
           parent()
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "GET /$route"
+          resourceName "/$route"
           spanType DDSpanTypes.HTTP_CLIENT
           errored expectedError
           tags {
@@ -257,7 +257,7 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
           parent()
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "GET /test"
+          resourceName "/test"
           spanType DDSpanTypes.HTTP_CLIENT
           errored true
           tags {

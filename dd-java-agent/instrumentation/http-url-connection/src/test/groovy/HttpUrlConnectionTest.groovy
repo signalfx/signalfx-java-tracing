@@ -74,7 +74,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
@@ -92,7 +92,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(2) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
@@ -157,7 +157,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
@@ -175,7 +175,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(2) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
@@ -224,7 +224,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "HEAD /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
@@ -273,7 +273,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
@@ -339,7 +339,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "POST /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
@@ -407,7 +407,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(0) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           parent()
           errored false
@@ -454,7 +454,7 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "POST /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false

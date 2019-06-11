@@ -51,7 +51,7 @@ class VertxServerTest extends AgentTestRunner {
           parentId "456"
           serviceName "unnamed-java-app"
           operationName "netty.request"
-          resourceName "GET /test"
+          resourceName "/test"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -111,8 +111,8 @@ class VertxServerTest extends AgentTestRunner {
 
     where:
     responseCode                             | name         | path          | error
-    HttpResponseStatus.OK                    | "GET /"      | ""            | false
+    HttpResponseStatus.OK                    | "/"          | ""            | false
     HttpResponseStatus.NOT_FOUND             | "404"        | "doesnt-exit" | false
-    HttpResponseStatus.INTERNAL_SERVER_ERROR | "GET /error" | "error"       | true
+    HttpResponseStatus.INTERNAL_SERVER_ERROR | "/error"     | "error"       | true
   }
 }

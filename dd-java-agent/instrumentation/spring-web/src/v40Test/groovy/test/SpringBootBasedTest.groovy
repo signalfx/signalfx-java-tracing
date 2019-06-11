@@ -38,7 +38,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "servlet.request"
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_SERVER
           childOf trace(1).get(0)
           errored false
@@ -61,7 +61,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           operationName "http.request"
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           parent()
           errored false
@@ -96,7 +96,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "servlet.request"
-          resourceName(status.value == 404 ? "404" : "GET /param/{parameter}/")
+          resourceName(status.value == 404 ? "404" : "/param/{parameter}/")
           spanType DDSpanTypes.HTTP_SERVER
           childOf trace(1).get(0)
           errored false
@@ -120,7 +120,7 @@ class SpringBootBasedTest extends AgentTestRunner {
         span(0) {
           operationName "http.request"
           if (status == HttpStatus.OK) {
-            resourceName("GET /param/?/")
+            resourceName("/param/?/")
           } else {
             resourceName("404")
           }
@@ -160,7 +160,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "servlet.request"
-          resourceName "GET /error"
+          resourceName "/error"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(trace(2).get(0))
           errored false
@@ -182,7 +182,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           operationName "servlet.request"
-          resourceName "GET /param/?/"
+          resourceName "/param/?/"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(trace(2).get(0))
           errored false
@@ -203,7 +203,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(2, 1) {
         span(0) {
           operationName "http.request"
-          resourceName "GET /param/?/"
+          resourceName "/param/?/"
           spanType DDSpanTypes.HTTP_CLIENT
           parent()
           errored false
@@ -316,7 +316,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "servlet.request"
-          resourceName "GET /error/{parameter}/"
+          resourceName "/error/{parameter}/"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(trace(2).get(0))
           errored true
@@ -340,7 +340,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(1, 2) {
         span(0) {
           operationName "servlet.request"
-          resourceName "GET /error"
+          resourceName "/error"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(trace(2).get(0))
           errored true
@@ -363,7 +363,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(2, 1) {
         span(0) {
           operationName "http.request"
-          resourceName "GET /error/qwerty/"
+          resourceName "/error/qwerty/"
           spanType DDSpanTypes.HTTP_CLIENT
           parent()
           errored true
@@ -393,7 +393,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "servlet.request"
-          resourceName "POST /validated"
+          resourceName "/validated"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(trace(1).get(0))
           errored false
@@ -416,7 +416,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           operationName "http.request"
-          resourceName "POST /validated"
+          resourceName "/validated"
           spanType DDSpanTypes.HTTP_CLIENT
           parent()
           errored false
@@ -451,7 +451,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "servlet.request"
-          resourceName "POST /validated"
+          resourceName "/validated"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(trace(2).get(0))
           errored false
@@ -478,7 +478,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(1, 2) {
         span(0) {
           operationName "servlet.request"
-          resourceName "POST /error"
+          resourceName "/error"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(trace(2).get(0))
           errored false
@@ -500,7 +500,7 @@ class SpringBootBasedTest extends AgentTestRunner {
       trace(2, 1) {
         span(0) {
           operationName "http.request"
-          resourceName "POST /validated"
+          resourceName "/validated"
           spanType DDSpanTypes.HTTP_CLIENT
           parent()
           errored false

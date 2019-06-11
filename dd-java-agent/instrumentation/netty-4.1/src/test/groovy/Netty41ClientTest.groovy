@@ -54,7 +54,7 @@ class Netty41ClientTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "netty.client.request"
-          resourceName "GET /get"
+          resourceName "/get"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(1)
           errored false
@@ -141,7 +141,7 @@ class Netty41ClientTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "netty.client.request"
-          resourceName "POST /post"
+          resourceName "/post"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(1)
           errored error

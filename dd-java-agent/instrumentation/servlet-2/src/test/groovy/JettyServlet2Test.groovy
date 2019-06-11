@@ -84,7 +84,7 @@ class JettyServlet2Test extends AgentTestRunner {
           }
           serviceName "ctx"
           operationName "servlet.request"
-          resourceName "GET /ctx/$path"
+          resourceName "/ctx/$path"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -129,7 +129,7 @@ class JettyServlet2Test extends AgentTestRunner {
         span(0) {
           serviceName "ctx"
           operationName "servlet.request"
-          resourceName "GET /ctx/$path"
+          resourceName "/ctx/$path"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           parent()
@@ -171,7 +171,7 @@ class JettyServlet2Test extends AgentTestRunner {
         span(0) {
           serviceName "ctx"
           operationName "servlet.request"
-          resourceName "GET /ctx/$path"
+          resourceName "/ctx/$path"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           parent()

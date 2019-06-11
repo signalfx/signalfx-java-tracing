@@ -63,7 +63,7 @@ class Netty40ServerTest extends AgentTestRunner {
           parentId "456"
           serviceName "unnamed-java-app"
           operationName "netty.request"
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -135,9 +135,9 @@ class Netty40ServerTest extends AgentTestRunner {
 
     where:
     responseCode                             | name    | error
-    HttpResponseStatus.OK                    | "GET /" | false
+    HttpResponseStatus.OK                    | "/" | false
     HttpResponseStatus.NOT_FOUND             | "404"   | false
-    HttpResponseStatus.INTERNAL_SERVER_ERROR | "GET /" | true
+    HttpResponseStatus.INTERNAL_SERVER_ERROR | "/" | true
   }
 
   def "test #responseCode statusCode rewrite #rewrite"() {

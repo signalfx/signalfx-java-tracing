@@ -87,7 +87,7 @@ class AwsClientTest extends AgentTestRunner {
         }
         span(1) {
           operationName "http.request"
-          resourceName "$method $path"
+          resourceName "$path"
           spanType DDSpanTypes.HTTP_CLIENT
           errored false
           childOf(span(0))
@@ -180,7 +180,7 @@ class AwsClientTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           operationName "netty.client.request"
-          resourceName "$method $path"
+          resourceName "$path"
           spanType DDSpanTypes.HTTP_CLIENT
           errored false
           parent()
@@ -270,7 +270,7 @@ class AwsClientTest extends AgentTestRunner {
         (1..4).each {
           span(it) {
             operationName "http.request"
-            resourceName "GET /someBucket/someKey"
+            resourceName "/someBucket/someKey"
             spanType DDSpanTypes.HTTP_CLIENT
             errored true
             childOf(span(0))

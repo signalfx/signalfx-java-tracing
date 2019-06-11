@@ -42,12 +42,6 @@ public class URLAsResourceName extends AbstractDecorator {
     // normalize the path
     path = norm(path);
 
-    // if the verb (GET, POST ...) is present, add it
-    final String verb = (String) context.getTags().get(Tags.HTTP_METHOD.getKey());
-    if (verb != null && !verb.isEmpty()) {
-      path = verb + " " + path;
-    }
-
     context.setResourceName(path);
     return true;
   }

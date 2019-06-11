@@ -114,6 +114,6 @@ class URLAsResourceNameTest extends Specification {
     "/path"                     | "/path"             | [:]
     "/ABC/a-1/b_2/c.3/d4d/5f/6" | "/ABC/?/?/?/?/?/?"  | [:]
     "/not-found"                | "fakeResource"      | [(Tags.HTTP_STATUS.key): 404]
-    "/with-method"              | "Post /with-method" | [(Tags.HTTP_METHOD.key): "Post"]
+    "/with-method"              | "/with-method"      | [(Tags.HTTP_METHOD.key): "Post"]
   }
 }

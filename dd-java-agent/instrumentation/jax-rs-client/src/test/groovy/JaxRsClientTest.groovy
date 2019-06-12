@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
@@ -9,7 +10,9 @@ import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder
 import spock.lang.AutoCleanup
 import spock.lang.Shared
 
+import javax.ws.rs.ClientErrorException
 import javax.ws.rs.ProcessingException
+import javax.ws.rs.RedirectionException
 import javax.ws.rs.client.AsyncInvoker
 import javax.ws.rs.client.Client
 import javax.ws.rs.client.Invocation
@@ -29,6 +32,12 @@ class JaxRsClientTest extends AgentTestRunner {
   @Shared
   def server = httpServer {
     handlers {
+      get ("/redirect") {
+        response.status(301).send()
+      }
+      get ("/client") {
+        response.status(401).send()
+      }
       all {
         response.status(200).send("pong")
       }
@@ -131,5 +140,78 @@ class JaxRsClientTest extends AgentTestRunner {
     new JerseyClientBuilder()   | true  | "jersey async"
     new ResteasyClientBuilder() | true  | "resteasy async"
     // Unfortunately there's not a good way to instrument this for CXF.
+  }
+
+  def "#lib #errorType error handled without error tag"() {
+    setup:
+    Client client = builder.build()
+    WebTarget service = client.target("$server.address/$errorType")
+    def expectedException = [redirect: RedirectionException, client: ClientErrorException][(errorType)]
+    def expectedStatusCode = [redirect: 301, client: 401][(errorType)]
+
+    def errorThrown = false
+    if (async) {
+      AsyncInvoker request = service.request(MediaType.TEXT_PLAIN).async()
+      try {
+        // Status-based exceptions are thrown during translation, so specify Object as entity type
+        request.get(Object).get()
+      } catch (ExecutionException e) {
+        if (expectedException.isInstance(e.getCause())) {
+          errorThrown = true
+        }
+      }
+    } else {
+      Invocation.Builder request = service.request(MediaType.TEXT_PLAIN)
+      try {
+        request.get(Object)
+      } catch (Throwable e) {
+        if (expectedException.isInstance(e)) {
+          errorThrown = true
+        }
+      }
+    }
+
+    expect:
+    errorThrown
+
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          serviceName "unnamed-java-app"
+          resourceName "GET /$errorType"
+          operationName "jax-rs.client.call"
+          spanType "http"
+          parent()
+          errored false
+          tags {
+            "$Tags.COMPONENT.key" "jax-rs.client"
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_METHOD.key" "GET"
+            "$Tags.HTTP_STATUS.key" expectedStatusCode
+            "$Tags.HTTP_URL.key" "$server.address/$errorType"
+            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
+            defaultTags()
+          }
+        }
+      }
+    }
+
+    server.lastRequest.headers.get("x-datadog-trace-id") == TEST_WRITER[0][0].traceId
+    server.lastRequest.headers.get("x-datadog-parent-id") == TEST_WRITER[0][0].spanId
+
+    where:
+    builder                     | async | errorType  | lib
+    new JerseyClientBuilder()   | false | "redirect" | "jersey"
+    new JerseyClientBuilder()   | false | "client"   | "jersey"
+    new ClientBuilderImpl()     | false | "redirect" | "cxf"
+    new ClientBuilderImpl()     | false | "client"   | "cxf"
+    new ResteasyClientBuilder() | false | "redirect" | "resteasy"
+    new ResteasyClientBuilder() | false | "client"   | "resteasy"
+    new JerseyClientBuilder()   | true  | "redirect" | "jersey async"
+    new JerseyClientBuilder()   | true  | "client"   | "jersey async"
+    new ClientBuilderImpl()     | true  | "redirect" | "cxf async"
+    new ClientBuilderImpl()     | true  | "client"   | "cxf async"
+    new ResteasyClientBuilder() | true  | "redirect" | "resteasy async"
+    new ResteasyClientBuilder() | true  | "client"   | "resteasy async"
   }
 }

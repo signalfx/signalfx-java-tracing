@@ -54,7 +54,7 @@ class RatpackTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "netty.request"
           spanType DDSpanTypes.HTTP_SERVER
@@ -73,7 +73,7 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "ratpack.handler"
           spanType DDSpanTypes.HTTP_SERVER
@@ -120,7 +120,7 @@ class RatpackTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceName "GET /:foo/:bar?/baz"
+          resourceName "/:foo/:bar?/baz"
           serviceName "unnamed-java-app"
           operationName "netty.request"
           spanType DDSpanTypes.HTTP_SERVER
@@ -139,7 +139,7 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /:foo/:bar?/baz"
+          resourceName "/:foo/:bar?/baz"
           serviceName "unnamed-java-app"
           operationName "ratpack.handler"
           spanType DDSpanTypes.HTTP_SERVER
@@ -181,7 +181,7 @@ class RatpackTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "netty.request"
           spanType DDSpanTypes.HTTP_SERVER
@@ -201,7 +201,7 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "ratpack.handler"
           spanType DDSpanTypes.HTTP_SERVER
@@ -248,7 +248,7 @@ class RatpackTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "netty.request"
           spanType DDSpanTypes.HTTP_SERVER
@@ -268,7 +268,7 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "ratpack.handler"
           spanType DDSpanTypes.HTTP_SERVER
@@ -313,7 +313,7 @@ class RatpackTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "netty.request"
           spanType DDSpanTypes.HTTP_SERVER
@@ -333,7 +333,7 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "ratpack.handler"
           spanType DDSpanTypes.HTTP_SERVER
@@ -410,7 +410,7 @@ class RatpackTest extends AgentTestRunner {
       trace(2, 4) {
         // main app span that processed the request from OKHTTP request
         span(0) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "netty.request"
           spanType DDSpanTypes.HTTP_SERVER
@@ -429,7 +429,7 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "ratpack.handler"
           spanType DDSpanTypes.HTTP_SERVER
@@ -448,7 +448,7 @@ class RatpackTest extends AgentTestRunner {
         }
         // Second http client call that receives the 'ess' of Success
         span(2) {
-          resourceName "GET /?"
+          resourceName "/?"
           serviceName "unnamed-java-app"
           operationName "netty.client.request"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -468,7 +468,7 @@ class RatpackTest extends AgentTestRunner {
         }
         // First http client call that receives the 'Succ' of Success
         span(3) {
-          resourceName "GET /nested"
+          resourceName "/nested"
           serviceName "unnamed-java-app"
           operationName "netty.client.request"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -519,7 +519,7 @@ class RatpackTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 3) {
         span(0) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "netty.request"
           spanType DDSpanTypes.HTTP_SERVER
@@ -539,7 +539,7 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(1) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "ratpack.handler"
           spanType DDSpanTypes.HTTP_SERVER
@@ -625,7 +625,7 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(startSpanInHandler ? 1 : 0) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "netty.request"
           spanType DDSpanTypes.HTTP_SERVER
@@ -644,7 +644,7 @@ class RatpackTest extends AgentTestRunner {
           }
         }
         span(startSpanInHandler ? 2 : 1) {
-          resourceName "GET /"
+          resourceName "/"
           serviceName "unnamed-java-app"
           operationName "ratpack.handler"
           spanType DDSpanTypes.HTTP_SERVER

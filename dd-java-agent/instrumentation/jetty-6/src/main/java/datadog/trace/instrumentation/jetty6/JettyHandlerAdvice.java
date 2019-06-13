@@ -29,8 +29,7 @@ public class JettyHandlerAdvice {
     }
 
     final SpanContext extractedContext =
-        GlobalTracer.get()
-            .extract(Format.Builtin.HTTP_HEADERS, new HttpServletRequestExtractAdapter(req));
+        GlobalTracer.get().extract(Format.Builtin.HTTP_HEADERS, new ServletHeaderAdapter(req));
     final Scope scope =
         GlobalTracer.get()
             .buildSpan("jetty.request")

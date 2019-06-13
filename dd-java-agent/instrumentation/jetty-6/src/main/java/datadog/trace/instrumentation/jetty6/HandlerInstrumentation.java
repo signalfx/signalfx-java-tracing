@@ -37,8 +37,8 @@ public final class HandlerInstrumentation extends Instrumenter.Default {
       "datadog.trace.agent.decorator.ServerDecorator",
       "datadog.trace.agent.decorator.HttpServerDecorator",
       packageName + ".JettyDecorator",
-      packageName + ".HttpServletRequestExtractAdapter",
-      packageName + ".HttpServletRequestExtractAdapter$MultivaluedMapFlatIterator",
+      packageName + ".ServletHeaderAdapter",
+      packageName + ".ServletHeaderAdapter$MultivaluedMapFlatIterator",
     };
   }
 

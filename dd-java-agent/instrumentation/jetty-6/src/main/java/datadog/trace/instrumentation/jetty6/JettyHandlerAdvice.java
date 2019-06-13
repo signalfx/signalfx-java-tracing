@@ -9,13 +9,10 @@ import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.Format;
-import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import net.bytebuddy.asm.Advice;
-import org.mortbay.jetty.HttpConnection;
-import org.mortbay.jetty.Response;
 
 public class JettyHandlerAdvice {
 
@@ -66,13 +63,10 @@ public class JettyHandlerAdvice {
         span.setTag(DDTags.USER_NAME, req.getUserPrincipal().getName());
       }
 
-      Response response = HttpConnection.getCurrentConnection().getResponse();
       DECORATE.onResponse(span, resp);
 
       if (throwable != null) {
         DECORATE.onError(span, throwable);
-      } else {
-        Tags.HTTP_STATUS.set(span, response.getStatus());
       }
 
       if (scope instanceof TraceScope) {

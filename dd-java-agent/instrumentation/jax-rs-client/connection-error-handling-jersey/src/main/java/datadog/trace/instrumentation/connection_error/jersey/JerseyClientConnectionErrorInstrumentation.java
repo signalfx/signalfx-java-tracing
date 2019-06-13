@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.connection_error.jersey;
 
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
@@ -18,6 +19,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import javax.ws.rs.ClientErrorException;
+import javax.ws.rs.RedirectionException;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -62,12 +65,14 @@ public final class JerseyClientConnectionErrorInstrumentation extends Instrument
         @Advice.FieldValue("requestContext") final ClientRequest context,
         @Advice.Thrown final Throwable throwable) {
       if (throwable != null) {
-
         final Object prop = context.getProperty(ClientTracingFilter.SPAN_PROPERTY_NAME);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          Tags.ERROR.set(span, true);
-          span.log(Collections.singletonMap(Fields.ERROR_OBJECT, throwable));
+          if (!(throwable instanceof RedirectionException)
+              && !(throwable instanceof ClientErrorException)) {
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, throwable));
+          }
           span.finish();
         }
       }
@@ -119,8 +124,12 @@ public final class JerseyClientConnectionErrorInstrumentation extends Instrument
         final Object prop = context.getProperty(ClientTracingFilter.SPAN_PROPERTY_NAME);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          Tags.ERROR.set(span, true);
-          span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
+          final Throwable cause = e.getCause();
+          if (!(cause instanceof RedirectionException)
+              && !(cause instanceof ClientErrorException)) {
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, cause));
+          }
           span.finish();
         }
         throw e;
@@ -136,8 +145,12 @@ public final class JerseyClientConnectionErrorInstrumentation extends Instrument
         final Object prop = context.getProperty(ClientTracingFilter.SPAN_PROPERTY_NAME);
         if (prop instanceof Span) {
           final Span span = (Span) prop;
-          Tags.ERROR.set(span, true);
-          span.log(Collections.singletonMap(Fields.ERROR_OBJECT, e.getCause()));
+          final Throwable cause = e.getCause();
+          if (!(cause instanceof RedirectionException)
+              && !(cause instanceof ClientErrorException)) {
+            Tags.ERROR.set(span, true);
+            span.log(Collections.singletonMap(Fields.ERROR_OBJECT, cause));
+          }
           span.finish();
         }
         throw e;

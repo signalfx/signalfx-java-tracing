@@ -10,6 +10,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.api.Config;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
@@ -20,6 +21,7 @@ import io.opentracing.propagation.Format;
 import io.opentracing.propagation.TextMap;
 import io.opentracing.util.GlobalTracer;
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
@@ -85,9 +87,13 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
          * those requests. Check after the connected test above because getRequestProperty will
          * throw an exception if already connected.
          */
+        URL url = thiz.getURL();
         final boolean isTraceRequest =
             Thread.currentThread().getName().equals("dd-agent-writer")
-                || (!connected && thiz.getRequestProperty("Datadog-Meta-Lang") != null);
+                || (!connected && thiz.getRequestProperty("Datadog-Meta-Lang") != null)
+                || (!connected
+                    && url.getPath().equals(Config.get().getAgentPath())
+                    && url.getHost().equals(Config.get().getAgentHost()));
         if (isTraceRequest) {
           state.finish();
           return null;

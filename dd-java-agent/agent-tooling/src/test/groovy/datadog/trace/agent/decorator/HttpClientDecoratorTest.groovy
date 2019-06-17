@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.decorator
 
 import datadog.trace.api.Config
@@ -94,9 +95,9 @@ class HttpClientDecoratorTest extends ClientDecoratorTest {
     status | error | errorRange | resp
     200    | false | null       | [status: 200]
     399    | false | null       | [status: 399]
-    400    | true  | null       | [status: 400]
-    499    | true  | null       | [status: 499]
-    500    | false | null       | [status: 500]
+    400    | false  | null       | [status: 400]
+    499    | false  | null       | [status: 499]
+    500    | true | null       | [status: 500]
     500    | true  | "500"      | [status: 500]
     500    | true  | "400-500"  | [status: 500]
     600    | false | null       | [status: 600]

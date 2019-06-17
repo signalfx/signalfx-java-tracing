@@ -92,7 +92,7 @@ class ConfigTest extends Specification {
                              (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
     config.headerTags == [:]
     config.httpServerErrorStatuses == (500..599).toSet()
-    config.httpClientErrorStatuses == (400..499).toSet()
+    config.httpClientErrorStatuses == (500..599).toSet()
     config.httpClientSplitByDomain == false
     config.partialFlushMinSpans == 1000
     config.reportHostName == false
@@ -342,7 +342,7 @@ class ConfigTest extends Specification {
     config.mergedSpanTags == [(TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE, (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
     config.headerTags == [:]
     config.httpServerErrorStatuses == (500..599).toSet()
-    config.httpClientErrorStatuses == (400..499).toSet()
+    config.httpClientErrorStatuses == (500..599).toSet()
     config.httpClientSplitByDomain == false
     config.propagationStylesToExtract.toList() == [Config.PropagationStyle.B3]
     config.propagationStylesToInject.toList() == [Config.PropagationStyle.B3]

@@ -50,13 +50,10 @@ public class ZipkinV2Api implements Api {
     final List<byte[]> serializedTraces = new ArrayList<>(traces.size());
     int sizeInBytes = 0;
     for (final List<DDSpan> trace : traces) {
-      System.out.println("ZipkinV2Api.sendTraces: " + trace.toString());
       try {
         final byte[] serializedTrace = serializeTrace(trace);
-        System.out.println("ZipkinV2Api.sendTraces: " + new String(serializedTrace));
         sizeInBytes += serializedTrace.length;
         serializedTraces.add(serializedTrace);
-        System.out.println("ZipkinV2Api.sendTraces: " + serializedTraces.toString());
       } catch (final JsonProcessingException e) {
         log.warn("Error serializing trace", e);
       }

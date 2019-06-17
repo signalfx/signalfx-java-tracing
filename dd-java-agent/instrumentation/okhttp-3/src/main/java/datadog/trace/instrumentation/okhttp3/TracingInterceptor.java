@@ -2,9 +2,11 @@ package datadog.trace.instrumentation.okhttp3;
 
 import static datadog.trace.instrumentation.okhttp3.OkHttpClientDecorator.DECORATE;
 
+import datadog.trace.api.Config;
 import io.opentracing.Scope;
 import io.opentracing.util.GlobalTracer;
 import java.io.IOException;
+import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Interceptor;
 import okhttp3.Request;
@@ -16,6 +18,13 @@ public class TracingInterceptor implements Interceptor {
   @Override
   public Response intercept(final Chain chain) throws IOException {
     if (chain.request().header("Datadog-Meta-Lang") != null) {
+      return chain.proceed(chain.request());
+    }
+
+    // Don't trace trace submissions
+    URI uri = chain.request().url().uri();
+    if (uri.getPath().equals(Config.get().getAgentPath())
+        && uri.getHost().equals(Config.get().getAgentHost())) {
       return chain.proceed(chain.request());
     }
 

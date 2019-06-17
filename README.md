@@ -55,7 +55,7 @@ given in the table below.
 | **Jersey** | 2.1+ | `jersey` | In tandem with JAX-RS Annotations |
 | **Jedis (Redis client)** | 1.4.0+ | `jedis` | |
 | **Lettuce (Redis Client)** | 5.0.0+ | `lettuce` | |
-| **Jetty Server** | 8.0.0+ | `jetty` | |
+| **Jetty Server** | 6.0.0+, 8.0.0+ | `jetty` | |
 | **JMS Messaging** | * | `jms` | |
 | **JSP** | 7+ | `jsp` | |
 | **Kafka Client** | 0.11.0.0+ | `kafka` | |

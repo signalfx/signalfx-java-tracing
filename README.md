@@ -70,6 +70,7 @@ given in the table below.
 | **Reactor Core** | 3.1.0+ | `reactor-core` | |
 | **Java Servlet** | 2+ | `servlet` | |
 | _Spark Java_ | 2.3+ | `sparkjava` | |
+| **Spring Data** | 1.5.0+ | `spring-data` | Automatic tracing of all `org.springframework.data.repository.Repository` implementor public methods |
 | **Spring Web** | 4.0+ | `spring-web` | Includes DispatcherServlet, HandlerAdapter, and RestTemplate |
 | **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
 | **Memcached (SpyMemcached)** | 2.10.0+ | `spymemcached` | |

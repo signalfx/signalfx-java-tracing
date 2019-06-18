@@ -76,41 +76,41 @@ public class ZipkinV2Api implements Api {
       final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces) {
     try {
       final HttpURLConnection httpCon = getHttpURLConnection(traceEndpoint);
-      final OutputStream out = httpCon.getOutputStream();
 
-      int traceCount = 0;
+      try (OutputStream out = httpCon.getOutputStream()) {
 
-      out.write('[');
-      for (final byte[] trace : traces) {
-        traceCount++;
-        if (trace.length == 2) {
-          // empty trace
-          continue;
+        int traceCount = 0;
+
+        out.write('[');
+        for (final byte[] trace : traces) {
+          traceCount++;
+          if (trace.length == 2) {
+            // empty trace
+            continue;
+          }
+          // don't write nested array brackets
+          out.write(trace, 1, trace.length - 2);
+
+          // don't write comma for final span
+          if (traceCount != traces.size()) {
+            out.write(',');
+          }
         }
-        // don't write nested array brackets
-        out.write(trace, 1, trace.length - 2);
-
-        // don't write comma for final span
-        if (traceCount != traces.size()) {
-          out.write(',');
-        }
+        out.write(']');
       }
-      out.write(']');
-      out.flush();
-      out.close();
 
       final int responseCode = httpCon.getResponseCode();
 
-      final BufferedReader responseReader =
-          new BufferedReader(
-              new InputStreamReader(httpCon.getInputStream(), StandardCharsets.UTF_8));
       final StringBuilder sb = new StringBuilder();
+      try (BufferedReader responseReader =
+          new BufferedReader(
+              new InputStreamReader(httpCon.getInputStream(), StandardCharsets.UTF_8))) {
 
-      String line;
-      while ((line = responseReader.readLine()) != null) {
-        sb.append(line);
+        String line;
+        while ((line = responseReader.readLine()) != null) {
+          sb.append(line);
+        }
       }
-      responseReader.close();
 
       if (responseCode != 200) {
         log.warn("Bad response code sending traces to {}: {}", traceEndpoint, sb.toString());

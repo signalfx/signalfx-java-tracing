@@ -12,12 +12,16 @@ import javax.ws.rs.PUT
 import javax.ws.rs.Path
 
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
+import static datadog.trace.instrumentation.jaxrs.JaxRsAnnotationsDecorator.DECORATE
 
 class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
 
   def "span named #httpMethod #path from annotations on class"() {
     setup:
-    obj.call()
+    def startingCacheSize = DECORATE.resourceNames.size()
+    runUnderTrace("test") {
+      obj.call()
+    }
 
     expect:
     assertTraces(1) {
@@ -48,6 +52,18 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
         }
       }
     }
+    DECORATE.resourceNames.size() == startingCacheSize + 1
+    DECORATE.resourceNames.get(obj.class).size() == 1
+
+    when: "multiple calls to the same method"
+    runUnderTrace("test") {
+      (1..10).each {
+        obj.call()
+      }
+    }
+    then: "doesn't increase the cache size"
+    DECORATE.resourceNames.size() == startingCacheSize + 1
+    DECORATE.resourceNames.get(obj.class).size() == 1
 
     where:
     httpMethod | path                   | obj
@@ -127,7 +143,7 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
     }   | _
   }
 
-  def "Setting allowedExceptions doesn't tag error"() {
+  def "Setting allowedExceptions doesn't tag error #error"() {
     setup:
     try {
       obj.call()
@@ -152,6 +168,7 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
           operationName "${className}.call"
           resourceName "${className}.call"
           childOf span(0)
+          errored error
           tags {
             "$Tags.COMPONENT.key" "jax-rs-controller"
             if (error) {

@@ -29,8 +29,8 @@ class JerseyInstrumentationTest extends AgentTestRunner {
     def body = RequestBody.create(plainType, "")
     def request = new Request.Builder()
       .url("http://localhost:$port/test/hello/bob")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("x-b3-traceid", "7b")
+      .header("x-b3-spanid", "1c8")
       .post(body)
       .build()
     def response = client.newCall(request).execute()
@@ -46,7 +46,7 @@ class JerseyInstrumentationTest extends AgentTestRunner {
           parentId "456"
           serviceName "unnamed-java-app"
           operationName "jersey.request"
-          resourceName "POST /test/hello/bob"
+          resourceName "/test/hello/bob"
           errored false
           tags {
             defaultTags(true)
@@ -72,8 +72,8 @@ class JerseyInstrumentationTest extends AgentTestRunner {
     def client = new OkHttpClient()
     def request = new Request.Builder()
       .url("http://localhost:$port/test/blowup")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("x-b3-traceid", "7b")
+      .header("x-b3-spanid", "1c8")
       .get()
       .build()
     def response = client.newCall(request).execute()
@@ -88,7 +88,7 @@ class JerseyInstrumentationTest extends AgentTestRunner {
           parentId "456"
           serviceName "unnamed-java-app"
           operationName "jersey.request"
-          resourceName "GET /test/blowup"
+          resourceName "/test/blowup"
           errored true
           tags {
             defaultTags(true)

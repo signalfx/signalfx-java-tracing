@@ -3,7 +3,6 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import datadog.trace.instrumentation.netty40.NettyUtils
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBuf
@@ -16,7 +15,6 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http.DefaultFullHttpResponse
 import io.netty.handler.codec.http.FullHttpResponse
-import io.netty.handler.codec.http.HttpHeaders
 import io.netty.handler.codec.http.HttpRequestDecoder
 import io.netty.handler.codec.http.HttpResponseEncoder
 import io.netty.handler.codec.http.HttpResponseStatus
@@ -29,9 +27,14 @@ import io.netty.util.CharsetUtil
 import io.opentracing.tag.Tags
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import spock.lang.Shared
+
+import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH
+import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE
 
 class Netty40ServerTest extends AgentTestRunner {
 
+  @Shared
   OkHttpClient client = OkHttpUtils.client()
 
   def "test server request/response"() {
@@ -42,8 +45,8 @@ class Netty40ServerTest extends AgentTestRunner {
 
     def request = new Request.Builder()
       .url("http://localhost:$port/")
-      .header("x-datadog-trace-id", "123")
-      .header("x-datadog-parent-id", "456")
+      .header("x-b3-traceid", "7b")
+      .header("x-b3-spanid", "1c8")
       .get()
       .build()
     def response = client.newCall(request).execute()
@@ -60,7 +63,7 @@ class Netty40ServerTest extends AgentTestRunner {
           parentId "456"
           serviceName "unnamed-java-app"
           operationName "netty.request"
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -69,9 +72,9 @@ class Netty40ServerTest extends AgentTestRunner {
             "$Tags.HTTP_STATUS.key" 200
             "$Tags.HTTP_URL.key" "http://localhost:$port/"
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             defaultTags(true)
           }
         }
@@ -115,9 +118,9 @@ class Netty40ServerTest extends AgentTestRunner {
             "$Tags.HTTP_STATUS.key" responseCode.code()
             "$Tags.HTTP_URL.key" "http://localhost:$port/"
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             if (error) {
               tag("error", true)
             }
@@ -132,9 +135,9 @@ class Netty40ServerTest extends AgentTestRunner {
 
     where:
     responseCode                             | name    | error
-    HttpResponseStatus.OK                    | "GET /" | false
+    HttpResponseStatus.OK                    | "/" | false
     HttpResponseStatus.NOT_FOUND             | "404"   | false
-    HttpResponseStatus.INTERNAL_SERVER_ERROR | "GET /" | true
+    HttpResponseStatus.INTERNAL_SERVER_ERROR | "/" | true
   }
 
   def "test #responseCode statusCode rewrite #rewrite"() {
@@ -156,6 +159,8 @@ class Netty40ServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
+          spanType DDSpanTypes.HTTP_SERVER
+          errored error
           tags {
             "$Tags.COMPONENT.key" "netty"
             "$Tags.HTTP_METHOD.key" "GET"
@@ -167,9 +172,9 @@ class Netty40ServerTest extends AgentTestRunner {
             }
             "$Tags.HTTP_URL.key" "http://localhost:$port/"
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             if (error) {
               tag("error", true)
             }
@@ -207,8 +212,8 @@ class Netty40ServerTest extends AgentTestRunner {
             if (msg instanceof LastHttpContent) {
               ByteBuf content = Unpooled.copiedBuffer("Hello World", CharsetUtil.UTF_8)
               FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, responseCode, content)
-              response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain")
-              response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes())
+              response.headers().set(CONTENT_TYPE, "text/plain")
+              response.headers().set(CONTENT_LENGTH, content.readableBytes())
               ctx.write(response)
             }
           },

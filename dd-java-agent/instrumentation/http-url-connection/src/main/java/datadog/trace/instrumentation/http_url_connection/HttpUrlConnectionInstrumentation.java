@@ -1,7 +1,7 @@
 package datadog.trace.instrumentation.http_url_connection;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
-import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionDecorator.DECORATE;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -11,22 +11,19 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.api.Config;
-import datadog.trace.api.DDSpanTypes;
-import datadog.trace.api.DDTags;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.propagation.Format;
 import io.opentracing.propagation.TextMap;
-import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Iterator;
 import java.util.Map;
-import javax.net.ssl.HttpsURLConnection;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -49,9 +46,13 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
+      "datadog.trace.agent.decorator.BaseDecorator",
+      "datadog.trace.agent.decorator.ClientDecorator",
+      "datadog.trace.agent.decorator.HttpClientDecorator",
+      packageName + ".HttpUrlConnectionDecorator",
       HttpUrlConnectionInstrumentation.class.getName() + "$HeadersInjectAdapter",
       HttpUrlConnectionInstrumentation.class.getName() + "$HttpUrlState",
-      HttpUrlConnectionInstrumentation.class.getName() + "$HttpUrlState$1"
+      HttpUrlConnectionInstrumentation.class.getName() + "$HttpUrlState$1",
     };
   }
 
@@ -86,9 +87,13 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
          * those requests. Check after the connected test above because getRequestProperty will
          * throw an exception if already connected.
          */
+        URL url = thiz.getURL();
         final boolean isTraceRequest =
             Thread.currentThread().getName().equals("dd-agent-writer")
-                || (!connected && thiz.getRequestProperty("Datadog-Meta-Lang") != null);
+                || (!connected && thiz.getRequestProperty("Datadog-Meta-Lang") != null)
+                || (!connected
+                    && url.getPath().equals(Config.get().getAgentPath())
+                    && url.getHost().equals(Config.get().getAgentHost()));
         if (isTraceRequest) {
           state.finish();
           return null;
@@ -165,7 +170,6 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
   public static class HttpUrlState {
 
     public static final String OPERATION_NAME = "http.request";
-    public static final String COMPONENT_NAME = "http-url-connection";
 
     public static final ContextStore.Factory<HttpUrlState> FACTORY =
         new ContextStore.Factory<HttpUrlState>() {
@@ -179,29 +183,13 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
     private volatile boolean finished = false;
 
     public Span startSpan(final HttpURLConnection connection) {
-      final Tracer.SpanBuilder builder =
-          GlobalTracer.get()
-              .buildSpan(OPERATION_NAME)
-              .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-              .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT);
+      final Tracer.SpanBuilder builder = GlobalTracer.get().buildSpan(OPERATION_NAME);
       span = builder.start();
-      final URL url = connection.getURL();
-      Tags.COMPONENT.set(span, COMPONENT_NAME);
-      Tags.HTTP_URL.set(span, url.toString());
-      Tags.PEER_HOSTNAME.set(span, url.getHost());
-      if (Config.get().isHttpClientSplitByDomain()) {
-        span.setTag(DDTags.SERVICE_NAME, url.getHost());
+      try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
+        DECORATE.afterStart(span);
+        DECORATE.onRequest(span, connection);
+        return span;
       }
-
-      if (url.getPort() > 0) {
-        Tags.PEER_PORT.set(span, url.getPort());
-      } else if (connection instanceof HttpsURLConnection) {
-        Tags.PEER_PORT.set(span, 443);
-      } else {
-        Tags.PEER_PORT.set(span, 80);
-      }
-      Tags.HTTP_METHOD.set(span, connection.getRequestMethod());
-      return span;
     }
 
     public boolean hasSpan() {
@@ -217,11 +205,13 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
     }
 
     public void finishSpan(final Throwable throwable) {
-      Tags.ERROR.set(span, true);
-      span.log(singletonMap(ERROR_OBJECT, throwable));
-      span.finish();
-      span = null;
-      finished = true;
+      try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
+        DECORATE.onError(span, throwable);
+        DECORATE.beforeFinish(span);
+        span.finish();
+        span = null;
+        finished = true;
+      }
     }
 
     public void finishSpan(final int responseCode) {
@@ -231,10 +221,13 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
        * (e.g. breaks getOutputStream).
        */
       if (responseCode > 0) {
-        Tags.HTTP_STATUS.set(span, responseCode);
-        span.finish();
-        span = null;
-        finished = true;
+        try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
+          DECORATE.onResponse(span, responseCode);
+          DECORATE.beforeFinish(span);
+          span.finish();
+          span = null;
+          finished = true;
+        }
       }
     }
   }

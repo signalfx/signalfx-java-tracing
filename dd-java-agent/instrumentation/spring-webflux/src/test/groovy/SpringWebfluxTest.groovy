@@ -1,7 +1,6 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import dd.trace.instrumentation.springwebflux.EchoHandlerFunction
 import dd.trace.instrumentation.springwebflux.FooModel
 import dd.trace.instrumentation.springwebflux.SpringWebFluxTestApplication
@@ -63,7 +62,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(1))
           tags {
             "$Tags.COMPONENT.key" "spring-webflux-controller"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
             if (annotatedMethod == null) {
               // Functional API
               "request.predicate" "(GET && $urlPathWithVariables)"
@@ -85,8 +84,8 @@ class SpringWebfluxTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "netty"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
@@ -137,7 +136,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(1))
           tags {
             "$Tags.COMPONENT.key" "spring-webflux-controller"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
             if (annotatedMethod == null) {
               // Functional API
               "request.predicate" "(GET && $urlPathWithVariables)"
@@ -159,8 +158,8 @@ class SpringWebfluxTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "netty"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
@@ -183,7 +182,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           errored false
           tags {
             "$Tags.COMPONENT.key" "trace"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             defaultTags()
           }
         }
@@ -221,8 +219,8 @@ class SpringWebfluxTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "netty"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 404
@@ -238,7 +236,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           errored true
           tags {
             "$Tags.COMPONENT.key" "spring-webflux-controller"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
             "handler.type" "org.springframework.web.reactive.resource.ResourceWebHandler"
             errorTags(ResponseStatusException, String)
             defaultTags()
@@ -270,7 +268,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(1))
           tags {
             "$Tags.COMPONENT.key" "spring-webflux-controller"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
             "request.predicate" "(POST && /echo)"
             "handler.type" { String tagVal ->
               return tagVal.contains(EchoHandlerFunction.getName())
@@ -286,8 +284,8 @@ class SpringWebfluxTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "netty"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.HTTP_METHOD.key" "POST"
             "$Tags.HTTP_STATUS.key" 202
@@ -301,7 +299,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(0))
           tags {
             "$Tags.COMPONENT.key" "trace"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             defaultTags()
           }
         }
@@ -330,8 +327,8 @@ class SpringWebfluxTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "netty"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 500
@@ -355,7 +352,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           errored true
           tags {
             "$Tags.COMPONENT.key" "spring-webflux-controller"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
             if (annotatedMethod == null) {
               // Functional API
               "request.predicate" "(GET && $urlPathWithVariables)"
@@ -404,8 +401,8 @@ class SpringWebfluxTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "netty"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 307
@@ -420,7 +417,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(0))
           tags {
             "$Tags.COMPONENT.key" "spring-webflux-controller"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
             "request.predicate" "(GET && /double-greet-redirect)"
             "handler.type" { String tagVal ->
               return (tagVal.contains(INNER_HANDLER_FUNCTION_CLASS_TAG_PREFIX)
@@ -438,7 +435,7 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(1))
           tags {
             "$Tags.COMPONENT.key" "spring-webflux-controller"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
             "request.predicate" "(GET && /double-greet)"
             "handler.type" { String tagVal ->
               return tagVal.contains(INNER_HANDLER_FUNCTION_CLASS_TAG_PREFIX)
@@ -454,8 +451,8 @@ class SpringWebfluxTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT.key" "netty"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
@@ -495,7 +492,7 @@ class SpringWebfluxTest extends AgentTestRunner {
             childOf(span(1))
             tags {
               "$Tags.COMPONENT.key" "spring-webflux-controller"
-              "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
+              "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
               if (annotatedMethod == null) {
                 // Functional API
                 "request.predicate" "(GET && $urlPathWithVariables)"
@@ -517,8 +514,8 @@ class SpringWebfluxTest extends AgentTestRunner {
             tags {
               "$Tags.COMPONENT.key" "netty"
               "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-              "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_SERVER
               "$Tags.PEER_HOSTNAME.key" "localhost"
+              "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
               "$Tags.PEER_PORT.key" Integer
               "$Tags.HTTP_METHOD.key" "GET"
               "$Tags.HTTP_STATUS.key" 200

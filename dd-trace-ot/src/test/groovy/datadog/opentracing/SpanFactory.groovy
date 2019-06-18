@@ -4,9 +4,11 @@ import datadog.trace.api.sampling.PrioritySampling
 import datadog.trace.common.writer.ListWriter
 
 class SpanFactory {
-  static newSpanOf(long timestampMicro) {
+  static newSpanOf(long timestampMicro, String threadName = Thread.currentThread().name) {
     def writer = new ListWriter()
     def tracer = new DDTracer(writer)
+    def currentThreadName = Thread.currentThread().getName()
+    Thread.currentThread().setName(threadName)
     def context = new DDSpanContext(
       "1",
       "1",
@@ -15,12 +17,14 @@ class SpanFactory {
       "fakeOperation",
       "fakeResource",
       PrioritySampling.UNSET,
+      null,
       Collections.emptyMap(),
       false,
       "fakeType",
       Collections.emptyMap(),
       new PendingTrace(tracer, "1", [:]),
       tracer)
+    Thread.currentThread().setName(currentThreadName)
     return new DDSpan(timestampMicro, context)
   }
 
@@ -33,6 +37,7 @@ class SpanFactory {
       "fakeOperation",
       "fakeResource",
       PrioritySampling.UNSET,
+      null,
       Collections.emptyMap(),
       false,
       "fakeType",
@@ -51,6 +56,7 @@ class SpanFactory {
       "fakeOperation",
       "fakeResource",
       PrioritySampling.UNSET,
+      null,
       Collections.emptyMap(),
       false,
       "fakeType",
@@ -71,6 +77,7 @@ class SpanFactory {
       "fakeOperation",
       "fakeResource",
       PrioritySampling.UNSET,
+      null,
       Collections.emptyMap(),
       false,
       "fakeType",

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.Serdes
@@ -128,7 +129,6 @@ class KafkaStreamsTest extends AgentTestRunner {
           tags {
             "component" "java-kafka"
             "span.kind" "producer"
-            "span.type" "queue"
             defaultTags()
           }
         }
@@ -147,7 +147,6 @@ class KafkaStreamsTest extends AgentTestRunner {
           tags {
             "component" "java-kafka"
             "span.kind" "producer"
-            "span.type" "queue"
             defaultTags()
           }
         }
@@ -164,7 +163,6 @@ class KafkaStreamsTest extends AgentTestRunner {
           tags {
             "component" "java-kafka"
             "span.kind" "consumer"
-            "span.type" "queue"
             "partition" { it >= 0 }
             "offset" 0
             defaultTags(true)
@@ -184,7 +182,6 @@ class KafkaStreamsTest extends AgentTestRunner {
           tags {
             "component" "java-kafka"
             "span.kind" "consumer"
-            "span.type" "queue"
             "partition" { it >= 0 }
             "offset" 0
             defaultTags(true)
@@ -196,8 +193,8 @@ class KafkaStreamsTest extends AgentTestRunner {
 
     def headers = received.headers()
     headers.iterator().hasNext()
-    new String(headers.headers("x-datadog-trace-id").iterator().next().value()) == "${TEST_WRITER[1][0].traceId}"
-    new String(headers.headers("x-datadog-parent-id").iterator().next().value()) == "${TEST_WRITER[1][0].spanId}"
+    new String(headers.headers("x-b3-traceid").iterator().next().value()) == new BigInteger(TEST_WRITER[1][0].traceId).toString(16).toLowerCase()
+    new String(headers.headers("x-b3-spanid").iterator().next().value()) == new BigInteger(TEST_WRITER[1][0].spanId).toString(16).toLowerCase()
 
 
     cleanup:

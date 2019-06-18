@@ -74,13 +74,13 @@ class RestTemplateTest extends AgentTestRunner {
         span(1) {
           operationName "http.request"
           serviceName "rest-template"
-          resourceName "GET /ping"
+          resourceName "/ping"
           errored false
           childOf(span(0))
+          spanType DDSpanTypes.HTTP_CLIENT
           tags {
             defaultTags()
             "component" "rest-template"
-            "span.type" DDSpanTypes.HTTP_CLIENT
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
@@ -92,8 +92,8 @@ class RestTemplateTest extends AgentTestRunner {
       }
     }
 
-    server.lastRequest.headers.get("x-datadog-trace-id") == TEST_WRITER[0][1].traceId
-    server.lastRequest.headers.get("x-datadog-parent-id") == TEST_WRITER[0][1].spanId
+    server.lastRequest.headers.get("x-b3-traceid") == new BigInteger(TEST_WRITER[0][1].traceId).toString(16).toLowerCase()
+    server.lastRequest.headers.get("x-b3-spanid") == new BigInteger(TEST_WRITER[0][1].spanId).toString(16).toLowerCase()
 
     cleanup:
     server.close()

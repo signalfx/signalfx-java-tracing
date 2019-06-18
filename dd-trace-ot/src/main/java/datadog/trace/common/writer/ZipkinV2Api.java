@@ -21,6 +21,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -46,26 +47,70 @@ public class ZipkinV2Api implements Api {
 
   @Override
   public boolean sendTraces(final List<List<DDSpan>> traces) {
+    final List<byte[]> serializedTraces = new ArrayList<>(traces.size());
+    int sizeInBytes = 0;
+    for (final List<DDSpan> trace : traces) {
+      try {
+        final byte[] serializedTrace = serializeTrace(trace);
+        sizeInBytes += serializedTrace.length;
+        serializedTraces.add(serializedTrace);
+      } catch (final JsonProcessingException e) {
+        log.warn("Error serializing trace", e);
+      }
+    }
+
+    return sendSerializedTraces(serializedTraces.size(), sizeInBytes, serializedTraces);
+  }
+
+  @Override
+  public byte[] serializeTrace(final List<DDSpan> trace) throws JsonProcessingException {
+    ArrayNode spanArr = objectMapper.createArrayNode();
+    for (DDSpan span : trace) {
+      spanArr.add(encodeSpan(span));
+    }
+    return objectMapper.writeValueAsBytes(spanArr);
+  }
+
+  @Override
+  public boolean sendSerializedTraces(
+      final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces) {
     try {
       final HttpURLConnection httpCon = getHttpURLConnection(traceEndpoint);
 
-      final OutputStream out = httpCon.getOutputStream();
-      objectMapper.writeValue(out, encodeTraces(traces));
-      out.flush();
-      out.close();
+      try (OutputStream out = httpCon.getOutputStream()) {
+
+        int traceCount = 0;
+
+        out.write('[');
+        for (final byte[] trace : traces) {
+          traceCount++;
+          if (trace.length == 2) {
+            // empty trace
+            continue;
+          }
+          // don't write nested array brackets
+          out.write(trace, 1, trace.length - 2);
+
+          // don't write comma for final span
+          if (traceCount != traces.size()) {
+            out.write(',');
+          }
+        }
+        out.write(']');
+      }
 
       final int responseCode = httpCon.getResponseCode();
 
-      final BufferedReader responseReader =
-          new BufferedReader(
-              new InputStreamReader(httpCon.getInputStream(), StandardCharsets.UTF_8));
       final StringBuilder sb = new StringBuilder();
+      try (BufferedReader responseReader =
+          new BufferedReader(
+              new InputStreamReader(httpCon.getInputStream(), StandardCharsets.UTF_8))) {
 
-      String line;
-      while ((line = responseReader.readLine()) != null) {
-        sb.append(line);
+        String line;
+        while ((line = responseReader.readLine()) != null) {
+          sb.append(line);
+        }
       }
-      responseReader.close();
 
       if (responseCode != 200) {
         log.warn("Bad response code sending traces to {}: {}", traceEndpoint, sb.toString());

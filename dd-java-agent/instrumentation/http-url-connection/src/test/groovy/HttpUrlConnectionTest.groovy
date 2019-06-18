@@ -2,7 +2,6 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import io.opentracing.util.GlobalTracer
 import org.springframework.web.client.RestTemplate
@@ -14,7 +13,6 @@ import sun.net.www.protocol.https.HttpsURLConnectionImpl
 import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 import static datadog.trace.agent.test.utils.TraceUtils.withConfigOverride
-import static datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionInstrumentation.HttpUrlState.COMPONENT_NAME
 import static datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionInstrumentation.HttpUrlState.OPERATION_NAME
 
 class HttpUrlConnectionTest extends AgentTestRunner {
@@ -76,13 +74,14 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
+          resourceName "/"
+          spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" COMPONENT_NAME
+            "$Tags.COMPONENT.key" "http-url-connection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
+            "$Tags.HTTP_URL.key" "$server.address/"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
             "$Tags.PEER_HOSTNAME.key" "localhost"
@@ -93,13 +92,14 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(2) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
+          resourceName "/"
+          spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" COMPONENT_NAME
+            "$Tags.COMPONENT.key" "http-url-connection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
+            "$Tags.HTTP_URL.key" "$server.address/"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
             "$Tags.PEER_HOSTNAME.key" "localhost"
@@ -157,13 +157,14 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
+          resourceName "/"
+          spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" COMPONENT_NAME
+            "$Tags.COMPONENT.key" "http-url-connection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
+            "$Tags.HTTP_URL.key" "$server.address/"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
             "$Tags.PEER_HOSTNAME.key" "localhost"
@@ -174,13 +175,14 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(2) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
+          resourceName "/"
+          spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" COMPONENT_NAME
+            "$Tags.COMPONENT.key" "http-url-connection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
+            "$Tags.HTTP_URL.key" "$server.address/"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
             "$Tags.PEER_HOSTNAME.key" "localhost"
@@ -222,13 +224,14 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
+          resourceName "/"
+          spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" COMPONENT_NAME
+            "$Tags.COMPONENT.key" "http-url-connection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
+            "$Tags.HTTP_URL.key" "$server.address/"
             "$Tags.HTTP_METHOD.key" "HEAD"
             "$Tags.HTTP_STATUS.key" STATUS
             "$Tags.PEER_HOSTNAME.key" "localhost"
@@ -270,13 +273,14 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
+          resourceName "/"
+          spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" COMPONENT_NAME
+            "$Tags.COMPONENT.key" "http-url-connection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
+            "$Tags.HTTP_URL.key" "$server.address/"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
             "$Tags.PEER_HOSTNAME.key" "localhost"
@@ -335,13 +339,14 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
+          resourceName "/"
+          spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" COMPONENT_NAME
+            "$Tags.COMPONENT.key" "http-url-connection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
+            "$Tags.HTTP_URL.key" "$server.address/"
             "$Tags.HTTP_METHOD.key" "POST"
             "$Tags.HTTP_STATUS.key" STATUS
             "$Tags.PEER_HOSTNAME.key" "localhost"
@@ -402,13 +407,14 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(0) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
+          resourceName "/"
+          spanType DDSpanTypes.HTTP_CLIENT
           parent()
           errored false
           tags {
-            "$Tags.COMPONENT.key" COMPONENT_NAME
+            "$Tags.COMPONENT.key" "http-url-connection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
+            "$Tags.HTTP_URL.key" "$server.address/"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" STATUS
             "$Tags.PEER_HOSTNAME.key" "localhost"
@@ -448,13 +454,14 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
+          resourceName "/"
+          spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" COMPONENT_NAME
+            "$Tags.COMPONENT.key" "http-url-connection"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address"
+            "$Tags.HTTP_URL.key" "$server.address/"
             "$Tags.HTTP_METHOD.key" "POST"
             "$Tags.HTTP_STATUS.key" STATUS
             "$Tags.PEER_HOSTNAME.key" "localhost"

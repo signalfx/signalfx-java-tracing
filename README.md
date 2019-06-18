@@ -44,7 +44,7 @@ given in the table below.
 | **Apache HTTP Client** | 4.0+ | `httpclient` | Also supports the DropWizard HTTP Client that subclasses the Apache one |
 | **AWS SDK Client** | 1.11.0+ | `aws-sdk` | |
 | **CouchBase Client** | 2.0.0+ | `couchbase` | |
-| **Cassandra (DataStax client)** | 2.3.0+ | `cassandra` | |
+| **Cassandra (DataStax client)** | 3.0+ | `cassandra` | |
 | **DropWizard Views** | * | `dropwizard`, `dropwizard-view` | |
 | **ElasticSearch Client** | 2+ | `elasticsearch` | Supports both REST and transport clients |
 | **gRPC (Client and Server)** | 1.5.0+ | `grpc` | |
@@ -55,7 +55,7 @@ given in the table below.
 | **Jersey** | 2.1+ | `jersey` | In tandem with JAX-RS Annotations |
 | **Jedis (Redis client)** | 1.4.0+ | `jedis` | |
 | **Lettuce (Redis Client)** | 5.0.0+ | `lettuce` | |
-| **Jetty Server** | 8.0.0+ | `jetty` | |
+| **Jetty Server** | 6.0.0+, 8.0.0+ | `jetty` | |
 | **JMS Messaging** | * | `jms` | |
 | **JSP** | 7+ | `jsp` | |
 | **Kafka Client** | 0.11.0.0+ | `kafka` | |
@@ -70,6 +70,7 @@ given in the table below.
 | **Reactor Core** | 3.1.0+ | `reactor-core` | |
 | **Java Servlet** | 2+ | `servlet` | |
 | _Spark Java_ | 2.3+ | `sparkjava` | |
+| **Spring Data** | 1.5.0+ | `spring-data` | Automatic tracing of all `org.springframework.data.repository.Repository` implementor public methods |
 | **Spring Web** | 4.0+ | `spring-web` | Includes DispatcherServlet, HandlerAdapter, and RestTemplate |
 | **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
 | **Memcached (SpyMemcached)** | 2.10.0+ | `spymemcached` | |

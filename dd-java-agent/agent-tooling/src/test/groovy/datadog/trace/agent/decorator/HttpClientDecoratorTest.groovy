@@ -1,13 +1,18 @@
+// Modified by SignalFx
 package datadog.trace.agent.decorator
 
 import datadog.trace.api.Config
 import datadog.trace.api.DDTags
 import io.opentracing.Span
 import io.opentracing.tag.Tags
+import spock.lang.Shared
 
 import static datadog.trace.agent.test.utils.TraceUtils.withConfigOverride
 
 class HttpClientDecoratorTest extends ClientDecoratorTest {
+
+  @Shared
+  def testUrl = new URI("http://myhost/somepath")
 
   def span = Mock(Span)
 
@@ -23,7 +28,7 @@ class HttpClientDecoratorTest extends ClientDecoratorTest {
     then:
     if (req) {
       1 * span.setTag(Tags.HTTP_METHOD.key, "test-method")
-      1 * span.setTag(Tags.HTTP_URL.key, "test-url")
+      1 * span.setTag(Tags.HTTP_URL.key, "$testUrl")
       1 * span.setTag(Tags.PEER_HOSTNAME.key, "test-host")
       1 * span.setTag(Tags.PEER_PORT.key, 555)
       if (renameService) {
@@ -36,8 +41,36 @@ class HttpClientDecoratorTest extends ClientDecoratorTest {
     renameService | req
     false         | null
     true          | null
-    false         | [method: "test-method", url: "test-url", host: "test-host", port: 555]
-    true          | [method: "test-method", url: "test-url", host: "test-host", port: 555]
+    false         | [method: "test-method", url: testUrl, host: "test-host", port: 555]
+    true          | [method: "test-method", url: testUrl, host: "test-host", port: 555]
+  }
+
+  def "test url handling"() {
+    setup:
+    def decorator = newDecorator()
+
+    when:
+    decorator.onRequest(span, req)
+
+    then:
+    if (expected) {
+      1 * span.setTag(Tags.HTTP_URL.key, expected)
+    }
+    1 * span.setTag(Tags.HTTP_METHOD.key, null)
+    1 * span.setTag(Tags.PEER_HOSTNAME.key, null)
+    1 * span.setTag(Tags.PEER_PORT.key, null)
+    0 * _
+
+    where:
+    url                                  | expected
+    null                                 | null
+    ""                                   | "/"
+    "/path?query"                        | "/path"
+    "https://host:0"                     | "https://host/"
+    "https://host/path"                  | "https://host/path"
+    "http://host:99/path?query#fragment" | "http://host:99/path"
+
+    req = [url: url == null ? null : new URI(url)]
   }
 
   def "test onResponse"() {
@@ -45,7 +78,9 @@ class HttpClientDecoratorTest extends ClientDecoratorTest {
     def decorator = newDecorator()
 
     when:
-    decorator.onResponse(span, resp)
+    withConfigOverride(Config.HTTP_CLIENT_ERROR_STATUSES, "$errorRange") {
+      decorator.onResponse(span, resp)
+    }
 
     then:
     if (status) {
@@ -57,15 +92,17 @@ class HttpClientDecoratorTest extends ClientDecoratorTest {
     0 * _
 
     where:
-    status | error | resp
-    200    | false | [status: 200]
-    399    | false | [status: 399]
-    400    | true  | [status: 400]
-    499    | true  | [status: 499]
-    500    | false | [status: 500]
-    600    | false | [status: 600]
-    null   | false | [status: null]
-    null   | false | null
+    status | error | errorRange | resp
+    200    | false | null       | [status: 200]
+    399    | false | null       | [status: 399]
+    400    | false  | null       | [status: 400]
+    499    | false  | null       | [status: 499]
+    500    | true | null       | [status: 500]
+    500    | true  | "500"      | [status: 500]
+    500    | true  | "400-500"  | [status: 500]
+    600    | false | null       | [status: 600]
+    null   | false | null       | [status: null]
+    null   | false | null       | null
   }
 
   def "test assert null span"() {
@@ -109,7 +146,7 @@ class HttpClientDecoratorTest extends ClientDecoratorTest {
       }
 
       @Override
-      protected String url(Map m) {
+      protected URI url(Map m) {
         return m.url
       }
 

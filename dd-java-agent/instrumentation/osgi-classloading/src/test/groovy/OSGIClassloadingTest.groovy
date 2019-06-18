@@ -16,18 +16,22 @@ class OSGIClassloadingTest extends AgentTestRunner {
     org.osgi.framework.Bundle.getName()
 
     then:
-    System.getProperty("org.osgi.framework.bootdelegation") == "io.opentracing.*,io.opentracing,datadog.slf4j.*,datadog.slf4j,datadog.trace.bootstrap.*,datadog.trace.bootstrap,datadog.trace.api.*,datadog.trace.api,com.signalfx.tracing.api.*,com.signalfx.tracing.api,datadog.trace.context.*,datadog.trace.context,com.signalfx.tracing.context.*,com.signalfx.tracing.context"
+    System.getProperty("org.osgi.framework.bootdelegation") == "io.opentracing.*,io.opentracing,datadog.slf4j.*,datadog.slf4j,datadog.trace.bootstrap.*,datadog.trace.bootstrap,datadog.trace.api.*,datadog.trace.api,datadog.trace.context.*,datadog.trace.context,com.signalfx.tracing.api.*,com.signalfx.tracing.api,com.signalfx.tracing.context.*,com.signalfx.tracing.context"
   }
 
-  def "test Eclipse OSGi framework factory"() {
+  def "test OSGi framework factory"() {
     setup:
     def config = ["osgi.support.class.certificate": "false"]
-    FrameworkFactory factory = new EquinoxFactory()
 
     when:
     Framework framework = factory.newFramework(config)
 
     then:
     framework != null
+
+    where:
+    factory                                           | _
+    new EquinoxFactory()                              | _
+    new org.apache.felix.framework.FrameworkFactory() | _
   }
 }

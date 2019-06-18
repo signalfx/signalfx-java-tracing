@@ -10,10 +10,13 @@ import static datadog.trace.api.Config.ENDPOINT_URL
 import static datadog.trace.api.Config.AGENT_HOST
 import static datadog.trace.api.Config.AGENT_PATH
 import static datadog.trace.api.Config.AGENT_PORT_LEGACY
+import static datadog.trace.api.Config.AGENT_UNIX_DOMAIN_SOCKET
 import static datadog.trace.api.Config.DEFAULT_JMX_FETCH_STATSD_PORT
 import static datadog.trace.api.Config.GLOBAL_TAGS
 import static datadog.trace.api.Config.HEADER_TAGS
+import static datadog.trace.api.Config.HTTP_CLIENT_ERROR_STATUSES
 import static datadog.trace.api.Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN
+import static datadog.trace.api.Config.HTTP_SERVER_ERROR_STATUSES
 import static datadog.trace.api.Config.JMX_FETCH_CHECK_PERIOD
 import static datadog.trace.api.Config.JMX_FETCH_ENABLED
 import static datadog.trace.api.Config.JMX_FETCH_METRICS_CONFIGS
@@ -30,6 +33,8 @@ import static datadog.trace.api.Config.TRACING_VERSION_VALUE
 import static datadog.trace.api.Config.PARTIAL_FLUSH_MIN_SPANS
 import static datadog.trace.api.Config.PREFIX
 import static datadog.trace.api.Config.PRIORITY_SAMPLING
+import static datadog.trace.api.Config.PROPAGATION_STYLE_EXTRACT
+import static datadog.trace.api.Config.PROPAGATION_STYLE_INJECT
 import static datadog.trace.api.Config.RUNTIME_CONTEXT_FIELD_INJECTION
 import static datadog.trace.api.Config.RUNTIME_ID_TAG
 import static datadog.trace.api.Config.SERVICE
@@ -37,6 +42,8 @@ import static datadog.trace.api.Config.SERVICE_MAPPING
 import static datadog.trace.api.Config.SERVICE_NAME
 import static datadog.trace.api.Config.SPAN_TAGS
 import static datadog.trace.api.Config.TRACE_AGENT_PORT
+import static datadog.trace.api.Config.TRACE_REPORT_HOSTNAME
+import static datadog.trace.api.Config.TRACE_ENABLED
 import static datadog.trace.api.Config.TRACE_RESOLVER_ENABLED
 import static datadog.trace.api.Config.USE_B3_PROPAGATION
 import static datadog.trace.api.Config.WRITER_TYPE
@@ -48,20 +55,25 @@ class ConfigTest extends Specification {
   public final EnvironmentVariables environmentVariables = new EnvironmentVariables()
 
   private static final DD_SERVICE_NAME_ENV = "DD_SERVICE_NAME"
+  private static final DD_TRACE_ENABLED_ENV = "DD_TRACE_ENABLED"
   private static final DD_WRITER_TYPE_ENV = "DD_WRITER_TYPE"
   private static final DD_SERVICE_MAPPING_ENV = "DD_SERVICE_MAPPING"
   private static final DD_SPAN_TAGS_ENV = "DD_SPAN_TAGS"
   private static final DD_HEADER_TAGS_ENV = "DD_HEADER_TAGS"
+  private static final DD_PROPAGATION_STYLE_EXTRACT = "DD_PROPAGATION_STYLE_EXTRACT"
+  private static final DD_PROPAGATION_STYLE_INJECT = "DD_PROPAGATION_STYLE_INJECT"
   private static final DD_JMXFETCH_METRICS_CONFIGS_ENV = "DD_JMXFETCH_METRICS_CONFIGS"
   private static final DD_TRACE_AGENT_PORT_ENV = "DD_TRACE_AGENT_PORT"
   private static final DD_AGENT_PORT_LEGACY_ENV = "DD_AGENT_PORT"
+  private static final DD_TRACE_REPORT_HOSTNAME = "DD_TRACE_REPORT_HOSTNAME"
 
   def "verify defaults"() {
     when:
-    def config = Config.get()
+    Config config = provider()
 
     then:
     config.serviceName == "unnamed-java-app"
+    config.traceEnabled == true
     config.writerType == "DDAgentWriter"
     config.apiType == "ZipkinV2"
     config.useB3Propagation == true
@@ -70,15 +82,23 @@ class ConfigTest extends Specification {
     config.getAgentPath() == "/v1/trace"
     config.getAgentUseHTTPS() == false
     config.endpointUrl.toString() == "http://localhost:9080/v1/trace"
+    config.agentUnixDomainSocket == null
     config.prioritySamplingEnabled == false
     config.traceResolverEnabled == true
     config.serviceMapping == [:]
-    config.mergedSpanTags == [:]
-    config.mergedJmxTags == [(RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE): config.serviceName, (LANGUAGE_TAG_KEY): LANGUAGE_TAG_VALUE]
+    config.mergedSpanTags == [(TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE, (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
+    config.mergedJmxTags == [(RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE): config.serviceName,
+                             (LANGUAGE_TAG_KEY): LANGUAGE_TAG_VALUE, (TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE,
+                             (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
     config.headerTags == [:]
+    config.httpServerErrorStatuses == (500..599).toSet()
+    config.httpClientErrorStatuses == (500..599).toSet()
     config.httpClientSplitByDomain == false
-    config.partialFlushMinSpans == 0
+    config.partialFlushMinSpans == 1000
+    config.reportHostName == false
     config.runtimeContextFieldInjection == true
+    config.propagationStylesToExtract.toList() == [Config.PropagationStyle.B3]
+    config.propagationStylesToInject.toList() == [Config.PropagationStyle.B3]
     config.jmxFetchEnabled == false
     config.jmxFetchMetricsConfigs == []
     config.jmxFetchCheckPeriod == null
@@ -86,55 +106,140 @@ class ConfigTest extends Specification {
     config.jmxFetchStatsdHost == null
     config.jmxFetchStatsdPort == DEFAULT_JMX_FETCH_STATSD_PORT
     config.toString().contains("unnamed-java-app")
+
+    where:
+    provider << [{ new Config() }, { Config.get() }, {
+      def props = new Properties()
+      props.setProperty("something", "unused")
+      Config.get(props)
+    }]
   }
 
-  def "specify overrides via system properties"() {
+  def "specify overrides via properties"() {
     setup:
-    System.setProperty(prefix + SERVICE_NAME, "something else")
-    System.setProperty(prefix + WRITER_TYPE, "LoggingWriter")
-    System.setProperty(prefix + USE_B3_PROPAGATION, "false")
-    System.setProperty(prefix + AGENT_HOST, "somehost")
-    System.setProperty(prefix + TRACE_AGENT_PORT, "123")
-    System.setProperty(prefix + AGENT_PATH, "/v2/trace")
-    System.setProperty(prefix + ENDPOINT_URL, "https://example.com/")
-    System.setProperty(prefix + AGENT_PORT_LEGACY, "456")
-    System.setProperty(prefix + PRIORITY_SAMPLING, "false")
-    System.setProperty(prefix + TRACE_RESOLVER_ENABLED, "false")
-    System.setProperty(prefix + SERVICE_MAPPING, "a:1")
-    System.setProperty(prefix + GLOBAL_TAGS, "b:2")
-    System.setProperty(prefix + SPAN_TAGS, "c:3")
-    System.setProperty(prefix + JMX_TAGS, "d:4")
-    System.setProperty(prefix + HEADER_TAGS, "e:5")
-    System.setProperty(prefix + HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "true")
-    System.setProperty(prefix + PARTIAL_FLUSH_MIN_SPANS, "15")
-    System.setProperty(prefix + RUNTIME_CONTEXT_FIELD_INJECTION, "false")
-    System.setProperty(prefix + JMX_FETCH_ENABLED, "true")
-    System.setProperty(prefix + JMX_FETCH_METRICS_CONFIGS, "/foo.yaml,/bar.yaml")
-    System.setProperty(prefix + JMX_FETCH_CHECK_PERIOD, "100")
-    System.setProperty(prefix + JMX_FETCH_REFRESH_BEANS_PERIOD, "200")
-    System.setProperty(prefix + JMX_FETCH_STATSD_HOST, "statsd host")
-    System.setProperty(prefix + JMX_FETCH_STATSD_PORT, "321")
+    def prop = new Properties()
+    prop.setProperty(SERVICE_NAME, "something else")
+    prop.setProperty(TRACE_ENABLED, "false")
+    prop.setProperty(WRITER_TYPE, "LoggingWriter")
+    prop.setProperty(AGENT_HOST, "somehost")
+    prop.setProperty(TRACE_AGENT_PORT, "123")
+    prop.setProperty(AGENT_UNIX_DOMAIN_SOCKET, "somepath")
+    prop.setProperty(AGENT_PORT_LEGACY, "456")
+    prop.setProperty(PRIORITY_SAMPLING, "false")
+    prop.setProperty(TRACE_RESOLVER_ENABLED, "false")
+    prop.setProperty(SERVICE_MAPPING, "a:1")
+    prop.setProperty(GLOBAL_TAGS, "b:2")
+    prop.setProperty(SPAN_TAGS, "c:3")
+    prop.setProperty(JMX_TAGS, "d:4")
+    prop.setProperty(HEADER_TAGS, "e:5")
+    prop.setProperty(HTTP_SERVER_ERROR_STATUSES, "123-456,457,124-125,122")
+    prop.setProperty(HTTP_CLIENT_ERROR_STATUSES, "111")
+    prop.setProperty(HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "true")
+    prop.setProperty(PARTIAL_FLUSH_MIN_SPANS, "15")
+    prop.setProperty(TRACE_REPORT_HOSTNAME, "true")
+    prop.setProperty(RUNTIME_CONTEXT_FIELD_INJECTION, "false")
+    prop.setProperty(PROPAGATION_STYLE_EXTRACT, "Datadog, B3")
+    prop.setProperty(PROPAGATION_STYLE_INJECT, "B3, Datadog")
+    prop.setProperty(JMX_FETCH_ENABLED, "true")
+    prop.setProperty(JMX_FETCH_METRICS_CONFIGS, "/foo.yaml,/bar.yaml")
+    prop.setProperty(JMX_FETCH_CHECK_PERIOD, "100")
+    prop.setProperty(JMX_FETCH_REFRESH_BEANS_PERIOD, "200")
+    prop.setProperty(JMX_FETCH_STATSD_HOST, "statsd host")
+    prop.setProperty(JMX_FETCH_STATSD_PORT, "321")
 
     when:
-    def config = new Config()
+    Config config = Config.get(prop)
 
     then:
     config.serviceName == "something else"
+    config.traceEnabled == false
     config.writerType == "LoggingWriter"
-    config.useB3Propagation == false
-    config.getAgentHost() == "somehost"
-    config.getAgentPort() == 123
-    config.getAgentPath() == "/v2/trace"
-    config.getAgentUseHTTPS() == true
+    config.agentHost == "somehost"
+    config.agentPort == 123
+    config.agentUnixDomainSocket == "somepath"
     config.prioritySamplingEnabled == false
     config.traceResolverEnabled == false
     config.serviceMapping == [a: "1"]
     config.mergedSpanTags == [b: "2", c: "3"]
     config.mergedJmxTags == [b: "2", d: "4", (RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE): config.serviceName, (LANGUAGE_TAG_KEY): LANGUAGE_TAG_VALUE]
     config.headerTags == [e: "5"]
+    config.httpServerErrorStatuses == (122..457).toSet()
+    config.httpClientErrorStatuses == (111..111).toSet()
     config.httpClientSplitByDomain == true
     config.partialFlushMinSpans == 15
+    config.reportHostName == true
     config.runtimeContextFieldInjection == false
+    config.propagationStylesToExtract.toList() == [Config.PropagationStyle.DATADOG, Config.PropagationStyle.B3]
+    config.propagationStylesToInject.toList() == [Config.PropagationStyle.B3, Config.PropagationStyle.DATADOG]
+    config.jmxFetchEnabled == true
+    config.jmxFetchMetricsConfigs == ["/foo.yaml", "/bar.yaml"]
+    config.jmxFetchCheckPeriod == 100
+    config.jmxFetchRefreshBeansPeriod == 200
+    config.jmxFetchStatsdHost == "statsd host"
+    config.jmxFetchStatsdPort == 321
+  }
+
+  def "specify overrides via system properties"() {
+    setup:
+    System.setProperty(PREFIX + SERVICE_NAME, "something else") // SFX
+    System.setProperty(PREFIX + TRACE_ENABLED, "false")
+    System.setProperty(PREFIX + WRITER_TYPE, "LoggingWriter") // SFX
+    System.setProperty(PREFIX + USE_B3_PROPAGATION, "false") // SFX
+    System.setProperty(PREFIX + AGENT_HOST, "somehost") // SFX
+    System.setProperty(PREFIX + TRACE_AGENT_PORT, "123") // SFX
+    System.setProperty(PREFIX + AGENT_UNIX_DOMAIN_SOCKET, "somepath")
+    System.setProperty(PREFIX + AGENT_PATH, "/v2/trace") // SFX
+    System.setProperty(PREFIX + ENDPOINT_URL, "https://example.com/") // SFX
+    System.setProperty(PREFIX + AGENT_PORT_LEGACY, "456") // SFX
+    System.setProperty(PREFIX + PRIORITY_SAMPLING, "false") // SFX
+    System.setProperty(PREFIX + TRACE_RESOLVER_ENABLED, "false") // SFX
+    System.setProperty(PREFIX + SERVICE_MAPPING, "a:1") // SFX
+    System.setProperty(PREFIX + GLOBAL_TAGS, "b:2") // SFX
+    System.setProperty(PREFIX + SPAN_TAGS, "c:3") // SFX
+    System.setProperty(PREFIX + JMX_TAGS, "d:4") // SFX
+    System.setProperty(PREFIX + HEADER_TAGS, "e:5") // SFX
+    System.setProperty(PREFIX + HTTP_SERVER_ERROR_STATUSES, "123-456,457,124-125,122")
+    System.setProperty(PREFIX + HTTP_CLIENT_ERROR_STATUSES, "111")
+    System.setProperty(PREFIX + HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "true") // SFX
+    System.setProperty(PREFIX + PARTIAL_FLUSH_MIN_SPANS, "25")
+    System.setProperty(PREFIX + TRACE_REPORT_HOSTNAME, "true")
+    System.setProperty(PREFIX + RUNTIME_CONTEXT_FIELD_INJECTION, "false") // SFX
+    System.setProperty(PREFIX + PROPAGATION_STYLE_EXTRACT, "Datadog, B3")
+    System.setProperty(PREFIX + PROPAGATION_STYLE_INJECT, "B3, Datadog")
+    System.setProperty(PREFIX + JMX_FETCH_ENABLED, "true") // SFX
+    System.setProperty(PREFIX + JMX_FETCH_METRICS_CONFIGS, "/foo.yaml,/bar.yaml") // SFX
+    System.setProperty(PREFIX + JMX_FETCH_CHECK_PERIOD, "100") // SFX
+    System.setProperty(PREFIX + JMX_FETCH_REFRESH_BEANS_PERIOD, "200") // SFX
+    System.setProperty(PREFIX + JMX_FETCH_STATSD_HOST, "statsd host") // SFX
+    System.setProperty(PREFIX + JMX_FETCH_STATSD_PORT, "321") // SFX
+
+    when:
+    Config config = new Config()
+
+    then:
+    config.serviceName == "something else"
+    config.traceEnabled == false
+    config.writerType == "LoggingWriter"
+    config.useB3Propagation == false
+    config.getAgentHost() == "somehost"
+    config.getAgentPort() == 123
+    config.getAgentPath() == "/v2/trace"
+    config.getAgentUseHTTPS() == true
+    config.agentUnixDomainSocket == "somepath"
+    config.prioritySamplingEnabled == false
+    config.traceResolverEnabled == false
+    config.serviceMapping == [a: "1"]
+    config.mergedSpanTags == [b: "2", c: "3"]
+    config.mergedJmxTags == [b: "2", d: "4", (RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE): config.serviceName, (LANGUAGE_TAG_KEY): LANGUAGE_TAG_VALUE]
+    config.headerTags == [e: "5"]
+    config.httpServerErrorStatuses == (122..457).toSet()
+    config.httpClientErrorStatuses == (111..111).toSet()
+    config.httpClientSplitByDomain == true
+    config.partialFlushMinSpans == 25
+    config.reportHostName == true
+    config.runtimeContextFieldInjection == false
+    config.propagationStylesToExtract.toList() == [Config.PropagationStyle.DATADOG, Config.PropagationStyle.B3]
+    config.propagationStylesToInject.toList() == [Config.PropagationStyle.B3, Config.PropagationStyle.DATADOG]
     config.jmxFetchEnabled == true
     config.jmxFetchMetricsConfigs == ["/foo.yaml", "/bar.yaml"]
     config.jmxFetchCheckPeriod == 100
@@ -151,16 +256,24 @@ class ConfigTest extends Specification {
   def "specify overrides via env vars"() {
     setup:
     environmentVariables.set(DD_SERVICE_NAME_ENV, "still something else")
+    environmentVariables.set(DD_TRACE_ENABLED_ENV, "false")
     environmentVariables.set(DD_WRITER_TYPE_ENV, "LoggingWriter")
+    environmentVariables.set(DD_PROPAGATION_STYLE_EXTRACT, "B3 Datadog")
+    environmentVariables.set(DD_PROPAGATION_STYLE_INJECT, "Datadog B3")
     environmentVariables.set(DD_JMXFETCH_METRICS_CONFIGS_ENV, "some/file")
+    environmentVariables.set(DD_TRACE_REPORT_HOSTNAME, "true")
 
     when:
     def config = new Config()
 
     then:
     config.serviceName == "still something else"
+    config.traceEnabled == false
     config.writerType == "LoggingWriter"
+    config.propagationStylesToExtract.toList() == [Config.PropagationStyle.B3, Config.PropagationStyle.DATADOG]
+    config.propagationStylesToInject.toList() == [Config.PropagationStyle.DATADOG, Config.PropagationStyle.B3]
     config.jmxFetchMetricsConfigs == ["some/file"]
+    config.reportHostName == true
   }
 
   def "malformed endpoint url fails"() {
@@ -198,6 +311,7 @@ class ConfigTest extends Specification {
   def "default when configured incorrectly"() {
     setup:
     System.setProperty(PREFIX + SERVICE_NAME, " ")
+    System.setProperty(PREFIX + TRACE_ENABLED, " ")
     System.setProperty(PREFIX + WRITER_TYPE, " ")
     System.setProperty(PREFIX + AGENT_HOST, " ")
     System.setProperty(PREFIX + TRACE_AGENT_PORT, " ")
@@ -207,13 +321,18 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + SERVICE_MAPPING, " ")
     System.setProperty(PREFIX + HEADER_TAGS, "1")
     System.setProperty(PREFIX + SPAN_TAGS, "invalid")
+    System.setProperty(PREFIX + HTTP_SERVER_ERROR_STATUSES, "1111")
+    System.setProperty(PREFIX + HTTP_CLIENT_ERROR_STATUSES, "1:1")
     System.setProperty(PREFIX + HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "invalid")
+    System.setProperty(PREFIX + PROPAGATION_STYLE_EXTRACT, "some garbage")
+    System.setProperty(PREFIX + PROPAGATION_STYLE_INJECT, " ")
 
     when:
     def config = new Config()
 
     then:
     config.serviceName == " "
+    config.traceEnabled == true
     config.writerType == " "
     config.agentHost == " "
     config.agentPort == 9080
@@ -222,7 +341,11 @@ class ConfigTest extends Specification {
     config.serviceMapping == [:]
     config.mergedSpanTags == [(TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE, (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
     config.headerTags == [:]
+    config.httpServerErrorStatuses == (500..599).toSet()
+    config.httpClientErrorStatuses == (500..599).toSet()
     config.httpClientSplitByDomain == false
+    config.propagationStylesToExtract.toList() == [Config.PropagationStyle.B3]
+    config.propagationStylesToInject.toList() == [Config.PropagationStyle.B3]
   }
 
   def "sys props and env vars overrides for trace_agent_port and agent_port_legacy as expected"() {
@@ -271,9 +394,11 @@ class ConfigTest extends Specification {
     setup:
     Properties properties = new Properties()
     properties.setProperty(SERVICE_NAME, "something else")
+    properties.setProperty(TRACE_ENABLED, "false")
     properties.setProperty(WRITER_TYPE, "LoggingWriter")
     properties.setProperty(AGENT_HOST, "somehost")
     properties.setProperty(TRACE_AGENT_PORT, "123")
+    properties.setProperty(AGENT_UNIX_DOMAIN_SOCKET, "somepath")
     properties.setProperty(PRIORITY_SAMPLING, "false")
     properties.setProperty(TRACE_RESOLVER_ENABLED, "false")
     properties.setProperty(SERVICE_MAPPING, "a:1")
@@ -281,30 +406,40 @@ class ConfigTest extends Specification {
     properties.setProperty(SPAN_TAGS, "c:3")
     properties.setProperty(JMX_TAGS, "d:4")
     properties.setProperty(HEADER_TAGS, "e:5")
+    properties.setProperty(HTTP_SERVER_ERROR_STATUSES, "123-456,457,124-125,122")
+    properties.setProperty(HTTP_CLIENT_ERROR_STATUSES, "111")
     properties.setProperty(HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "true")
     properties.setProperty(PARTIAL_FLUSH_MIN_SPANS, "15")
+    properties.setProperty(PROPAGATION_STYLE_EXTRACT, "B3 Datadog")
+    properties.setProperty(PROPAGATION_STYLE_INJECT, "Datadog B3")
     properties.setProperty(JMX_FETCH_METRICS_CONFIGS, "/foo.yaml,/bar.yaml")
     properties.setProperty(JMX_FETCH_CHECK_PERIOD, "100")
     properties.setProperty(JMX_FETCH_REFRESH_BEANS_PERIOD, "200")
     properties.setProperty(JMX_FETCH_STATSD_HOST, "statsd host")
     properties.setProperty(JMX_FETCH_STATSD_PORT, "321")
-
+    
     when:
     def config = Config.get(properties)
 
     then:
     config.serviceName == "something else"
+    config.traceEnabled == false
     config.writerType == "LoggingWriter"
     config.agentHost == "somehost"
     config.agentPort == 123
+    config.agentUnixDomainSocket == "somepath"
     config.prioritySamplingEnabled == false
     config.traceResolverEnabled == false
     config.serviceMapping == [a: "1"]
     config.mergedSpanTags == [b: "2", c: "3"]
     config.mergedJmxTags == [b: "2", d: "4", (RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE): config.serviceName, (LANGUAGE_TAG_KEY): LANGUAGE_TAG_VALUE]
     config.headerTags == [e: "5"]
+    config.httpServerErrorStatuses == (122..457).toSet()
+    config.httpClientErrorStatuses == (111..111).toSet()
     config.httpClientSplitByDomain == true
     config.partialFlushMinSpans == 15
+    config.propagationStylesToExtract.toList() == [Config.PropagationStyle.B3, Config.PropagationStyle.DATADOG]
+    config.propagationStylesToInject.toList() == [Config.PropagationStyle.DATADOG, Config.PropagationStyle.B3]
     config.jmxFetchMetricsConfigs == ["/foo.yaml", "/bar.yaml"]
     config.jmxFetchCheckPeriod == 100
     config.jmxFetchRefreshBeansPeriod == 200
@@ -382,13 +517,13 @@ class ConfigTest extends Specification {
 
   def "verify integration trace analytics config"() {
     setup:
-    environmentVariables.set("DD_INTEGRATION_ORDER_ANALYTICS_ENABLED", "false")
-    environmentVariables.set("DD_INTEGRATION_TEST_ENV_ANALYTICS_ENABLED", "true")
-    environmentVariables.set("DD_INTEGRATION_DISABLED_ENV_ANALYTICS_ENABLED", "false")
+    environmentVariables.set("DD_ORDER_ANALYTICS_ENABLED", "false")
+    environmentVariables.set("DD_TEST_ENV_ANALYTICS_ENABLED", "true")
+    environmentVariables.set("DD_DISABLED_ENV_ANALYTICS_ENABLED", "false")
 
-    System.setProperty("dd.integration.order.analytics.enabled", "true")
-    System.setProperty("dd.integration.test-prop.analytics.enabled", "true")
-    System.setProperty("dd.integration.disabled-prop.analytics.enabled", "false")
+    System.setProperty("dd.order.analytics.enabled", "true")
+    System.setProperty("dd.test-prop.analytics.enabled", "true")
+    System.setProperty("dd.disabled-prop.analytics.enabled", "false")
 
     expect:
     Config.traceAnalyticsIntegrationEnabled(integrationNames, defaultEnabled) == expected
@@ -423,6 +558,7 @@ class ConfigTest extends Specification {
     System.setProperty("dd.prop.zero.test", "0")
     System.setProperty("dd.prop.float.test", "0.3")
     System.setProperty("dd.float.test", "0.4")
+    System.setProperty("dd.garbage.test", "garbage")
     System.setProperty("dd.negative.test", "-1")
 
     expect:
@@ -436,6 +572,7 @@ class ConfigTest extends Specification {
     "prop.float.test" | 0.3
     "float.test"      | 0.4
     "negative.test"   | -1.0
+    "garbage.test"    | 10.0
     "default.test"    | 10.0
 
     defaultValue = 10.0
@@ -446,14 +583,22 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + SERVICE_MAPPING, mapString)
     System.setProperty(PREFIX + SPAN_TAGS, mapString)
     System.setProperty(PREFIX + HEADER_TAGS, mapString)
+    def props = new Properties()
+    props.setProperty(SERVICE_MAPPING, mapString)
+    props.setProperty(SPAN_TAGS, mapString)
+    props.setProperty(HEADER_TAGS, mapString)
 
     when:
     def config = new Config()
+    def propConfig = Config.get(props)
 
     then:
     config.serviceMapping == map
     config.spanTags == map
     config.headerTags == map
+    propConfig.serviceMapping == map
+    propConfig.spanTags == map
+    propConfig.headerTags == map
 
     where:
     mapString                         | map
@@ -475,6 +620,45 @@ class ConfigTest extends Specification {
     "a:b:c:d"                         | [:]
     "a:b,c,d"                         | [:]
     "!a"                              | [:]
+  }
+
+  def "verify integer range configs on tracer"() {
+    setup:
+    System.setProperty(PREFIX + HTTP_SERVER_ERROR_STATUSES, value)
+    System.setProperty(PREFIX + HTTP_CLIENT_ERROR_STATUSES, value)
+    def props = new Properties()
+    props.setProperty(HTTP_CLIENT_ERROR_STATUSES, value)
+    props.setProperty(HTTP_SERVER_ERROR_STATUSES, value)
+
+    when:
+    def config = new Config()
+    def propConfig = Config.get(props)
+
+    then:
+    if (expected) {
+      assert config.httpServerErrorStatuses == expected.toSet()
+      assert config.httpClientErrorStatuses == expected.toSet()
+      assert propConfig.httpServerErrorStatuses == expected.toSet()
+      assert propConfig.httpClientErrorStatuses == expected.toSet()
+    } else {
+      assert config.httpServerErrorStatuses == Config.DEFAULT_HTTP_SERVER_ERROR_STATUSES
+      assert config.httpClientErrorStatuses == Config.DEFAULT_HTTP_CLIENT_ERROR_STATUSES
+      assert propConfig.httpServerErrorStatuses == Config.DEFAULT_HTTP_SERVER_ERROR_STATUSES
+      assert propConfig.httpClientErrorStatuses == Config.DEFAULT_HTTP_CLIENT_ERROR_STATUSES
+    }
+
+    where:
+    value               | expected // null means default value
+    "1"                 | null
+    "a"                 | null
+    ""                  | null
+    "1000"              | null
+    "100-200-300"       | null
+    "500"               | [500]
+    "100,999"           | [100, 999]
+    "999-888"           | 888..999
+    "400-403,405-407"   | [400, 401, 402, 403, 405, 406, 407]
+    " 400 - 403 , 405 " | [400, 401, 402, 403, 405]
   }
 
   def "verify null value mapping configs on tracer"() {
@@ -510,5 +694,28 @@ class ConfigTest extends Specification {
     where:
     listString | list
     ""         | []
+  }
+
+  def "verify hostname not added to root span tags by default"() {
+    setup:
+    Properties properties = new Properties()
+
+    when:
+    def config = Config.get(properties)
+
+    then:
+    !config.localRootSpanTags.containsKey('_dd.hostname')
+  }
+
+  def "verify configuration to add hostname to root span tags"() {
+    setup:
+    Properties properties = new Properties()
+    properties.setProperty(TRACE_REPORT_HOSTNAME, 'true')
+
+    when:
+    def config = Config.get(properties)
+
+    then:
+    config.localRootSpanTags.get('_dd.hostname') == InetAddress.localHost.hostName
   }
 }

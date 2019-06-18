@@ -2,7 +2,6 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import datadog.trace.instrumentation.netty41.NettyUtils
 import io.netty.channel.AbstractChannel
 import io.opentracing.tag.Tags
@@ -55,7 +54,7 @@ class Netty41ClientTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "netty.client.request"
-          resourceName "GET /get"
+          resourceName "/get"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(1)
           errored false
@@ -65,9 +64,9 @@ class Netty41ClientTest extends AgentTestRunner {
             "$Tags.HTTP_STATUS.key" 200
             "$Tags.HTTP_URL.key" "$server.address/get"
             "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" Integer
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
+            "$Tags.PEER_PORT.key" server.address.port
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             defaultTags()
           }
         }
@@ -79,8 +78,8 @@ class Netty41ClientTest extends AgentTestRunner {
     }
 
     and:
-    server.lastRequest.headers.get("x-datadog-trace-id") == "${TEST_WRITER.get(0).get(0).traceId}"
-    server.lastRequest.headers.get("x-datadog-parent-id") == "${TEST_WRITER.get(0).get(0).spanId}"
+    server.lastRequest.headers.get("x-b3-traceid") == new BigInteger(TEST_WRITER.get(0).get(0).traceId).toString(16).toLowerCase()
+    server.lastRequest.headers.get("x-b3-spanid") == new BigInteger(TEST_WRITER.get(0).get(0).spanId).toString(16).toLowerCase()
   }
 
   def "test connection failure"() {
@@ -142,9 +141,10 @@ class Netty41ClientTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "netty.client.request"
-          resourceName "POST /post"
+          resourceName "/post"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(1)
+          errored error
           tags {
             "$Tags.COMPONENT.key" "netty-client"
             "$Tags.HTTP_METHOD.key" "POST"
@@ -156,9 +156,9 @@ class Netty41ClientTest extends AgentTestRunner {
             }
             "$Tags.HTTP_URL.key" "$server.address/post"
             "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
             if (error) {
               tag("error", true)
             }
@@ -173,8 +173,8 @@ class Netty41ClientTest extends AgentTestRunner {
     }
 
     and:
-    server.lastRequest.headers.get("x-datadog-trace-id") == "${TEST_WRITER.get(0).get(0).traceId}"
-    server.lastRequest.headers.get("x-datadog-parent-id") == "${TEST_WRITER.get(0).get(0).spanId}"
+    server.lastRequest.headers.get("x-b3-traceid") == new BigInteger(TEST_WRITER.get(0).get(0).traceId).toString(16).toLowerCase()
+    server.lastRequest.headers.get("x-b3-spanid") == new BigInteger(TEST_WRITER.get(0).get(0).spanId).toString(16).toLowerCase()
 
     where:
     statusCode | error | rewrite

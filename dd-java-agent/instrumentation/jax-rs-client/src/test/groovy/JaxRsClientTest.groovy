@@ -1,8 +1,5 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.agent.test.utils.PortUtils
-import datadog.trace.api.DDSpanTypes
-import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.apache.cxf.jaxrs.client.spec.ClientBuilderImpl
 import org.glassfish.jersey.client.JerseyClientBuilder
@@ -22,11 +19,9 @@ import javax.ws.rs.core.Response
 import java.util.concurrent.ExecutionException
 
 import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
+import static datadog.trace.agent.test.utils.PortUtils.UNUSABLE_PORT
 
 class JaxRsClientTest extends AgentTestRunner {
-
-  @Shared
-  def emptyPort = PortUtils.randomOpenPort()
 
   @AutoCleanup
   @Shared
@@ -64,27 +59,27 @@ class JaxRsClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          resourceName "GET /ping"
+          resourceName "/ping"
           operationName "jax-rs.client.call"
           spanType "http"
           parent()
           errored false
           tags {
-
             "$Tags.COMPONENT.key" "jax-rs.client"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
             "$Tags.HTTP_URL.key" "$server.address/ping"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_PORT.key" server.address.port
             defaultTags()
           }
         }
       }
     }
 
-    server.lastRequest.headers.get("x-datadog-trace-id") == TEST_WRITER[0][0].traceId
-    server.lastRequest.headers.get("x-datadog-parent-id") == TEST_WRITER[0][0].spanId
+    server.lastRequest.headers.get("x-b3-traceid") == new BigInteger(TEST_WRITER[0][0].traceId).toString(16).toLowerCase()
+    server.lastRequest.headers.get("x-b3-spanid") == new BigInteger(TEST_WRITER[0][0].spanId).toString(16).toLowerCase()
 
     where:
     builder                     | async | lib
@@ -99,7 +94,7 @@ class JaxRsClientTest extends AgentTestRunner {
   def "#lib connection failure creates errored span"() {
     when:
     Client client = builder.build()
-    WebTarget service = client.target("http://localhost:$emptyPort/ping")
+    WebTarget service = client.target("http://localhost:$UNUSABLE_PORT/ping")
     if (async) {
       AsyncInvoker request = service.request(MediaType.TEXT_PLAIN).async()
       request.get().get()
@@ -115,7 +110,7 @@ class JaxRsClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          resourceName "GET /ping"
+          resourceName "/ping"
           operationName "jax-rs.client.call"
           spanType "http"
           parent()
@@ -124,8 +119,9 @@ class JaxRsClientTest extends AgentTestRunner {
             "$Tags.COMPONENT.key" "jax-rs.client"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_URL.key" "http://localhost:$emptyPort/ping"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
+            "$Tags.HTTP_URL.key" "http://localhost:$UNUSABLE_PORT/ping"
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_PORT.key" UNUSABLE_PORT
             errorTags ProcessingException, String
             defaultTags()
           }
@@ -178,7 +174,7 @@ class JaxRsClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          resourceName "GET /$errorType"
+          resourceName "/$errorType"
           operationName "jax-rs.client.call"
           spanType "http"
           parent()
@@ -189,15 +185,16 @@ class JaxRsClientTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" expectedStatusCode
             "$Tags.HTTP_URL.key" "$server.address/$errorType"
-            "$DDTags.SPAN_TYPE" DDSpanTypes.HTTP_CLIENT
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_PORT.key" server.address.port
             defaultTags()
           }
         }
       }
     }
 
-    server.lastRequest.headers.get("x-datadog-trace-id") == TEST_WRITER[0][0].traceId
-    server.lastRequest.headers.get("x-datadog-parent-id") == TEST_WRITER[0][0].spanId
+    server.lastRequest.headers.get("x-b3-traceid") == new BigInteger(TEST_WRITER[0][0].traceId).toString(16).toLowerCase()
+    server.lastRequest.headers.get("x-b3-spanid") == new BigInteger(TEST_WRITER[0][0].spanId).toString(16).toLowerCase()
 
     where:
     builder                     | async | errorType  | lib

@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.netty41.server;
 
-import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static datadog.trace.instrumentation.netty41.server.NettyHttpServerDecorator.DECORATE;
 
 import datadog.trace.instrumentation.netty41.AttributeKeys;
 import datadog.trace.instrumentation.netty41.NettyUtils;
@@ -10,8 +10,6 @@ import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpResponse;
 import io.opentracing.Span;
-import io.opentracing.tag.Tags;
-import java.util.Collections;
 
 public class HttpServerResponseTracingHandler extends ChannelOutboundHandlerAdapter {
 
@@ -28,8 +26,7 @@ public class HttpServerResponseTracingHandler extends ChannelOutboundHandlerAdap
     try {
       ctx.write(msg, prm);
     } catch (final Throwable throwable) {
-      Tags.ERROR.set(span, Boolean.TRUE);
-      span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
+      DECORATE.onError(span, throwable);
       try {
         int status = response.status().code();
         NettyUtils.setServerSpanHttpStatus(span, status);
@@ -41,6 +38,7 @@ public class HttpServerResponseTracingHandler extends ChannelOutboundHandlerAdap
     }
 
     NettyUtils.setServerSpanHttpStatus(span, response.status().code());
+    DECORATE.beforeFinish(span);
     span.finish(); // Finish the span manually since finishSpanOnClose was false
   }
 }

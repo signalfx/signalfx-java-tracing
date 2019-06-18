@@ -88,7 +88,7 @@ class OkHttp3Test extends AgentTestRunner {
           span(1) {
             operationName "okhttp.http"
             serviceName renameService ? "localhost" : "okhttp"
-            resourceName "GET /ping"
+            resourceName "/ping"
             spanType DDSpanTypes.HTTP_CLIENT
             errored false
             childOf(span(0))

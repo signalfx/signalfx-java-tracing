@@ -72,7 +72,7 @@ class VertxHttpClientTest extends AgentTestRunner {
           parent()
           serviceName "unnamed-java-app"
           operationName "netty.client.request"
-          resourceName "GET /$route"
+          resourceName "/$route"
           spanType DDSpanTypes.HTTP_CLIENT
           errored expectedError
           tags {

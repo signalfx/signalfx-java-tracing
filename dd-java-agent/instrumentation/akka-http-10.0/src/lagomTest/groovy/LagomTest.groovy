@@ -61,7 +61,7 @@ class LagomTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "GET ws://?/echo"
+          resourceName "ws://?/echo"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -99,7 +99,7 @@ class LagomTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "GET ws://?/error"
+          resourceName "ws://?/error"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {

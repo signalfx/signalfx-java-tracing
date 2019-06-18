@@ -290,7 +290,7 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
       }
       serviceName renameService ? "localhost" : "unnamed-java-app"
       operationName "http.request"
-      resourceName "GET $uri.path"
+      resourceName "$uri.path"
       spanType DDSpanTypes.HTTP_CLIENT
       errored exception != null
       tags {

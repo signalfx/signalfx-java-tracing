@@ -48,7 +48,7 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
           parentId "456"
           serviceName "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "GET /test"
+          resourceName "/test"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -89,7 +89,7 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "GET /$endpoint"
+          resourceName "/$endpoint"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
@@ -128,7 +128,7 @@ class AkkaHttpServerInstrumentationTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "akka-http.request"
-          resourceName "GET /server-error"
+          resourceName "/server-error"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {

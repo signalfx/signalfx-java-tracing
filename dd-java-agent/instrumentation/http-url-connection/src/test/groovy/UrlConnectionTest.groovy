@@ -42,7 +42,7 @@ class UrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "GET /"
+          resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored true

@@ -74,7 +74,7 @@ class RestTemplateTest extends AgentTestRunner {
         span(1) {
           operationName "http.request"
           serviceName "rest-template"
-          resourceName "GET /ping"
+          resourceName "/ping"
           errored false
           childOf(span(0))
           spanType DDSpanTypes.HTTP_CLIENT

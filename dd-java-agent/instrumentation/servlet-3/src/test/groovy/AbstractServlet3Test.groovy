@@ -82,7 +82,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
           }
           serviceName context
           operationName "servlet.request"
-          resourceName "GET /$context/$path"
+          resourceName "/$context/$path"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -150,7 +150,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
             }
             serviceName context
             operationName "servlet.request"
-            resourceName "GET /$context/dispatch/$path"
+            resourceName "/$context/dispatch/$path"
             spanType DDSpanTypes.HTTP_SERVER
             errored false
             tags {
@@ -175,7 +175,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
         span(0) {
           serviceName context
           operationName "servlet.request"
-          resourceName "GET /$context/$path"
+          resourceName "/$context/$path"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           childOf TEST_WRITER[depth + 1][0]
@@ -210,7 +210,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
           }
           serviceName context
           operationName "servlet.request"
-          resourceName "GET /$context/dispatch/$path"
+          resourceName "/$context/dispatch/$path"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -270,7 +270,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
           }
           serviceName context
           operationName "servlet.request"
-          resourceName "GET /$context/dispatch/$path"
+          resourceName "/$context/dispatch/$path"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -293,7 +293,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
         span(0) {
           serviceName context
           operationName "servlet.request"
-          resourceName "GET /$context/$path"
+          resourceName "/$context/$path"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           childOf TEST_WRITER[0][0]
@@ -342,7 +342,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
           trace(i, 1) {
             span(0) {
               operationName "servlet.request"
-              resourceName "GET /$context/dispatch/async"
+              resourceName "/$context/dispatch/async"
               spanType DDSpanTypes.HTTP_SERVER
               parent()
             }
@@ -351,7 +351,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
         trace(dispatched ? i + 1 : i, 1) {
           span(0) {
             operationName "servlet.request"
-            resourceName "GET /$context/async"
+            resourceName "/$context/async"
             spanType DDSpanTypes.HTTP_SERVER
             if (dispatched) {
               childOf TEST_WRITER[i][0]
@@ -385,7 +385,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
         span(0) {
           serviceName context
           operationName "servlet.request"
-          resourceName "GET /$context/$path"
+          resourceName "/$context/$path"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           parent()
@@ -431,7 +431,7 @@ abstract class AbstractServlet3Test<CONTEXT> extends AgentTestRunner {
         span(0) {
           serviceName context
           operationName "servlet.request"
-          resourceName "GET /$context/$path"
+          resourceName "/$context/$path"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           parent()

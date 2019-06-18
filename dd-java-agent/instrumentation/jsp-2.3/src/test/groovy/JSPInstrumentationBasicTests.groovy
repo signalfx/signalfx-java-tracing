@@ -89,7 +89,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/$jspFileName"
+          resourceName "/$jspWebappContext/$jspFileName"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -164,7 +164,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/getQuery.jsp"
+          resourceName "/$jspWebappContext/getQuery.jsp"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -236,7 +236,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "POST /$jspWebappContext/post.jsp"
+          resourceName "/$jspWebappContext/post.jsp"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -305,7 +305,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/$jspFileName"
+          resourceName "/$jspWebappContext/$jspFileName"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
@@ -388,7 +388,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/includes/includeHtml.jsp"
+          resourceName "/$jspWebappContext/includes/includeHtml.jsp"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -456,7 +456,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/includes/includeMulti.jsp"
+          resourceName "/$jspWebappContext/includes/includeMulti.jsp"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -580,7 +580,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/$jspFileName"
+          resourceName "/$jspWebappContext/$jspFileName"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {

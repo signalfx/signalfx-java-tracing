@@ -86,7 +86,7 @@ class Elasticsearch5RestClientTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           serviceName "elasticsearch"
-          resourceName "GET _cluster/health"
+          resourceName "_cluster/health"
           operationName "elasticsearch.rest.query"
           spanType DDSpanTypes.ELASTICSEARCH
           parent()
@@ -103,7 +103,7 @@ class Elasticsearch5RestClientTest extends AgentTestRunner {
         }
         span(1) {
           serviceName "elasticsearch"
-          resourceName "GET _cluster/health"
+          resourceName "_cluster/health"
           operationName "http.request"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)

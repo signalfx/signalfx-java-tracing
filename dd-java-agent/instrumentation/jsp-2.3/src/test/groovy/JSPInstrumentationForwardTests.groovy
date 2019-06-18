@@ -88,7 +88,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/$forwardFromFileName"
+          resourceName "/$jspWebappContext/$forwardFromFileName"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -190,7 +190,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/forwards/forwardToHtml.jsp"
+          resourceName "/$jspWebappContext/forwards/forwardToHtml.jsp"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -258,7 +258,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/forwards/forwardToIncludeMulti.jsp"
+          resourceName "/$jspWebappContext/forwards/forwardToIncludeMulti.jsp"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -413,7 +413,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/forwards/forwardToJspForward.jsp"
+          resourceName "/$jspWebappContext/forwards/forwardToJspForward.jsp"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
@@ -539,7 +539,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           parent()
           serviceName jspWebappContext
           operationName "servlet.request"
-          resourceName "GET /$jspWebappContext/forwards/forwardToCompileError.jsp"
+          resourceName "/$jspWebappContext/forwards/forwardToCompileError.jsp"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {

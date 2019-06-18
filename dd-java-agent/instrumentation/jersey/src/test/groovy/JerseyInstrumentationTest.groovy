@@ -46,7 +46,7 @@ class JerseyInstrumentationTest extends AgentTestRunner {
           parentId "456"
           serviceName "unnamed-java-app"
           operationName "jersey.request"
-          resourceName "POST /test/hello/bob"
+          resourceName "/test/hello/bob"
           errored false
           tags {
             defaultTags(true)
@@ -88,7 +88,7 @@ class JerseyInstrumentationTest extends AgentTestRunner {
           parentId "456"
           serviceName "unnamed-java-app"
           operationName "jersey.request"
-          resourceName "GET /test/blowup"
+          resourceName "/test/blowup"
           errored true
           tags {
             defaultTags(true)

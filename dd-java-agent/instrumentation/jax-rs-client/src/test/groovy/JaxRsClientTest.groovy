@@ -51,7 +51,7 @@ class JaxRsClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          resourceName "GET /ping"
+          resourceName "/ping"
           operationName "jax-rs.client.call"
           spanType "http"
           parent()
@@ -102,7 +102,7 @@ class JaxRsClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "unnamed-java-app"
-          resourceName "GET /ping"
+          resourceName "/ping"
           operationName "jax-rs.client.call"
           spanType "http"
           parent()

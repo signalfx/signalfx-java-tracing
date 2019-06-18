@@ -285,7 +285,7 @@ class TwilioClientTest extends AgentTestRunner {
         span(2) {
           serviceName "twilio-sdk"
           operationName "http.request"
-          resourceName "POST /?/Accounts/abc/Messages.json"
+          resourceName "/?/Accounts/abc/Messages.json"
           spanType DDSpanTypes.HTTP_CLIENT
           errored false
         }
@@ -384,14 +384,14 @@ class TwilioClientTest extends AgentTestRunner {
         span(2) {
           serviceName "twilio-sdk"
           operationName "http.request"
-          resourceName "POST /?/Accounts/abc/Messages.json"
+          resourceName "/?/Accounts/abc/Messages.json"
           spanType DDSpanTypes.HTTP_CLIENT
           errored false
         }
         span(3) {
           serviceName "twilio-sdk"
           operationName "http.request"
-          resourceName "POST /?/Accounts/abc/Messages.json"
+          resourceName "/?/Accounts/abc/Messages.json"
           spanType DDSpanTypes.HTTP_CLIENT
           errored true
         }
@@ -516,14 +516,14 @@ class TwilioClientTest extends AgentTestRunner {
         span(3) {
           serviceName "twilio-sdk"
           operationName "http.request"
-          resourceName "POST /?/Accounts/abc/Messages.json"
+          resourceName "/?/Accounts/abc/Messages.json"
           spanType DDSpanTypes.HTTP_CLIENT
           errored false
         }
         span(4) {
           serviceName "twilio-sdk"
           operationName "http.request"
-          resourceName "POST /?/Accounts/abc/Messages.json"
+          resourceName "/?/Accounts/abc/Messages.json"
           spanType DDSpanTypes.HTTP_CLIENT
           errored true
         }

@@ -6,6 +6,7 @@ import datadog.trace.api.DDSpanTypes
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.opentracing.tag.Tags
 import io.vertx.core.Vertx
+import io.vertx.core.Handler
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import spock.lang.Shared
@@ -45,7 +46,7 @@ class VertxServerTest extends AgentTestRunner {
 
     and:
     assertTraces(1) {
-      trace(0, 2) {
+      trace(0, 3) {
         span(0) {
           traceId "123"
           parentId "456"
@@ -67,8 +68,25 @@ class VertxServerTest extends AgentTestRunner {
           }
         }
         span(1) {
+          assert span(1).operationName.endsWith('.handle')
           childOf span(0)
-          assert span(1).operationName.endsWith('.tracedMethod')
+          spanType DDSpanTypes.HTTP_SERVER
+          tags {
+            "$Tags.COMPONENT.key" "vertx"
+            "$Tags.HTTP_METHOD.key" "GET"
+            "$Tags.HTTP_STATUS.key" 200
+            "$Tags.HTTP_URL.key" "http://localhost:$port/test"
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
+            "$Tags.PEER_PORT.key" Integer
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
+            "handler.type" "io.vertx.ext.web.impl.RoutingContextImpl"
+            defaultTags()
+          }
+        }
+        span(2) {
+          childOf span(0)
+          assert span(2).operationName.endsWith('.tracedMethod')
         }
       }
     }
@@ -115,4 +133,29 @@ class VertxServerTest extends AgentTestRunner {
     HttpResponseStatus.NOT_FOUND             | "404"        | "doesnt-exit" | false
     HttpResponseStatus.INTERNAL_SERVER_ERROR | "/error"     | "error"       | true
   }
+
+  def "generic handler adds a span"() {
+    setup:
+    Handler<Object> handler = new Handler<Object>() {
+        void handle(Object event) { }
+    }
+
+    when:
+    handler.handle(new Object())
+
+    then:
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          serviceName "unnamed-java-app"
+          assert span(0).operationName.endsWith('.handle')
+          tags {
+            "$Tags.COMPONENT.key" "vertx"
+            "handler.type" "java.lang.Object"
+            defaultTags()
+          }
+        }
+      }
+    }
+  } // def "generic handler adds a span"
 }

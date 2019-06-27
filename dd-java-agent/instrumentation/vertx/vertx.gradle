@@ -8,8 +8,14 @@ apply from: "${rootDir}/gradle/java.gradle"
 muzzle {
   pass {
     group = "io.vertx"
+    module = "vertx-core"
+    versions = "[3.5.0,)"
+    assertInverse = true
+  }
+  pass {
+    group = "io.vertx"
     module = "vertx-web"
-    versions = "[4.1.0.Final,)"
+    versions = "[3.5.0,)"
     assertInverse = true
   }
   pass {
@@ -32,6 +38,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
+  compileOnly group: 'io.vertx', name: 'vertx-core', version: '3.5.0'
   compileOnly group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
 
   compile project(':dd-java-agent:agent-tooling')
@@ -45,7 +52,9 @@ dependencies {
   testCompile project(':dd-java-agent:instrumentation:java-concurrent')
   testCompile project(':dd-java-agent:instrumentation:trace-annotation')
   testCompile project(':dd-java-agent:instrumentation:netty-4.1')
+  testCompile group: 'io.vertx', name: 'vertx-core', version: '3.5.0'
   testCompile group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
 
+  latestDepTestCompile group: 'io.vertx', name: 'vertx-core', version: '+'
   latestDepTestCompile group: 'io.vertx', name: 'vertx-web', version: '+'
 }

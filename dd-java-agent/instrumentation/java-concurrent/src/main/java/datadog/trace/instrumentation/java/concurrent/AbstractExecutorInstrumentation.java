@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.java.concurrent;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -51,6 +52,7 @@ public abstract class AbstractExecutorInstrumentation extends Instrumenter.Defau
         "java.util.concurrent.ForkJoinPool",
         "java.util.concurrent.Executors$FinalizableDelegatedExecutorService",
         "java.util.concurrent.Executors$DelegatedExecutorService",
+        "java.util.concurrent.CompletableFuture$ThreadPerTaskExecutor",
         "javax.management.NotificationBroadcasterSupport$1",
         "kotlinx.coroutines.scheduling.CoroutineScheduler",
         "scala.concurrent.Future$InternalCallbackExecutor$",

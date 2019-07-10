@@ -1,3 +1,6 @@
+// Modified by SignalFx
+import static java.util.concurrent.CompletableFuture.ThreadPerTaskExecutor
+
 import datadog.opentracing.DDSpan
 import datadog.opentracing.scopemanager.ContinuableScope
 import datadog.trace.agent.test.AgentTestRunner
@@ -81,7 +84,9 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
     trace.get(1).parentId == trace.get(0).spanId
 
     cleanup:
-    pool?.shutdown()
+    if (pool?.metaClass.respondsTo(pool, "shutdown")) {
+      pool?.shutdown()
+    }
 
     // Unfortunately, there's no simple way to test the cross product of methods/pools.
     where:
@@ -125,6 +130,9 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
     "invokeAll with timeout" | invokeAllTimeout    | new CustomThreadPoolExecutor()
     "invokeAny"              | invokeAny           | new CustomThreadPoolExecutor()
     "invokeAny with timeout" | invokeAnyTimeout    | new CustomThreadPoolExecutor()
+
+    // Used internally by CompletableFuture when ForkJoinPool.commonPool() doesn't support parallelism
+    "execute Runnable"       | executeRunnable     | new ThreadPerTaskExecutor()
   }
 
   def "#poolImpl '#name' disabled wrapping"() {

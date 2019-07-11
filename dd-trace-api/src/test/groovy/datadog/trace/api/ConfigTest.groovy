@@ -24,8 +24,6 @@ import static datadog.trace.api.Config.JMX_FETCH_REFRESH_BEANS_PERIOD
 import static datadog.trace.api.Config.JMX_FETCH_STATSD_HOST
 import static datadog.trace.api.Config.JMX_FETCH_STATSD_PORT
 import static datadog.trace.api.Config.JMX_TAGS
-import static datadog.trace.api.Config.LANGUAGE_TAG_KEY
-import static datadog.trace.api.Config.LANGUAGE_TAG_VALUE
 import static datadog.trace.api.Config.TRACING_LIBRARY_KEY
 import static datadog.trace.api.Config.TRACING_LIBRARY_VALUE
 import static datadog.trace.api.Config.TRACING_VERSION_KEY
@@ -36,7 +34,6 @@ import static datadog.trace.api.Config.PRIORITY_SAMPLING
 import static datadog.trace.api.Config.PROPAGATION_STYLE_EXTRACT
 import static datadog.trace.api.Config.PROPAGATION_STYLE_INJECT
 import static datadog.trace.api.Config.RUNTIME_CONTEXT_FIELD_INJECTION
-import static datadog.trace.api.Config.RUNTIME_ID_TAG
 import static datadog.trace.api.Config.SERVICE
 import static datadog.trace.api.Config.SERVICE_MAPPING
 import static datadog.trace.api.Config.SERVICE_NAME
@@ -87,8 +84,7 @@ class ConfigTest extends Specification {
     config.traceResolverEnabled == true
     config.serviceMapping == [:]
     config.mergedSpanTags == [(TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE, (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
-    config.mergedJmxTags == [(RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE): config.serviceName,
-                             (LANGUAGE_TAG_KEY): LANGUAGE_TAG_VALUE, (TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE,
+    config.mergedJmxTags == [(SERVICE): config.serviceName, (TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE,
                              (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
     config.headerTags == [:]
     config.httpServerErrorStatuses == (500..599).toSet()
@@ -161,7 +157,7 @@ class ConfigTest extends Specification {
     config.traceResolverEnabled == false
     config.serviceMapping == [a: "1"]
     config.mergedSpanTags == [b: "2", c: "3"]
-    config.mergedJmxTags == [b: "2", d: "4", (RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE): config.serviceName, (LANGUAGE_TAG_KEY): LANGUAGE_TAG_VALUE]
+    config.mergedJmxTags == [b: "2", d: "4", (SERVICE): config.serviceName]
     config.headerTags == [e: "5"]
     config.httpServerErrorStatuses == (122..457).toSet()
     config.httpClientErrorStatuses == (111..111).toSet()
@@ -230,7 +226,7 @@ class ConfigTest extends Specification {
     config.traceResolverEnabled == false
     config.serviceMapping == [a: "1"]
     config.mergedSpanTags == [b: "2", c: "3"]
-    config.mergedJmxTags == [b: "2", d: "4", (RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE): config.serviceName, (LANGUAGE_TAG_KEY): LANGUAGE_TAG_VALUE]
+    config.mergedJmxTags == [b: "2", d: "4", (SERVICE): config.serviceName]
     config.headerTags == [e: "5"]
     config.httpServerErrorStatuses == (122..457).toSet()
     config.httpClientErrorStatuses == (111..111).toSet()
@@ -432,7 +428,7 @@ class ConfigTest extends Specification {
     config.traceResolverEnabled == false
     config.serviceMapping == [a: "1"]
     config.mergedSpanTags == [b: "2", c: "3"]
-    config.mergedJmxTags == [b: "2", d: "4", (RUNTIME_ID_TAG): config.getRuntimeId(), (SERVICE): config.serviceName, (LANGUAGE_TAG_KEY): LANGUAGE_TAG_VALUE]
+    config.mergedJmxTags == [b: "2", d: "4", (SERVICE): config.serviceName]
     config.headerTags == [e: "5"]
     config.httpServerErrorStatuses == (122..457).toSet()
     config.httpClientErrorStatuses == (111..111).toSet()

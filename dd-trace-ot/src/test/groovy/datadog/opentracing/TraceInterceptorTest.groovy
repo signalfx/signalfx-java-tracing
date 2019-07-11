@@ -142,12 +142,12 @@ class TraceInterceptorTest extends Specification {
 
     tags["thread.name"] != null
     tags["thread.id"] != null
-    tags["runtime-id"] != null
-    tags["language"] != null
+    tags["runtime-id"] == null
+    tags["language"] == null
 
     tags[Config.TRACING_LIBRARY_KEY] == Config.TRACING_LIBRARY_VALUE
     tags[Config.TRACING_VERSION_KEY] == Config.TRACING_VERSION_VALUE
-    tags.size() == 9
+    tags.size() == 7
   }
 
   def "register interceptor through bridge"() {

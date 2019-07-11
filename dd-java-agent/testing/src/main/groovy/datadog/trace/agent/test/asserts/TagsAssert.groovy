@@ -43,14 +43,8 @@ class TagsAssert {
     assert tags["thread.name"] != null
     assert tags[Config.TRACING_LIBRARY_KEY] == Config.TRACING_LIBRARY_VALUE
     assert tags[Config.TRACING_VERSION_KEY] == Config.TRACING_VERSION_VALUE
-
-    if ("0" == spanParentId || distributedRootSpan) {
-      assert tags[Config.RUNTIME_ID_TAG] == Config.get().runtimeId
-      assert tags[Config.LANGUAGE_TAG_KEY] == Config.LANGUAGE_TAG_VALUE
-    } else {
-      assert tags[Config.RUNTIME_ID_TAG] == null
-      assert tags[Config.LANGUAGE_TAG_KEY] == null
-    }
+    assert tags[Config.RUNTIME_ID_TAG] == null
+    assert tags[Config.LANGUAGE_TAG_KEY] == null
   }
 
   def errorTags(Class<Throwable> errorType) {

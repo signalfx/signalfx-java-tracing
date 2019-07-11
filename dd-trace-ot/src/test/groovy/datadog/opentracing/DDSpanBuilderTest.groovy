@@ -58,8 +58,6 @@ class DDSpanBuilderTest extends Specification {
     span.getTags() == [
       (DDTags.THREAD_NAME)     : Thread.currentThread().getName(),
       (DDTags.THREAD_ID)       : Thread.currentThread().getId(),
-      (Config.RUNTIME_ID_TAG)  : config.getRuntimeId(),
-      (Config.LANGUAGE_TAG_KEY): Config.LANGUAGE_TAG_VALUE,
       (Config.TRACING_LIBRARY_KEY): Config.TRACING_LIBRARY_VALUE,
       (Config.TRACING_VERSION_KEY): Config.TRACING_VERSION_VALUE
     ]
@@ -398,9 +396,7 @@ class DDSpanBuilderTest extends Specification {
     span.samplingPriority == extractedContext.samplingPriority
     span.context().origin == extractedContext.origin
     span.context().baggageItems == extractedContext.baggage
-    span.context().@tags == extractedContext.tags + [(Config.RUNTIME_ID_TAG)     : config.getRuntimeId(),
-                                                     (Config.LANGUAGE_TAG_KEY)   : Config.LANGUAGE_TAG_VALUE,
-                                                     (DDTags.THREAD_NAME)        : thread.name, (DDTags.THREAD_ID): thread.id,
+    span.context().@tags == extractedContext.tags + [(DDTags.THREAD_NAME)        : thread.name, (DDTags.THREAD_ID): thread.id,
                                                      (Config.TRACING_LIBRARY_KEY): Config.TRACING_LIBRARY_VALUE,
                                                      (Config.TRACING_VERSION_KEY): Config.TRACING_VERSION_VALUE]
 
@@ -421,9 +417,7 @@ class DDSpanBuilderTest extends Specification {
     span.samplingPriority == PrioritySampling.SAMPLER_KEEP // Since we're using the RateByServiceSampler
     span.context().origin == tagContext.origin
     span.context().baggageItems == [:]
-    span.context().@tags == tagContext.tags + [(Config.RUNTIME_ID_TAG)  : config.getRuntimeId(),
-                                               (Config.LANGUAGE_TAG_KEY): Config.LANGUAGE_TAG_VALUE,
-                                               (DDTags.THREAD_NAME)     : thread.name, (DDTags.THREAD_ID): thread.id,
+    span.context().@tags == tagContext.tags + [(DDTags.THREAD_NAME)        : thread.name, (DDTags.THREAD_ID): thread.id,
                                                (Config.TRACING_LIBRARY_KEY): Config.TRACING_LIBRARY_VALUE,
                                                (Config.TRACING_VERSION_KEY): Config.TRACING_VERSION_VALUE]
 
@@ -444,8 +438,6 @@ class DDSpanBuilderTest extends Specification {
     span.tags == tags + [
       (DDTags.THREAD_NAME)     : Thread.currentThread().getName(),
       (DDTags.THREAD_ID)       : Thread.currentThread().getId(),
-      (Config.RUNTIME_ID_TAG)  : config.getRuntimeId(),
-      (Config.LANGUAGE_TAG_KEY): Config.LANGUAGE_TAG_VALUE,
       (Config.TRACING_LIBRARY_KEY): Config.TRACING_LIBRARY_VALUE,
       (Config.TRACING_VERSION_KEY): Config.TRACING_VERSION_VALUE
     ]

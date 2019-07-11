@@ -55,7 +55,7 @@ class ConfigTest extends Specification {
   private static final DD_TRACE_ENABLED_ENV = "DD_TRACE_ENABLED"
   private static final DD_WRITER_TYPE_ENV = "DD_WRITER_TYPE"
   private static final DD_SERVICE_MAPPING_ENV = "DD_SERVICE_MAPPING"
-  private static final DD_SPAN_TAGS_ENV = "DD_SPAN_TAGS"
+  private static final DD_SPAN_TAGS_ENV = "SIGNALFX_SPAN_TAGS"
   private static final DD_HEADER_TAGS_ENV = "DD_HEADER_TAGS"
   private static final DD_PROPAGATION_STYLE_EXTRACT = "DD_PROPAGATION_STYLE_EXTRACT"
   private static final DD_PROPAGATION_STYLE_INJECT = "DD_PROPAGATION_STYLE_INJECT"
@@ -258,6 +258,7 @@ class ConfigTest extends Specification {
     environmentVariables.set(DD_PROPAGATION_STYLE_INJECT, "Datadog B3")
     environmentVariables.set(DD_JMXFETCH_METRICS_CONFIGS_ENV, "some/file")
     environmentVariables.set(DD_TRACE_REPORT_HOSTNAME, "true")
+    environmentVariables.set(DD_SPAN_TAGS_ENV, "key1:value1,key2:value2")
 
     when:
     def config = new Config()
@@ -270,6 +271,8 @@ class ConfigTest extends Specification {
     config.propagationStylesToInject.toList() == [Config.PropagationStyle.DATADOG, Config.PropagationStyle.B3]
     config.jmxFetchMetricsConfigs == ["some/file"]
     config.reportHostName == true
+    config.spanTags == [key1: "value1", key2: "value2"]
+
   }
 
   def "malformed endpoint url fails"() {

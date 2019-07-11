@@ -57,7 +57,7 @@ public class Config {
   public static final String TRACE_RESOLVER_ENABLED = "trace.resolver.enabled";
   public static final String SERVICE_MAPPING = "service.mapping";
   public static final String GLOBAL_TAGS = "trace.global.tags";
-  public static final String SPAN_TAGS = "trace.span.tags";
+  public static final String SPAN_TAGS = "span.tags";
   public static final String JMX_TAGS = "trace.jmx.tags";
   public static final String TRACE_ANALYTICS_ENABLED = "trace.analytics.enabled";
   public static final String TRACE_ANNOTATIONS = "trace.annotations";

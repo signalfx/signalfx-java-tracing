@@ -433,9 +433,9 @@ public class Config {
    * @return A map of tag-name -> tag-value
    */
   private Map<String, String> getRuntimeTags() {
-    final Map<String, String> result = newHashMap(2);
-    result.put(RUNTIME_ID_TAG, runtimeId);
-    result.put(LANGUAGE_TAG_KEY, LANGUAGE_TAG_VALUE);
+    // Rather than attempt to strip these on Zipkin encoding, do not use any
+    // undesired runtime tags to prevent collisions
+    final Map<String, String> result = newHashMap(0);
     return Collections.unmodifiableMap(result);
   }
 

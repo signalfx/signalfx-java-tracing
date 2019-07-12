@@ -97,8 +97,8 @@ content](https://docs.signalfx.com/en/latest/apm/apm-overview/apm-metadata.html)
 | System Property | Environment Variable | Default Value | Notes |
 | ---             | ---                  | ---           | ---   |
 | `signalfx.service.name` | `SIGNALFX_SERVICE_NAME` | `"unnamed-java-app"` | |
-| `signalfx.agent.host | `SIGNALFX_AGENT_HOST` | `"localhost"` | |
-| `signalfx.endpoint.url | `SIGNALFX_ENDPOINT_URL | `"http://localhost:9080/v1/trace"` | Takes priority over constituent Agent properties. |
+| `signalfx.agent.host` | `SIGNALFX_AGENT_HOST` | `"localhost"` | |
+| `signalfx.endpoint.url` | `SIGNALFX_ENDPOINT_URL` | `"http://localhost:9080/v1/trace"` | Takes priority over constituent Agent properties. |
 | `signalfx.integration.<name>.enabled=true` | none | Varies per instrumentation | `<name>` is the instrumentation name detailed in the supported libraries. |
 | `signalfx.span.tags` | `SIGNALFX_SPAN_TAGS` | `null` | Comma-separated list of tags of the form `"key1:val1,key2:val2"` to be included in every reported span. |
 

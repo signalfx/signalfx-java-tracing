@@ -429,7 +429,7 @@ class DDSpanBuilderTest extends Specification {
 
   def "global span tags populated on each span"() {
     setup:
-    System.setProperty("dd.trace.span.tags", tagString)
+    System.setProperty("signalfx.span.tags", tagString)
     def config = new Config()
     tracer = new DDTracer(config, writer)
     def span = tracer.buildSpan("op name").withServiceName("foo").start()
@@ -443,7 +443,7 @@ class DDSpanBuilderTest extends Specification {
     ]
 
     cleanup:
-    System.clearProperty("dd.trace.span.tags")
+    System.clearProperty("signalfx.span.tags")
 
     where:
     tagString     | tags

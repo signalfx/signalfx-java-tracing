@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
 import io.opentracing.tag.Tags
@@ -42,6 +43,7 @@ class SlickTest extends AgentTestRunner {
             "$Tags.DB_TYPE.key" SlickUtils.Driver()
             "$Tags.DB_USER.key" SlickUtils.Username()
 
+            "db.statement" SlickUtils.TestQuery()
             "db.instance" SlickUtils.Url()
             "span.origin.type" "org.h2.jdbc.JdbcPreparedStatement"
 

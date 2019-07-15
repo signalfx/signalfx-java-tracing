@@ -45,9 +45,10 @@ class JedisClientTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "redis.query"
-          resourceName "SET"
+          resourceName "redis.query"
           spanType DDSpanTypes.REDIS
           tags {
+            "$Tags.DB_STATEMENT.key" "SET"
             "$Tags.COMPONENT.key" "redis-command"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
@@ -71,9 +72,10 @@ class JedisClientTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "redis.query"
-          resourceName "SET"
+          resourceName "redis.query"
           spanType DDSpanTypes.REDIS
           tags {
+            "$Tags.DB_STATEMENT.key" "SET"
             "$Tags.COMPONENT.key" "redis-command"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
@@ -85,9 +87,10 @@ class JedisClientTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "redis.query"
-          resourceName "GET"
+          resourceName "redis.query"
           spanType DDSpanTypes.REDIS
           tags {
+            "$Tags.DB_STATEMENT.key" "GET"
             "$Tags.COMPONENT.key" "redis-command"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
@@ -111,9 +114,10 @@ class JedisClientTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "redis.query"
-          resourceName "SET"
+          resourceName "redis.query"
           spanType DDSpanTypes.REDIS
           tags {
+            "$Tags.DB_STATEMENT.key" "SET"
             "$Tags.COMPONENT.key" "redis-command"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
@@ -125,9 +129,10 @@ class JedisClientTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "redis.query"
-          resourceName "RANDOMKEY"
+          resourceName "redis.query"
           spanType DDSpanTypes.REDIS
           tags {
+            "$Tags.DB_STATEMENT.key" "RANDOMKEY"
             "$Tags.COMPONENT.key" "redis-command"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT

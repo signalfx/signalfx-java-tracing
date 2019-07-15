@@ -55,7 +55,8 @@ class CassandraClientTest extends AgentTestRunner {
 
     selectTrace.getServiceName() == "unnamed-java-app"
     selectTrace.getOperationName() == "cassandra.query"
-    selectTrace.getResourceName() == query
+    selectTrace.getResourceName() == "cassandra.query"
+    selectTrace.getTags().get(Tags.DB_STATEMENT.getKey()) == query
     selectTrace.getSpanType() == DDSpanTypes.CASSANDRA
 
     selectTrace.getTags().get(Tags.COMPONENT.getKey()) == "java-cassandra"
@@ -92,7 +93,8 @@ class CassandraClientTest extends AgentTestRunner {
 
     selectTrace.getServiceName() == "unnamed-java-app"
     selectTrace.getOperationName() == "cassandra.query"
-    selectTrace.getResourceName() == query
+    selectTrace.getResourceName() == "cassandra.query"
+    selectTrace.getTags().get(Tags.DB_STATEMENT.getKey()) == query
     selectTrace.getSpanType() == DDSpanTypes.CASSANDRA
 
     selectTrace.getTags().get(Tags.COMPONENT.getKey()) == "java-cassandra"

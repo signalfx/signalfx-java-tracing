@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.hibernate.core.v4_0;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -44,7 +45,8 @@ public class QueryInstrumentation extends AbstractHibernateInstrumentation {
                 named("list")
                     .or(named("executeUpdate"))
                     .or(named("uniqueResult"))
-                    .or(named("scroll"))),
+                    .or(named("scroll"))
+                    .or(named("iterate"))),
         QueryMethodAdvice.class.getName());
   }
 

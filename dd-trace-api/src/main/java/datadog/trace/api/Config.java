@@ -82,6 +82,7 @@ public class Config {
   public static final String JMX_FETCH_STATSD_PORT = "jmxfetch.statsd.port";
 
   public static final String LOGS_INJECTION_ENABLED = "logs.injection";
+  public static final String DB_STATEMENT_MAX_LENGTH = "db.statement.max.length";
 
   public static final String RUNTIME_ID_TAG = "runtime-id";
   public static final String LANGUAGE_TAG_KEY = "language";
@@ -137,6 +138,7 @@ public class Config {
     B3
   }
 
+  public static final int DEFAULT_DB_STATEMENT_MAX_LENGTH = 1024;
   /** A tag intended for internal use only, hence not added to the public api DDTags class. */
   private static final String INTERNAL_HOST_NAME = "_dd.hostname";
 
@@ -183,6 +185,8 @@ public class Config {
   @Getter private final boolean logsInjectionEnabled;
 
   @Getter private final boolean reportHostName;
+
+  @Getter private final Integer dbStatementMaxLength;
 
   // Read order: System Properties -> Env Variables, [-> default value]
   // Visible for testing
@@ -264,6 +268,9 @@ public class Config {
 
     reportHostName =
         getBooleanSettingFromEnvironment(TRACE_REPORT_HOSTNAME, DEFAULT_TRACE_REPORT_HOSTNAME);
+
+    dbStatementMaxLength =
+        getIntegerSettingFromEnvironment(DB_STATEMENT_MAX_LENGTH, DEFAULT_DB_STATEMENT_MAX_LENGTH);
 
     log.debug("New instance: {}", this);
   }
@@ -353,6 +360,9 @@ public class Config {
 
     reportHostName =
         getPropertyBooleanValue(properties, TRACE_REPORT_HOSTNAME, parent.reportHostName);
+
+    dbStatementMaxLength =
+        getPropertyIntegerValue(properties, DB_STATEMENT_MAX_LENGTH, parent.dbStatementMaxLength);
 
     log.debug("New instance: {}", this);
   }

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.api.DDSpanTypes
 import io.opentracing.Scope
 import io.opentracing.Tracer
@@ -395,6 +396,7 @@ class SessionTest extends AbstractHibernateTest {
           tags {
             "$Tags.COMPONENT.key" "java-hibernate"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_STATEMENT.key" "$statement"
             defaultTags()
           }
         }
@@ -407,10 +409,10 @@ class SessionTest extends AbstractHibernateTest {
     }
 
     where:
-    queryMethodName  | resource              | queryBuildMethod
-    "createQuery"    | "Value"               | { sess -> sess.createQuery("from Value") }
-    "getNamedQuery"  | "Value"               | { sess -> sess.getNamedQuery("TestNamedQuery") }
-    "createSQLQuery" | "SELECT * FROM Value" | { sess -> sess.createSQLQuery("SELECT * FROM Value") }
+    queryMethodName  | resource                 |statement              | queryBuildMethod
+    "createQuery"    | "Value"                  | "from Value"          | { sess -> sess.createQuery("from Value") }
+    "getNamedQuery"  | "Value"                  | "from Value"          | { sess -> sess.getNamedQuery("TestNamedQuery") }
+    "createSQLQuery" | "SELECT * FROM Value"    | "SELECT * FROM Value" | { sess -> sess.createSQLQuery("SELECT * FROM Value") }
   }
 
 

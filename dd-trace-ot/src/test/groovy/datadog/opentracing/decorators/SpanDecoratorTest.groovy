@@ -252,7 +252,8 @@ class SpanDecoratorTest extends Specification {
     Tags.DB_STATEMENT.set(span, something)
 
     then:
-    span.getResourceName() == something
+    // db.statement not propagated to resource.name
+    span.getResourceName() == "change-me"
 
     where:
     something = "fake-query"
@@ -346,6 +347,6 @@ class SpanDecoratorTest extends Specification {
     span = tracer.buildSpan("decorator.test").withTag(Tags.DB_STATEMENT.key, "some-statement").start()
 
     then:
-    span.resourceName == "some-statement"
+    span.resourceName == "decorator.test"
   }
 }

@@ -1,5 +1,7 @@
+// Modified by SignalFx
 package datadog.trace.agent.decorator;
 
+import datadog.trace.api.Config;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
 
@@ -36,7 +38,12 @@ public abstract class DatabaseClientDecorator<CONNECTION> extends ClientDecorato
 
   public Span onStatement(final Span span, final String statement) {
     assert span != null;
-    Tags.DB_STATEMENT.set(span, statement);
+    int dbStatMaxLength = Config.get().getDbStatementMaxLength();
+    String outStatement = statement;
+    if (outStatement != null) {
+      outStatement = outStatement.substring(0, Math.min(outStatement.length(), dbStatMaxLength));
+    }
+    Tags.DB_STATEMENT.set(span, outStatement);
     return span;
   }
 }

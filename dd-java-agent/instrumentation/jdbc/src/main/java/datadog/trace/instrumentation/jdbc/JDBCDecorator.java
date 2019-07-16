@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jdbc;
 
 import datadog.trace.agent.decorator.DatabaseClientDecorator;
@@ -45,7 +46,10 @@ public class JDBCDecorator extends DatabaseClientDecorator<JDBCMaps.DBInfo> {
 
   @Override
   protected String dbInstance(final JDBCMaps.DBInfo info) {
-    return info.getUrl();
+    String urlInfo = info.getUrl();
+    String[] urlArray = urlInfo.split("/");
+    String dbName = urlArray[urlArray.length - 1];
+    return dbName;
   }
 
   public Span onConnection(final Span span, final Connection connection) {

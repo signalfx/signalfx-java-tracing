@@ -11,6 +11,8 @@ import static datadog.trace.api.Config.AGENT_HOST
 import static datadog.trace.api.Config.AGENT_PATH
 import static datadog.trace.api.Config.AGENT_PORT_LEGACY
 import static datadog.trace.api.Config.AGENT_UNIX_DOMAIN_SOCKET
+import static datadog.trace.api.Config.DB_STATEMENT_MAX_LENGTH
+import static datadog.trace.api.Config.DEFAULT_DB_STATEMENT_MAX_LENGTH
 import static datadog.trace.api.Config.DEFAULT_JMX_FETCH_STATSD_PORT
 import static datadog.trace.api.Config.GLOBAL_TAGS
 import static datadog.trace.api.Config.HEADER_TAGS
@@ -37,6 +39,7 @@ import static datadog.trace.api.Config.RUNTIME_CONTEXT_FIELD_INJECTION
 import static datadog.trace.api.Config.SERVICE
 import static datadog.trace.api.Config.SERVICE_MAPPING
 import static datadog.trace.api.Config.SERVICE_NAME
+import static datadog.trace.api.Config.SIGNALFX_PREFIX
 import static datadog.trace.api.Config.SPAN_TAGS
 import static datadog.trace.api.Config.TRACE_AGENT_PORT
 import static datadog.trace.api.Config.TRACE_REPORT_HOSTNAME
@@ -63,6 +66,7 @@ class ConfigTest extends Specification {
   private static final DD_TRACE_AGENT_PORT_ENV = "DD_TRACE_AGENT_PORT"
   private static final DD_AGENT_PORT_LEGACY_ENV = "DD_AGENT_PORT"
   private static final DD_TRACE_REPORT_HOSTNAME = "DD_TRACE_REPORT_HOSTNAME"
+  private static final SIGNALFX_DB_STATEMENT_MAX_LENGTH = "SIGNALFX_DB_STATEMENT_MAX_LENGTH"
 
   def "verify defaults"() {
     when:
@@ -102,6 +106,7 @@ class ConfigTest extends Specification {
     config.jmxFetchStatsdHost == null
     config.jmxFetchStatsdPort == DEFAULT_JMX_FETCH_STATSD_PORT
     config.toString().contains("unnamed-java-app")
+    config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
 
     where:
     provider << [{ new Config() }, { Config.get() }, {
@@ -142,6 +147,7 @@ class ConfigTest extends Specification {
     prop.setProperty(JMX_FETCH_REFRESH_BEANS_PERIOD, "200")
     prop.setProperty(JMX_FETCH_STATSD_HOST, "statsd host")
     prop.setProperty(JMX_FETCH_STATSD_PORT, "321")
+    prop.setProperty(DB_STATEMENT_MAX_LENGTH, "100")
 
     when:
     Config config = Config.get(prop)
@@ -173,6 +179,7 @@ class ConfigTest extends Specification {
     config.jmxFetchRefreshBeansPeriod == 200
     config.jmxFetchStatsdHost == "statsd host"
     config.jmxFetchStatsdPort == 321
+    config.dbStatementMaxLength == 100
   }
 
   def "specify overrides via system properties"() {
@@ -208,6 +215,7 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + JMX_FETCH_REFRESH_BEANS_PERIOD, "200") // SFX
     System.setProperty(PREFIX + JMX_FETCH_STATSD_HOST, "statsd host") // SFX
     System.setProperty(PREFIX + JMX_FETCH_STATSD_PORT, "321") // SFX
+    System.setProperty(PREFIX + DB_STATEMENT_MAX_LENGTH, "100") // SFX
 
     when:
     Config config = new Config()
@@ -242,6 +250,7 @@ class ConfigTest extends Specification {
     config.jmxFetchRefreshBeansPeriod == 200
     config.jmxFetchStatsdHost == "statsd host"
     config.jmxFetchStatsdPort == 321
+    config.dbStatementMaxLength == 100
 
     where:
     prefix      | _
@@ -259,6 +268,7 @@ class ConfigTest extends Specification {
     environmentVariables.set(DD_JMXFETCH_METRICS_CONFIGS_ENV, "some/file")
     environmentVariables.set(DD_TRACE_REPORT_HOSTNAME, "true")
     environmentVariables.set(DD_SPAN_TAGS_ENV, "key1:value1,key2:value2")
+    environmentVariables.set(SIGNALFX_DB_STATEMENT_MAX_LENGTH, "100")
 
     when:
     def config = new Config()
@@ -272,7 +282,7 @@ class ConfigTest extends Specification {
     config.jmxFetchMetricsConfigs == ["some/file"]
     config.reportHostName == true
     config.spanTags == [key1: "value1", key2: "value2"]
-
+    config.dbStatementMaxLength == 100
   }
 
   def "malformed endpoint url fails"() {
@@ -291,11 +301,13 @@ class ConfigTest extends Specification {
     environmentVariables.set(DD_SERVICE_NAME_ENV, "still something else")
     environmentVariables.set(DD_WRITER_TYPE_ENV, "LoggingWriter")
     environmentVariables.set(DD_TRACE_AGENT_PORT_ENV, "777")
+    environmentVariables.set(SIGNALFX_DB_STATEMENT_MAX_LENGTH, "105")
 
     System.setProperty(PREFIX + SERVICE_NAME, "what we actually want")
     System.setProperty(PREFIX + WRITER_TYPE, "DDAgentWriter")
     System.setProperty(PREFIX + AGENT_HOST, "somewhere")
     System.setProperty(PREFIX + TRACE_AGENT_PORT, "123")
+    System.setProperty(SIGNALFX_PREFIX + DB_STATEMENT_MAX_LENGTH, "1010")
 
     when:
     def config = new Config()
@@ -305,6 +317,7 @@ class ConfigTest extends Specification {
     config.writerType == "DDAgentWriter"
     config.agentHost == "somewhere"
     config.agentPort == 123
+    config.dbStatementMaxLength == 1010
   }
 
   def "default when configured incorrectly"() {
@@ -325,6 +338,7 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "invalid")
     System.setProperty(PREFIX + PROPAGATION_STYLE_EXTRACT, "some garbage")
     System.setProperty(PREFIX + PROPAGATION_STYLE_INJECT, " ")
+    System.setProperty(PREFIX + DB_STATEMENT_MAX_LENGTH, "abs")
 
     when:
     def config = new Config()
@@ -345,6 +359,7 @@ class ConfigTest extends Specification {
     config.httpClientSplitByDomain == false
     config.propagationStylesToExtract.toList() == [Config.PropagationStyle.B3]
     config.propagationStylesToInject.toList() == [Config.PropagationStyle.B3]
+    config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
   }
 
   def "sys props and env vars overrides for trace_agent_port and agent_port_legacy as expected"() {
@@ -416,6 +431,7 @@ class ConfigTest extends Specification {
     properties.setProperty(JMX_FETCH_REFRESH_BEANS_PERIOD, "200")
     properties.setProperty(JMX_FETCH_STATSD_HOST, "statsd host")
     properties.setProperty(JMX_FETCH_STATSD_PORT, "321")
+    properties.setProperty(DB_STATEMENT_MAX_LENGTH, "100")
     
     when:
     def config = Config.get(properties)
@@ -444,6 +460,7 @@ class ConfigTest extends Specification {
     config.jmxFetchRefreshBeansPeriod == 200
     config.jmxFetchStatsdHost == "statsd host"
     config.jmxFetchStatsdPort == 321
+    config.dbStatementMaxLength == 100
   }
 
   def "override null properties"() {
@@ -453,6 +470,7 @@ class ConfigTest extends Specification {
     then:
     config.serviceName == "unnamed-java-app"
     config.writerType == "DDAgentWriter"
+    config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
   }
 
   def "override empty properties"() {
@@ -465,6 +483,7 @@ class ConfigTest extends Specification {
     then:
     config.serviceName == "unnamed-java-app"
     config.writerType == "DDAgentWriter"
+    config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
   }
 
   def "override non empty properties"() {

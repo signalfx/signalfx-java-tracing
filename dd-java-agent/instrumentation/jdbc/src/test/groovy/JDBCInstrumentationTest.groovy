@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import com.mchange.v2.c3p0.ComboPooledDataSource
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -171,6 +172,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-statement"
             "db.instance" jdbcUrls.get(driver)
+            "db.statement" query
             "span.origin.type" String
             defaultTags()
           }
@@ -231,6 +233,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-prepared_statement"
             "db.instance" jdbcUrls.get(driver)
+            "db.statement" query
             "span.origin.type" String
             defaultTags()
           }
@@ -286,6 +289,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-prepared_statement"
             "db.instance" jdbcUrls.get(driver)
+            "db.statement" query
             "span.origin.type" String
             defaultTags()
           }
@@ -341,6 +345,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-prepared_statement"
             "db.instance" jdbcUrls.get(driver)
+            "db.statement" query
             "span.origin.type" String
             defaultTags()
           }
@@ -396,6 +401,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-statement"
             "db.instance" jdbcUrls.get(driver)
+            "db.statement" query
             "span.origin.type" String
             defaultTags()
           }
@@ -454,6 +460,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-prepared_statement"
             "db.instance" jdbcUrls.get(driver)
+            "db.statement" query
             "span.origin.type" String
             defaultTags()
           }
@@ -529,6 +536,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             }
             "span.kind" Tags.SPAN_KIND_CLIENT
             "db.instance" jdbcUrls.get(driver)
+            "db.statement" query
             "span.origin.type" String
             defaultTags()
           }
@@ -598,6 +606,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             "component" "java-jdbc-prepared_statement"
             "span.kind" Tags.SPAN_KIND_CLIENT
             "db.instance" jdbcUrls.get(dbType)
+            "db.statement" query
             "span.origin.type" String
             defaultTags()
           }
@@ -615,6 +624,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             "component" "java-jdbc-statement"
             "span.kind" Tags.SPAN_KIND_CLIENT
             "db.instance" jdbcUrls.get(dbType)
+            "db.statement" "CALL USER()"
             "span.origin.type" String
             defaultTags()
           }
@@ -634,6 +644,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
               "component" "java-jdbc-prepared_statement"
               "span.kind" Tags.SPAN_KIND_CLIENT
               "db.instance" jdbcUrls.get(dbType)
+              "db.statement" query
               "span.origin.type" String
               defaultTags()
             }

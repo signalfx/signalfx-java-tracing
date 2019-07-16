@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package springdata
 
 import com.anotherchrisberry.spock.extensions.retry.RetryOnFailure
@@ -80,7 +81,7 @@ class Elasticsearch2SpringTemplateTest extends AgentTestRunner {
         span(0) {
           serviceName "elasticsearch"
           resourceName "RefreshAction"
-          operationName "elasticsearch.query"
+          operationName "RefreshAction"
           spanType DDSpanTypes.ELASTICSEARCH
           errored true
           tags {
@@ -144,7 +145,7 @@ class Elasticsearch2SpringTemplateTest extends AgentTestRunner {
         span(0) {
           serviceName "elasticsearch"
           resourceName "CreateIndexAction"
-          operationName "elasticsearch.query"
+          operationName "CreateIndexAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -161,7 +162,7 @@ class Elasticsearch2SpringTemplateTest extends AgentTestRunner {
         span(0) {
           serviceName "elasticsearch"
           resourceName "ClusterHealthAction"
-          operationName "elasticsearch.query"
+          operationName "ClusterHealthAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -177,7 +178,7 @@ class Elasticsearch2SpringTemplateTest extends AgentTestRunner {
         span(0) {
           serviceName "elasticsearch"
           resourceName "SearchAction"
-          operationName "elasticsearch.query"
+          operationName "SearchAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -195,7 +196,7 @@ class Elasticsearch2SpringTemplateTest extends AgentTestRunner {
         span(0) {
           serviceName "elasticsearch"
           resourceName "PutMappingAction"
-          operationName "elasticsearch.query"
+          operationName "PutMappingAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -212,7 +213,7 @@ class Elasticsearch2SpringTemplateTest extends AgentTestRunner {
         span(0) {
           serviceName "elasticsearch"
           resourceName "IndexAction"
-          operationName "elasticsearch.query"
+          operationName "IndexAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -233,7 +234,7 @@ class Elasticsearch2SpringTemplateTest extends AgentTestRunner {
         span(0) {
           serviceName "elasticsearch"
           resourceName "RefreshAction"
-          operationName "elasticsearch.query"
+          operationName "RefreshAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -253,7 +254,7 @@ class Elasticsearch2SpringTemplateTest extends AgentTestRunner {
         span(0) {
           serviceName "elasticsearch"
           resourceName "SearchAction"
-          operationName "elasticsearch.query"
+          operationName "SearchAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"
@@ -334,7 +335,7 @@ class Elasticsearch2SpringTemplateTest extends AgentTestRunner {
         span(0) {
           serviceName "elasticsearch"
           resourceName "SearchAction"
-          operationName "elasticsearch.query"
+          operationName "SearchAction"
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT.key" "elasticsearch-java"

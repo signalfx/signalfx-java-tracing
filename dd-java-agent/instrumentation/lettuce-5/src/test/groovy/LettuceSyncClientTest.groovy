@@ -103,7 +103,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.instance" dbAddr
             "db.redis.dbIndex" 0
             "db.type" "redis"
@@ -140,7 +140,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.instance" dbAddrNonExistent
             "db.redis.dbIndex" 0
             "db.type" "redis"
@@ -171,7 +171,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -197,7 +197,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -223,7 +223,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -249,7 +249,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -275,7 +275,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -301,7 +301,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -327,7 +327,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -352,7 +352,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -377,7 +377,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }

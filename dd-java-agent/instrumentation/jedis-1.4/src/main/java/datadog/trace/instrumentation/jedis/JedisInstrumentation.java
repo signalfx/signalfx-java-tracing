@@ -59,8 +59,7 @@ public final class JedisInstrumentation extends Instrumenter.Default {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Scope startSpan(@Advice.Argument(1) final Command command) {
-      final Scope scope = GlobalTracer.get().buildSpan("redis.command").startActive(true);
-      scope.span().setOperationName(command.name());
+      final Scope scope = GlobalTracer.get().buildSpan(command.name()).startActive(true);
       DECORATE.afterStart(scope.span());
       DECORATE.onStatement(scope.span(), command.name());
       return scope;

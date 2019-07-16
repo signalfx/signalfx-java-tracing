@@ -96,7 +96,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -125,7 +125,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -162,7 +162,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -197,7 +197,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -222,7 +222,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "db.command.results.count" 157
             "span.kind" "client"
@@ -248,7 +248,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "db.command.cancelled" true
             "db.command.results.count" 2
@@ -287,7 +287,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -312,7 +312,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }

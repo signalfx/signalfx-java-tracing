@@ -123,7 +123,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.instance" dbAddr
             "db.redis.dbIndex" 0
             "db.type" "redis"
@@ -163,7 +163,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.instance" dbAddrNonExistent
             "db.redis.dbIndex" 0
             "db.type" "redis"
@@ -195,7 +195,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -233,7 +233,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -285,7 +285,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -323,7 +323,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -380,7 +380,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -396,7 +396,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -442,7 +442,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             errorTags(IllegalStateException, "TestException")
             "span.kind" "client"
@@ -483,7 +483,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "db.command.cancelled" true
             "span.kind" "client"
@@ -509,7 +509,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }
@@ -535,7 +535,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "component" "redis-client"
+            "component" "redis"
             "db.type" "redis"
             "span.kind" "client"
           }

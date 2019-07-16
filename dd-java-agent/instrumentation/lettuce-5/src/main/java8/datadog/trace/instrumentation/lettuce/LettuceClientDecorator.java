@@ -24,7 +24,7 @@ public class LettuceClientDecorator extends DatabaseClientDecorator<RedisURI> {
 
   @Override
   protected String component() {
-    return "redis-client";
+    return "redis";
   }
 
   @Override

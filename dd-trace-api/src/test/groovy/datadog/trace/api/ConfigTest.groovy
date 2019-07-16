@@ -55,7 +55,7 @@ class ConfigTest extends Specification {
   public final EnvironmentVariables environmentVariables = new EnvironmentVariables()
 
   private static final DD_SERVICE_NAME_ENV = "DD_SERVICE_NAME"
-  private static final DD_TRACE_ENABLED_ENV = "DD_TRACE_ENABLED"
+  private static final DD_TRACE_ENABLED_ENV = "DD_TRACING_ENABLED"
   private static final DD_WRITER_TYPE_ENV = "DD_WRITER_TYPE"
   private static final DD_SERVICE_MAPPING_ENV = "DD_SERVICE_MAPPING"
   private static final DD_SPAN_TAGS_ENV = "SIGNALFX_SPAN_TAGS"

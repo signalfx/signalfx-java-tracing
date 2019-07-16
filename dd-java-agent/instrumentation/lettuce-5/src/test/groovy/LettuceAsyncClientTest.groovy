@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
@@ -187,7 +188,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
+          operationName "SET"
           spanType DDSpanTypes.REDIS
           resourceName "SET"
           errored false
@@ -225,7 +226,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
+          operationName "GET"
           spanType DDSpanTypes.REDIS
           resourceName "GET"
           errored false
@@ -277,7 +278,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
+          operationName "GET"
           spanType DDSpanTypes.REDIS
           resourceName "GET"
           errored false
@@ -315,7 +316,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
+          operationName "RANDOMKEY"
           spanType DDSpanTypes.REDIS
           resourceName "RANDOMKEY"
           errored false
@@ -372,7 +373,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
+          operationName "HMSET"
           spanType DDSpanTypes.REDIS
           resourceName "HMSET"
           errored false
@@ -388,7 +389,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
+          operationName "HGETALL"
           spanType DDSpanTypes.REDIS
           resourceName "HGETALL"
           errored false
@@ -434,7 +435,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
+          operationName "DEL"
           spanType DDSpanTypes.REDIS
           resourceName "DEL"
           errored true
@@ -475,7 +476,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
+          operationName "SADD"
           spanType DDSpanTypes.REDIS
           resourceName "SADD"
           errored false
@@ -501,7 +502,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
+          operationName "DEBUG"
           spanType DDSpanTypes.REDIS
           resourceName AGENT_CRASHING_COMMAND_PREFIX + "DEBUG"
           errored false
@@ -527,7 +528,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           serviceName "redis"
-          operationName "redis.query"
+          operationName "SHUTDOWN"
           spanType DDSpanTypes.REDIS
           resourceName "SHUTDOWN"
           errored false

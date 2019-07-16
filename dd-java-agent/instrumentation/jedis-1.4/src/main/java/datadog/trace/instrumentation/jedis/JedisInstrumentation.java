@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jedis;
 
 import static datadog.trace.instrumentation.jedis.JedisClientDecorator.DECORATE;
@@ -59,6 +60,7 @@ public final class JedisInstrumentation extends Instrumenter.Default {
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Scope startSpan(@Advice.Argument(1) final Command command) {
       final Scope scope = GlobalTracer.get().buildSpan("redis.command").startActive(true);
+      scope.span().setOperationName(command.name());
       DECORATE.afterStart(scope.span());
       DECORATE.onStatement(scope.span(), command.name());
       return scope;

@@ -99,6 +99,7 @@ content](https://docs.signalfx.com/en/latest/apm/apm-overview/apm-metadata.html)
 | `signalfx.service.name` | `SIGNALFX_SERVICE_NAME` | `"unnamed-java-app"` | |
 | `signalfx.agent.host` | `SIGNALFX_AGENT_HOST` | `"localhost"` | |
 | `signalfx.endpoint.url` | `SIGNALFX_ENDPOINT_URL` | `"http://localhost:9080/v1/trace"` | Takes priority over constituent Agent properties. |
+| `signalfx.tracing.enabled` | `SIGNALFX_TRACING_ENABLED` | `"true"` | Globally enables tracer creation and auto-instrumentation.  Any value not matching `"true"` will be treated as false (`Boolean.valueOf()`). |
 | `signalfx.integration.<name>.enabled=true` | none | Varies per instrumentation | `<name>` is the instrumentation name detailed in the supported libraries. |
 | `signalfx.span.tags` | `SIGNALFX_SPAN_TAGS` | `null` | Comma-separated list of tags of the form `"key1:val1,key2:val2"` to be included in every reported span. |
 | `signalfx.db.statement.max.length` | `SIGNALFX_DB_STATEMENT_MAX_LENGTH` | `1024` | The maximum number of characters written for the OpenTracing `db.statement` tag. |

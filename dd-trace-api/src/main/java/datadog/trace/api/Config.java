@@ -42,7 +42,7 @@ public class Config {
 
   public static final String SERVICE_NAME = "service.name";
   public static final String SERVICE = "service";
-  public static final String TRACE_ENABLED = "trace.enabled";
+  public static final String TRACE_ENABLED = "tracing.enabled";
   public static final String WRITER_TYPE = "writer.type";
   public static final String API_TYPE = "api.type";
   public static final String USE_B3_PROPAGATION = "b3.propagation";

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.elasticsearch;
 
 import datadog.trace.agent.decorator.DatabaseClientDecorator;
@@ -46,8 +47,10 @@ public class ElasticsearchTransportClientDecorator extends DatabaseClientDecorat
 
   public Span onRequest(final Span span, final Class action, final Class request) {
     if (action != null) {
-      span.setTag(DDTags.RESOURCE_NAME, action.getSimpleName());
-      span.setTag("elasticsearch.action", action.getSimpleName());
+      String simpleName = action.getSimpleName();
+      span.setOperationName(simpleName);
+      span.setTag(DDTags.RESOURCE_NAME, simpleName);
+      span.setTag("elasticsearch.action", simpleName);
     }
     if (request != null) {
       span.setTag("elasticsearch.request", request.getSimpleName());

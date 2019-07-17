@@ -160,7 +160,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         span(1) {
           operationName "${driver}.query"
           serviceName driver
-          resourceName query
+          resourceName "${driver}.query"
           spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
@@ -221,7 +221,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         span(1) {
           operationName "${driver}.query"
           serviceName driver
-          resourceName query
+          resourceName "${driver}.query"
           spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
@@ -277,7 +277,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         span(1) {
           operationName "${driver}.query"
           serviceName driver
-          resourceName query
+          resourceName "${driver}.query"
           spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
@@ -333,7 +333,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         span(1) {
           operationName "${driver}.query"
           serviceName driver
-          resourceName query
+          resourceName "${driver}.query"
           spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
@@ -389,7 +389,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         span(1) {
           operationName "${driver}.query"
           serviceName driver
-          resourceName query
+          resourceName "${driver}.query"
           spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
@@ -448,7 +448,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         span(1) {
           operationName "${driver}.query"
           serviceName driver
-          resourceName query
+          resourceName "${driver}.query"
           spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
@@ -520,7 +520,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         span(1) {
           operationName "${driver}.query"
           serviceName driver
-          resourceName query
+          resourceName "${driver}.query"
           spanType DDSpanTypes.SQL
           childOf span(0)
           errored false
@@ -597,7 +597,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         span(0) {
           operationName "${dbType}.query"
           serviceName dbType
-          resourceName query
+          resourceName "${dbType}.query"
           spanType DDSpanTypes.SQL
           errored false
           tags {
@@ -614,7 +614,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
         span(1) {
           operationName "${dbType}.query"
           serviceName dbType
-          resourceName "CALL USER()"
+          resourceName "${dbType}.query"
           spanType DDSpanTypes.SQL
           errored false
           childOf(span(0))
@@ -635,7 +635,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           span(0) {
             operationName "${dbType}.query"
             serviceName dbType
-            resourceName query
+            resourceName "${dbType}.query"
             spanType DDSpanTypes.SQL
             errored false
             tags {

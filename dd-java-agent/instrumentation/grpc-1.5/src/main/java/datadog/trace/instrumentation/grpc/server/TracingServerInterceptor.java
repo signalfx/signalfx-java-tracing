@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.grpc.server;
 
 import static datadog.trace.instrumentation.grpc.server.GrpcServerDecorator.DECORATE;
@@ -40,7 +41,7 @@ public class TracingServerInterceptor implements ServerInterceptor {
       }
     }
     final SpanContext spanContext =
-        tracer.extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(headerMap));
+        tracer.extract(Format.Builtin.TEXT_MAP_EXTRACT, new TextMapExtractAdapter(headerMap));
 
     final Tracer.SpanBuilder spanBuilder =
         tracer

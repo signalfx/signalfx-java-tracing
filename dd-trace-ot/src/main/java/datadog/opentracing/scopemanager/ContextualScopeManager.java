@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing.scopemanager;
 
 import datadog.opentracing.DDSpan;
@@ -16,6 +17,11 @@ public class ContextualScopeManager implements ScopeManager {
   final List<ScopeListener> scopeListeners = new CopyOnWriteArrayList<>();
 
   @Override
+  public Scope activate(Span span) {
+    return activate(span, false);
+  }
+
+  @Override
   public Scope activate(final Span span, final boolean finishOnClose) {
     for (final ScopeContext context : scopeContexts) {
       if (context.inContext()) {
@@ -27,6 +33,15 @@ public class ContextualScopeManager implements ScopeManager {
     } else {
       return new SimpleScope(this, span, finishOnClose);
     }
+  }
+
+  @Override
+  public Span activeSpan() {
+    Scope active = active();
+    if (active == null) {
+      return null;
+    }
+    return active.span();
   }
 
   @Override

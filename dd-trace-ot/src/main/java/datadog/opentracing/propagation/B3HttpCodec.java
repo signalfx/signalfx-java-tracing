@@ -8,7 +8,8 @@ import com.google.common.base.Strings;
 import datadog.opentracing.DDSpanContext;
 import datadog.trace.api.sampling.PrioritySampling;
 import io.opentracing.SpanContext;
-import io.opentracing.propagation.TextMap;
+import io.opentracing.propagation.TextMapExtract;
+import io.opentracing.propagation.TextMapInject;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,7 +41,7 @@ class B3HttpCodec {
   public static class Injector implements HttpCodec.Injector {
 
     @Override // dd
-    public void inject(final DDSpanContext context, final TextMap carrier) {
+    public void inject(final DDSpanContext context, final TextMapInject carrier) {
       try {
         // TODO: should we better store ids as BigInteger in context to avoid parsing it
         // twice.
@@ -100,7 +101,7 @@ class B3HttpCodec {
     }
 
     @Override
-    public SpanContext extract(final TextMap carrier) {
+    public SpanContext extract(final TextMapExtract carrier) {
       try {
         Map<String, String> tags = Collections.emptyMap();
         String traceId = ZERO;

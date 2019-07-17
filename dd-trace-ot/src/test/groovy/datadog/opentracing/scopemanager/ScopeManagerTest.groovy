@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing.scopemanager
 
 import datadog.opentracing.DDSpan
@@ -600,8 +601,22 @@ class ScopeManagerTest extends Specification {
     }
 
     @Override
+    Scope activate(Span span) {
+      return activate(span, false)
+    }
+
+    @Override
     Scope active() {
       return get() == null ? null : this
+    }
+
+    @Override
+    Span activeSpan() {
+      def scope = active()
+      if (scope == null) {
+        return null
+      }
+      return scope.span()
     }
 
     String toString() {

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing.propagation;
 
 import io.opentracing.SpanContext;
@@ -23,6 +24,16 @@ public class TagContext implements SpanContext {
 
   public Map<String, String> getTags() {
     return tags;
+  }
+
+  @Override
+  public String toTraceId() {
+    return null;
+  }
+
+  @Override
+  public String toSpanId() {
+    return null;
   }
 
   @Override

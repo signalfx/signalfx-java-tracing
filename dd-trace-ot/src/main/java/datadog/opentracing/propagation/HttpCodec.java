@@ -1,9 +1,11 @@
+// Modified by SignalFx
 package datadog.opentracing.propagation;
 
 import datadog.opentracing.DDSpanContext;
 import datadog.trace.api.Config;
 import io.opentracing.SpanContext;
-import io.opentracing.propagation.TextMap;
+import io.opentracing.propagation.TextMapExtract;
+import io.opentracing.propagation.TextMapInject;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.URLDecoder;
@@ -22,12 +24,12 @@ public class HttpCodec {
 
   public interface Injector {
 
-    void inject(final DDSpanContext context, final TextMap carrier);
+    void inject(final DDSpanContext context, final TextMapInject carrier);
   }
 
   public interface Extractor {
 
-    SpanContext extract(final TextMap carrier);
+    SpanContext extract(final TextMapExtract carrier);
   }
 
   public static Injector createInjector(final Config config) {
@@ -72,7 +74,7 @@ public class HttpCodec {
     }
 
     @Override
-    public void inject(final DDSpanContext context, final TextMap carrier) {
+    public void inject(final DDSpanContext context, final TextMapInject carrier) {
       for (final Injector injector : injectors) {
         injector.inject(context, carrier);
       }
@@ -88,7 +90,7 @@ public class HttpCodec {
     }
 
     @Override
-    public SpanContext extract(final TextMap carrier) {
+    public SpanContext extract(final TextMapExtract carrier) {
       SpanContext context = null;
       for (final Extractor extractor : extractors) {
         context = extractor.extract(carrier);

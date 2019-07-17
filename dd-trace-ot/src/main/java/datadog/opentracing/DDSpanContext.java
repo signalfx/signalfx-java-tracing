@@ -274,6 +274,16 @@ public class DDSpanContext implements io.opentracing.SpanContext {
     return baggageItems;
   }
 
+  @Override
+  public String toTraceId() {
+    return traceId;
+  }
+
+  @Override
+  public String toSpanId() {
+    return spanId;
+  }
+
   /* (non-Javadoc)
    * @see io.opentracing.SpanContext#baggageItems()
    */

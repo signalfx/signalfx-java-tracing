@@ -175,11 +175,7 @@ public class ZipkinV2Api implements Api {
       tagNode.put(tag.getKey(), tag.getValue().toString());
     }
 
-    if (!Strings.isNullOrEmpty(span.getResourceName())) {
-      tagNode.put(DDTags.RESOURCE_NAME, span.getResourceName());
-    }
-
-    updateFromResourceTag(spanNode, tagNode);
+    updateFromResourceName(spanNode, tagNode, span);
 
     ArrayNode annotations = spanNode.putArray("annotations");
     for (AbstractMap.SimpleEntry<Long, Map<String, ?>> item : span.getLogs()) {
@@ -223,14 +219,12 @@ public class ZipkinV2Api implements Api {
   /**
    * In order to have more informative operation names for web frameworks, we take advantage of the
    * URLAsResourceName-normalized resource name tag value, and update the operation name.
+   *
+   * <p>If the (updated) spanNode's name doesn't match the resource name, set the resource.name tag,
+   * as it likely contains worthwhile information.
    */
-  private void updateFromResourceTag(ObjectNode spanNode, ObjectNode tagNode) {
-    final JsonNode taggedResourceName = tagNode.get(DDTags.RESOURCE_NAME);
-    if (taggedResourceName == null) {
-      return;
-    }
-
-    final String resourceName = taggedResourceName.textValue();
+  private void updateFromResourceName(ObjectNode spanNode, ObjectNode tagNode, DDSpan span) {
+    String resourceName = span.getResourceName();
     if (Strings.isNullOrEmpty(resourceName)) {
       return;
     }
@@ -239,6 +233,11 @@ public class ZipkinV2Api implements Api {
     if (!Strings.isNullOrEmpty(spanKind)
         && spanKind.toLowerCase().equals(Tags.SPAN_KIND_SERVER.toLowerCase())) {
       spanNode.put("name", resourceName);
+    }
+
+    String spanName = spanNode.get("name").textValue();
+    if (!spanName.equals(resourceName)) {
+      tagNode.put(DDTags.RESOURCE_NAME, span.getResourceName());
     }
   }
 

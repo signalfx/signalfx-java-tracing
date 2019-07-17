@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.lettuce;
 
 import datadog.trace.agent.decorator.DatabaseClientDecorator;
@@ -23,7 +24,7 @@ public class LettuceClientDecorator extends DatabaseClientDecorator<RedisURI> {
 
   @Override
   protected String component() {
-    return "redis-client";
+    return "redis";
   }
 
   @Override
@@ -60,6 +61,7 @@ public class LettuceClientDecorator extends DatabaseClientDecorator<RedisURI> {
 
   public Span onCommand(final Span span, final RedisCommand command) {
     final String commandName = LettuceInstrumentationUtil.getCommandName(command);
+    span.setOperationName(commandName);
     span.setTag(
         DDTags.RESOURCE_NAME, LettuceInstrumentationUtil.getCommandResourceName(commandName));
     return span;

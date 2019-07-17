@@ -19,7 +19,7 @@ public class JedisClientDecorator extends DatabaseClientDecorator<Protocol.Comma
 
   @Override
   protected String component() {
-    return "redis-command";
+    return "redis";
   }
 
   @Override

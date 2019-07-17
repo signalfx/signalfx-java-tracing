@@ -49,7 +49,7 @@ class JedisClientTest extends AgentTestRunner {
           spanType DDSpanTypes.REDIS
           tags {
             "$Tags.DB_STATEMENT.key" "SET"
-            "$Tags.COMPONENT.key" "redis-command"
+            "$Tags.COMPONENT.key" "redis"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             defaultTags()
@@ -76,7 +76,7 @@ class JedisClientTest extends AgentTestRunner {
           spanType DDSpanTypes.REDIS
           tags {
             "$Tags.DB_STATEMENT.key" "SET"
-            "$Tags.COMPONENT.key" "redis-command"
+            "$Tags.COMPONENT.key" "redis"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             defaultTags()
@@ -91,7 +91,7 @@ class JedisClientTest extends AgentTestRunner {
           spanType DDSpanTypes.REDIS
           tags {
             "$Tags.DB_STATEMENT.key" "GET"
-            "$Tags.COMPONENT.key" "redis-command"
+            "$Tags.COMPONENT.key" "redis"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             defaultTags()
@@ -118,7 +118,7 @@ class JedisClientTest extends AgentTestRunner {
           spanType DDSpanTypes.REDIS
           tags {
             "$Tags.DB_STATEMENT.key" "SET"
-            "$Tags.COMPONENT.key" "redis-command"
+            "$Tags.COMPONENT.key" "redis"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             defaultTags()
@@ -133,7 +133,7 @@ class JedisClientTest extends AgentTestRunner {
           spanType DDSpanTypes.REDIS
           tags {
             "$Tags.DB_STATEMENT.key" "RANDOMKEY"
-            "$Tags.COMPONENT.key" "redis-command"
+            "$Tags.COMPONENT.key" "redis"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             defaultTags()

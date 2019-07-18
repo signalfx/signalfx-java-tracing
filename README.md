@@ -75,7 +75,6 @@ _The SignalFx Java Agent is designed to work with Java runtime version 8 or abov
 | **Spring Data** | 1.5.0+ | `spring-data` | Automatic tracing of all `org.springframework.data.repository.Repository` implementor public methods |
 | **Spring Web** | 4.0+ | `spring-web` | Includes DispatcherServlet, HandlerAdapter, and RestTemplate |
 | **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
-| **Memcached (SpyMemcached)** | 2.10.0+ | `spymemcached` | |
 | **Vertx Web** | 3.5.0+  | `vertx` | This works primarily through the Netty instrumentation for requests, but it includes spans for handlers. |
 
 _Italicized_ libraries are in beta and must be explicitly enabled by setting the

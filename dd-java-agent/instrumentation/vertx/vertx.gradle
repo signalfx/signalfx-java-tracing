@@ -4,6 +4,7 @@ ext {
 }
 
 apply from: "${rootDir}/gradle/java.gradle"
+apply from: "${rootDir}/gradle/test-with-kotlin.gradle"
 
 muzzle {
   pass {

@@ -18,7 +18,7 @@ public class RoutingContextHandlerAdvice {
         GlobalTracer.get()
             .buildSpan(source.getClass().getName() + ".handle")
             .withTag("handler.type", context.getClass().getName())
-            .startActive(false);
+            .startActive(true);
 
     final Span span = scope.span();
     DECORATE.afterStart(span);
@@ -38,15 +38,8 @@ public class RoutingContextHandlerAdvice {
       @Advice.Enter final Scope scope,
       @Advice.Argument(0) final RoutingContext context) {
     if (scope != null) {
-      final Span span = scope.span();
+      DECORATE.onResponse(scope.span(), context.response());
 
-      DECORATE.onResponse(span, context.response());
-
-      if (scope instanceof TraceScope) {
-        ((TraceScope) scope).setAsyncPropagation(false);
-      }
-
-      span.finish();
       scope.close();
     }
   }

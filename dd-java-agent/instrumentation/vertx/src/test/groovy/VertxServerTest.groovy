@@ -157,5 +157,5 @@ class VertxServerTest extends AgentTestRunner {
         }
       }
     }
-  } // def "generic handler adds a span"
+  }
 }

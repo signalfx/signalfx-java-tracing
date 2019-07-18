@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.decorator;
 
 import datadog.trace.api.DDTags;
@@ -13,8 +14,8 @@ public abstract class OrmClientDecorator extends DatabaseClientDecorator {
     if (entity != null) {
       final String name = entityName(entity);
       if (name != null) {
-        span.setTag(DDTags.RESOURCE_NAME, name);
-      } // else we keep any existing resource.
+        span.setTag(DDTags.ENTITY_NAME, name);
+      }
     }
     return span;
   }

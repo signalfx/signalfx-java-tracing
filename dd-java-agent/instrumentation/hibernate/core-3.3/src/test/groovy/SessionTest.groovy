@@ -1,5 +1,6 @@
 // Modified by SignalFx
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.api.DDTags
 import io.opentracing.Scope
 import io.opentracing.Tracer
 import io.opentracing.tag.Tags
@@ -63,13 +64,14 @@ class SessionTest extends AbstractHibernateTest {
           }
           span(2) {
             serviceName "hibernate"
-            resourceName resource
+            resourceName "hibernate.$methodName"
             operationName "hibernate.$methodName"
             spanType DDSpanTypes.HIBERNATE
             childOf span(0)
             tags {
               "$Tags.COMPONENT.key" "java-hibernate"
               "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+              "$DDTags.ENTITY_NAME" resource
               defaultTags()
             }
           }
@@ -145,13 +147,14 @@ class SessionTest extends AbstractHibernateTest {
         }
         span(3) {
           serviceName "hibernate"
-          resourceName resource
+          resourceName "hibernate.$methodName"
           operationName "hibernate.$methodName"
           spanType DDSpanTypes.HIBERNATE
           childOf span(0)
           tags {
             "$Tags.COMPONENT.key" "java-hibernate"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$DDTags.ENTITY_NAME" resource
             defaultTags()
           }
         }
@@ -226,13 +229,14 @@ class SessionTest extends AbstractHibernateTest {
         }
         span(3) {
           serviceName "hibernate"
-          resourceName resource
+          resourceName "hibernate.$methodName"
           operationName "hibernate.$methodName"
           spanType DDSpanTypes.HIBERNATE
           childOf span(0)
           tags {
             "$Tags.COMPONENT.key" "java-hibernate"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$DDTags.ENTITY_NAME" resource
             defaultTags()
           }
         }
@@ -372,13 +376,14 @@ class SessionTest extends AbstractHibernateTest {
         }
         span(3) {
           serviceName "hibernate"
-          resourceName resource
+          resourceName "hibernate.$methodName"
           operationName "hibernate.$methodName"
           spanType DDSpanTypes.HIBERNATE
           childOf span(0)
           tags {
             "$Tags.COMPONENT.key" "java-hibernate"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$DDTags.ENTITY_NAME" resource
             defaultTags()
           }
         }
@@ -456,7 +461,7 @@ class SessionTest extends AbstractHibernateTest {
         }
         span(2) {
           serviceName "hibernate"
-          resourceName "$resource"
+          resourceName "hibernate.query.list"
           operationName "hibernate.query.list"
           spanType DDSpanTypes.HIBERNATE
           childOf span(0)
@@ -464,6 +469,7 @@ class SessionTest extends AbstractHibernateTest {
             "$Tags.COMPONENT.key" "java-hibernate"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.DB_STATEMENT.key" "$statement"
+            "$DDTags.ENTITY_NAME" "$resource"
             defaultTags()
           }
         }
@@ -576,49 +582,53 @@ class SessionTest extends AbstractHibernateTest {
         }
         span(7) {
           serviceName "hibernate"
-          resourceName "Value"
+          resourceName "hibernate.delete"
           operationName "hibernate.delete"
           spanType DDSpanTypes.HIBERNATE
           childOf span(2)
           tags {
             "$Tags.COMPONENT.key" "java-hibernate"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$DDTags.ENTITY_NAME" "Value"
             defaultTags()
           }
         }
         span(8) {
           serviceName "hibernate"
-          resourceName "Value"
+          resourceName "hibernate.save"
           operationName "hibernate.save"
           spanType DDSpanTypes.HIBERNATE
           childOf span(1)
           tags {
             "$Tags.COMPONENT.key" "java-hibernate"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$DDTags.ENTITY_NAME" "Value"
             defaultTags()
           }
         }
         span(9) {
           serviceName "hibernate"
-          resourceName "Value"
+          resourceName "hibernate.insert"
           operationName "hibernate.insert"
           spanType DDSpanTypes.HIBERNATE
           childOf span(6)
           tags {
             "$Tags.COMPONENT.key" "java-hibernate"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$DDTags.ENTITY_NAME" "Value"
             defaultTags()
           }
         }
         span(10) {
           serviceName "hibernate"
-          resourceName "Value"
+          resourceName "hibernate.save"
           operationName "hibernate.save"
           spanType DDSpanTypes.HIBERNATE
           childOf span(2)
           tags {
             "$Tags.COMPONENT.key" "java-hibernate"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$DDTags.ENTITY_NAME" "Value"
             defaultTags()
           }
         }

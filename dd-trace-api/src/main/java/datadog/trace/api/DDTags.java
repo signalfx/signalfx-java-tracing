@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.api;
 
 public class DDTags {
@@ -9,6 +10,7 @@ public class DDTags {
   public static final String DB_STATEMENT = "sql.query";
 
   public static final String USER_NAME = "user.principal";
+  public static final String ENTITY_NAME = "entity.name";
 
   public static final String ERROR_MSG = "error.msg"; // string representing the error message
   public static final String ERROR_TYPE = "error.type"; // string representing the type of the error

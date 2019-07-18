@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.decorator
 
 import datadog.trace.api.DDTags
@@ -16,7 +17,7 @@ class OrmClientDecoratorTest extends DatabaseClientDecoratorTest {
 
     then:
     if (isSet) {
-      1 * span.setTag(DDTags.RESOURCE_NAME, entityName)
+      1 * span.setTag(DDTags.ENTITY_NAME, entityName)
     }
     0 * _
 

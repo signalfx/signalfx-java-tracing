@@ -40,7 +40,7 @@ class TagsAssert {
     assertedTags.add(Config.TRACING_VERSION_KEY)
 
     assert tags["thread.name"] != null
-    assert tags["thread.name"] != null
+    assert tags["thread.id"] != null
     assert tags[Config.TRACING_LIBRARY_KEY] == Config.TRACING_LIBRARY_VALUE
     assert tags[Config.TRACING_VERSION_KEY] == Config.TRACING_VERSION_VALUE
     assert tags[Config.RUNTIME_ID_TAG] == null

@@ -1,0 +1,29 @@
+ext {
+  minJavaVersionForTests = JavaVersion.VERSION_1_8
+}
+
+apply from: "${rootDir}/gradle/java.gradle"
+apply from: "${rootDir}/gradle/test-with-kotlin.gradle"
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+dependencies {
+  testCompile project(':dd-trace-api')
+  testCompile project(':dd-trace-ot')
+  testCompile deps.kotlin
+  testCompile deps.coroutines
+
+  testCompile project(':dd-java-agent:testing')
+  testCompile project(':dd-java-agent:instrumentation:netty-4.1')
+  testCompile project(':dd-java-agent:instrumentation:java-concurrent')
+  testCompile project(':dd-java-agent:instrumentation:trace-annotation')
+  testCompile group: 'io.vertx', name: 'vertx-core', version: '3.5.0'
+  testCompile group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
+}

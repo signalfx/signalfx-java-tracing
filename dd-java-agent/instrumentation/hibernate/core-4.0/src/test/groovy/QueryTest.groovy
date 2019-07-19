@@ -1,5 +1,6 @@
 // Modified by SignalFx
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.api.DDTags
 import io.opentracing.tag.Tags
 import org.hibernate.Query
 import org.hibernate.Session
@@ -53,7 +54,7 @@ class QueryTest extends AbstractHibernateTest {
         }
         span(2) {
           serviceName "hibernate"
-          resourceName "$resource"
+          resourceName "hibernate.$queryMethodName"
           operationName "hibernate.$queryMethodName"
           spanType DDSpanTypes.HIBERNATE
           childOf span(0)
@@ -61,6 +62,7 @@ class QueryTest extends AbstractHibernateTest {
             "$Tags.COMPONENT.key" "java-hibernate"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
             "$Tags.DB_STATEMENT.key" "$statement"
+            "$DDTags.ENTITY_NAME" resource
             defaultTags()
           }
         }
@@ -87,7 +89,7 @@ class QueryTest extends AbstractHibernateTest {
           }
           span(1) {
             serviceName "hibernate"
-            resourceName "$resource"
+            resourceName "hibernate.$queryMethodName"
             operationName "hibernate.$queryMethodName"
             spanType DDSpanTypes.HIBERNATE
             childOf span(0)
@@ -95,6 +97,7 @@ class QueryTest extends AbstractHibernateTest {
               "$Tags.COMPONENT.key" "java-hibernate"
               "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
               "$Tags.DB_STATEMENT.key" "$statement"
+              "$DDTags.ENTITY_NAME" resource
               defaultTags()
             }
           }
@@ -113,7 +116,7 @@ class QueryTest extends AbstractHibernateTest {
       Query q = sess.createQuery("from Value")
       q.list()
     }
-    "query.executeUpdate" | "hibernate.query.executeUpdate"           | "update Value set name = 'alyx'"   | true                | { sess ->
+    "query.executeUpdate" | null           | "update Value set name = 'alyx'"   | true                | { sess ->
       Query q = sess.createQuery("update Value set name = 'alyx'")
       q.executeUpdate()
     }
@@ -121,11 +124,11 @@ class QueryTest extends AbstractHibernateTest {
       Query q = sess.createQuery("from Value where id = 1")
       q.uniqueResult()
     }
-      "query.iterate"             | "hibernate.query.iterate"         | "from Value"          | false               | { sess ->
+      "query.iterate"             | null         | "from Value"          | false               | { sess ->
       Query q = sess.createQuery("from Value")
       q.iterate()
     }
-    "query.scroll"        | "hibernate.query.scroll"                  | "from Value"                     | false               | { sess ->
+    "query.scroll"        | null                  | "from Value"                     | false               | { sess ->
       Query q = sess.createQuery("from Value")
       q.scroll()
     }

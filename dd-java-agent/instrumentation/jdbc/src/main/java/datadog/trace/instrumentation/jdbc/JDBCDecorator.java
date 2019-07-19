@@ -93,16 +93,12 @@ public class JDBCDecorator extends DatabaseClientDecorator<JDBCMaps.DBInfo> {
 
   @Override
   public Span onStatement(final Span span, final String statement) {
-    final String resourceName = statement == null ? JDBCMaps.DB_QUERY : statement;
-    span.setTag(DDTags.RESOURCE_NAME, resourceName);
     Tags.COMPONENT.set(span, "java-jdbc-statement");
     return super.onStatement(span, statement);
   }
 
   public Span onPreparedStatement(final Span span, final PreparedStatement statement) {
     final String sql = JDBCMaps.preparedStatements.get(statement);
-    final String resourceName = sql == null ? JDBCMaps.DB_QUERY : sql;
-    span.setTag(DDTags.RESOURCE_NAME, resourceName);
     Tags.COMPONENT.set(span, "java-jdbc-prepared_statement");
     return super.onStatement(span, sql);
   }

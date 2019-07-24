@@ -46,7 +46,7 @@ above.**
 
 It offers full support for the libraries and frameworks listed below in Java.
 Other JVM-based languages like Scala and Kotlin are also supported but are not
-explicitly validated.
+explicitly validated for compatibility with all instrumentations.
 
 ## Supported Libraries and Frameworks
 

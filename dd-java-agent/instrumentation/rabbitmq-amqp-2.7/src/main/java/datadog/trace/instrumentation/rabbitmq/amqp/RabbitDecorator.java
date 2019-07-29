@@ -70,6 +70,7 @@ public class RabbitDecorator extends ClientDecorator {
             ? "<all>"
             : routingKey.startsWith("amq.gen-") ? "<generated>" : routingKey;
     span.setTag(DDTags.RESOURCE_NAME, "basic.publish " + exchangeName + " -> " + routing);
+    span.setTag(Tags.MESSAGE_BUS_DESTINATION.getKey(), exchange);
     span.setTag(DDTags.SPAN_TYPE, DDSpanTypes.MESSAGE_PRODUCER);
     span.setTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_PRODUCER);
     span.setTag("amqp.command", "basic.publish");
@@ -80,6 +81,7 @@ public class RabbitDecorator extends ClientDecorator {
   public void onGet(final Span span, final String queue) {
     final String queueName = queue.startsWith("amq.gen-") ? "<generated>" : queue;
     span.setTag(DDTags.RESOURCE_NAME, "basic.get " + queueName);
+    span.setTag(Tags.MESSAGE_BUS_DESTINATION.getKey(), queue);
 
     span.setTag("amqp.command", "basic.get");
     span.setTag("amqp.queue", queue);
@@ -99,6 +101,7 @@ public class RabbitDecorator extends ClientDecorator {
 
     if (envelope != null) {
       span.setTag("amqp.exchange", envelope.getExchange());
+      span.setTag(Tags.MESSAGE_BUS_DESTINATION.getKey(), envelope.getExchange());
       span.setTag("amqp.routing_key", envelope.getRoutingKey());
     }
   }

@@ -51,7 +51,7 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
             "$Tags.COMPONENT.key" "couchbase-client"
             "$Tags.DB_TYPE.key" "couchbase"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "bucket" name
+            "$Tags.DB_INSTANCE.key" name
             defaultTags()
           }
         }
@@ -68,7 +68,7 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
             "$Tags.COMPONENT.key" "couchbase-client"
             "$Tags.DB_TYPE.key" "couchbase"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "bucket" name
+            "$Tags.DB_INSTANCE.key" name
             defaultTags()
           }
         }
@@ -85,7 +85,7 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
             "$Tags.COMPONENT.key" "couchbase-client"
             "$Tags.DB_TYPE.key" "couchbase"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "bucket" name
+            "$Tags.DB_INSTANCE.key" name
             defaultTags()
           }
         }
@@ -102,7 +102,7 @@ class CouchbaseSpringTemplateTest extends AbstractCouchbaseTest {
             "$Tags.COMPONENT.key" "couchbase-client"
             "$Tags.DB_TYPE.key" "couchbase"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "bucket" name
+            "$Tags.DB_INSTANCE.key" name
             defaultTags()
           }
         }

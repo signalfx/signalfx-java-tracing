@@ -93,6 +93,7 @@ public class TransportActionListener<T extends ActionResponse> implements Action
       if (resp.hasFailures()) {
         span.setTag("elasticsearch.node.failures", resp.failures().size());
       }
+      Tags.DB_INSTANCE.set(span, resp.getClusterName().value());
       span.setTag("elasticsearch.node.cluster.name", resp.getClusterName().value());
     }
 

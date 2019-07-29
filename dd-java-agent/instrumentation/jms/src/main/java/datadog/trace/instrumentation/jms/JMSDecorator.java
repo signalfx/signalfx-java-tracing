@@ -60,7 +60,9 @@ public abstract class JMSDecorator extends ClientDecorator {
   protected abstract String spanKind();
 
   public void onConsume(final Span span, final Message message) {
-    span.setTag(DDTags.RESOURCE_NAME, "Consumed from " + toResourceName(message, null));
+    String topic = toResourceName(message, null);
+    span.setTag(DDTags.RESOURCE_NAME, "Consumed from " + topic);
+    Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
   }
 
   public void onReceive(final Span span, final Method method) {
@@ -68,13 +70,19 @@ public abstract class JMSDecorator extends ClientDecorator {
   }
 
   public void onReceive(final Scope scope, final Message message) {
-    scope.span().setTag(DDTags.RESOURCE_NAME, "Received from " + toResourceName(message, null));
+    final Span span = scope.span();
+    String topic = toResourceName(message, null);
+
+    span.setTag(DDTags.RESOURCE_NAME, "Received from " + topic);
+    Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
   }
 
   public void onProduce(final Scope scope, final Message message, final Destination destination) {
-    scope
-        .span()
-        .setTag(DDTags.RESOURCE_NAME, "Produced for " + toResourceName(message, destination));
+    final Span span = scope.span();
+    String topic = toResourceName(message, destination);
+
+    span.setTag(DDTags.RESOURCE_NAME, "Produced for " + topic);
+    Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
   }
 
   private static final String TIBCO_TMP_PREFIX = "$TMP$";

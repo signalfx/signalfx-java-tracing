@@ -104,8 +104,8 @@ class LettuceSyncClientTest extends AgentTestRunner {
           tags {
             defaultTags()
             "component" "redis"
-            "db.instance" dbAddr
-            "db.redis.dbIndex" 0
+            "db.instance" "$DB_INDEX"
+            "db.redis.dbIndex" DB_INDEX
             "db.type" "redis"
             "peer.hostname" HOST
             "peer.port" port
@@ -141,8 +141,8 @@ class LettuceSyncClientTest extends AgentTestRunner {
           tags {
             defaultTags()
             "component" "redis"
-            "db.instance" dbAddrNonExistent
-            "db.redis.dbIndex" 0
+            "db.instance" "$DB_INDEX"
+            "db.redis.dbIndex" DB_INDEX
             "db.type" "redis"
             errorTags CompletionException, String
             "peer.hostname" HOST

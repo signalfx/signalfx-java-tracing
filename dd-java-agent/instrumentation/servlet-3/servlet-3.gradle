@@ -43,10 +43,10 @@ dependencies {
   testCompile group: 'org.apache.tomcat.embed', name: 'tomcat-embed-core', version: '8.0.41'
   testCompile group: 'org.apache.tomcat.embed', name: 'tomcat-embed-jasper', version: '8.0.41'
 
-  latestDepTestCompile group: 'org.eclipse.jetty', name: 'jetty-server', version: '+'
-  latestDepTestCompile group: 'org.eclipse.jetty', name: 'jetty-servlet', version: '+'
-  latestDepTestCompile group: 'org.apache.tomcat.embed', name: 'tomcat-embed-core', version: '+'
-  latestDepTestCompile group: 'org.apache.tomcat.embed', name: 'tomcat-embed-jasper', version: '+'
+  latestDepTestCompile group: 'org.eclipse.jetty', name: 'jetty-server', version: '9.+'
+  latestDepTestCompile group: 'org.eclipse.jetty', name: 'jetty-servlet', version: '9.+'
+  latestDepTestCompile group: 'org.apache.tomcat.embed', name: 'tomcat-embed-core', version: '9.+'
+  latestDepTestCompile group: 'org.apache.tomcat.embed', name: 'tomcat-embed-jasper', version: '9.+'
 }
 
 tasks.withType(Test).configureEach {

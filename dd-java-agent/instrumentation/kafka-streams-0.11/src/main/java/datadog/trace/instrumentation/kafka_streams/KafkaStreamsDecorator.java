@@ -40,6 +40,7 @@ public class KafkaStreamsDecorator extends ClientDecorator {
     final Span span = scope.span();
     if (record != null) {
       final String topic = record.topic() == null ? "kafka" : record.topic();
+      Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
       span.setTag(DDTags.RESOURCE_NAME, "Consume Topic " + topic);
       span.setTag("partition", record.partition());
       span.setTag("offset", record.offset());

@@ -59,6 +59,7 @@ public abstract class KafkaDecorator extends ClientDecorator {
     if (record != null) {
       final String topic = record.topic() == null ? "kafka" : record.topic();
       span.setTag(DDTags.RESOURCE_NAME, "Consume Topic " + topic);
+      Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
       span.setTag("partition", record.partition());
       span.setTag("offset", record.offset());
     }
@@ -73,6 +74,7 @@ public abstract class KafkaDecorator extends ClientDecorator {
         span.setTag("kafka.partition", record.partition());
       }
 
+      Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
       span.setTag(DDTags.RESOURCE_NAME, "Produce Topic " + topic);
     }
   }

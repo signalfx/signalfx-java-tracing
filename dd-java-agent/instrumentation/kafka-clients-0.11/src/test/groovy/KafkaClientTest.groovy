@@ -88,6 +88,7 @@ class KafkaClientTest extends AgentTestRunner {
           tags {
             "component" "java-kafka"
             "span.kind" "producer"
+            "message_bus.destination" "$SHARED_TOPIC"
             defaultTags()
           }
         }
@@ -104,6 +105,7 @@ class KafkaClientTest extends AgentTestRunner {
           tags {
             "component" "java-kafka"
             "span.kind" "consumer"
+            "message_bus.destination" "$SHARED_TOPIC"
             "partition" { it >= 0 }
             "offset" 0
             defaultTags(true)

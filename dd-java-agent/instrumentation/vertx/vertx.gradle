@@ -47,5 +47,5 @@ dependencies {
   testCompile project(':dd-java-agent:instrumentation:netty-4.1')
   testCompile group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
 
-  latestDepTestCompile group: 'io.vertx', name: 'vertx-web', version: '+'
+  latestDepTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.+'
 }

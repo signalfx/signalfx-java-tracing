@@ -17,6 +17,7 @@ import datadog.trace.bootstrap.CallDepthThreadLocalMap;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.noop.NoopSpan;
+import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -118,7 +119,7 @@ public class CouchbaseBucketInstrumentation extends Instrumenter.Default {
           GlobalTracer.get()
               .buildSpan("couchbase.call")
               .withTag(DDTags.RESOURCE_NAME, resourceName)
-              .withTag("bucket", bucket)
+              .withTag(Tags.DB_INSTANCE.getKey(), bucket)
               .start();
       try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
         // just replace the no-op span.

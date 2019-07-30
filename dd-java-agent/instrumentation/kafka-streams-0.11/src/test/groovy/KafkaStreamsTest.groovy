@@ -129,6 +129,7 @@ class KafkaStreamsTest extends AgentTestRunner {
           tags {
             "component" "java-kafka"
             "span.kind" "producer"
+            "message_bus.destination" "$STREAM_PENDING"
             defaultTags()
           }
         }
@@ -147,6 +148,7 @@ class KafkaStreamsTest extends AgentTestRunner {
           tags {
             "component" "java-kafka"
             "span.kind" "producer"
+            "message_bus.destination" "$STREAM_PROCESSED"
             defaultTags()
           }
         }
@@ -163,6 +165,7 @@ class KafkaStreamsTest extends AgentTestRunner {
           tags {
             "component" "java-kafka"
             "span.kind" "consumer"
+            "message_bus.destination" "$STREAM_PENDING"
             "partition" { it >= 0 }
             "offset" 0
             defaultTags(true)
@@ -182,6 +185,7 @@ class KafkaStreamsTest extends AgentTestRunner {
           tags {
             "component" "java-kafka"
             "span.kind" "consumer"
+            "message_bus.destination" "$STREAM_PROCESSED"
             "partition" { it >= 0 }
             "offset" 0
             defaultTags(true)

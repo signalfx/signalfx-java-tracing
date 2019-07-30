@@ -44,6 +44,10 @@ public class LettuceClientDecorator extends DatabaseClientDecorator<RedisURI> {
 
   @Override
   protected String dbInstance(final RedisURI connection) {
+    return String.valueOf(connection.getDatabase());
+  }
+
+  protected String dbResource(final RedisURI connection) {
     return connection.getHost() + ":" + connection.getPort() + "/" + connection.getDatabase();
   }
 
@@ -54,7 +58,7 @@ public class LettuceClientDecorator extends DatabaseClientDecorator<RedisURI> {
       Tags.PEER_PORT.set(span, connection.getPort());
 
       span.setTag("db.redis.dbIndex", connection.getDatabase());
-      span.setTag(DDTags.RESOURCE_NAME, "CONNECT:" + dbInstance(connection));
+      span.setTag(DDTags.RESOURCE_NAME, "CONNECT:" + dbResource(connection));
     }
     return super.onConnection(span, connection);
   }

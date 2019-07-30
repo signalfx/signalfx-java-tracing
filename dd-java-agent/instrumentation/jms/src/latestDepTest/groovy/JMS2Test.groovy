@@ -233,6 +233,7 @@ class JMS2Test extends AgentTestRunner {
           defaultTags()
           "${Tags.COMPONENT.key}" "jms"
           "${Tags.SPAN_KIND.key}" "producer"
+          "${Tags.MESSAGE_BUS_DESTINATION.key}" "$jmsResourceName"
           "span.origin.type" HornetQMessageProducer.name
         }
       }
@@ -258,6 +259,7 @@ class JMS2Test extends AgentTestRunner {
           defaultTags(true)
           "${Tags.COMPONENT.key}" "jms"
           "${Tags.SPAN_KIND.key}" "consumer"
+          "${Tags.MESSAGE_BUS_DESTINATION.key}" "$jmsResourceName"
           "span.origin.type" origin.name
         }
       }

@@ -61,10 +61,11 @@ explicitly validated for compatibility with all instrumentations.
 | **ElasticSearch Client** | 2+ | `elasticsearch` | Supports both REST and transport clients |
 | **gRPC (Client and Server)** | 1.5.0+ | `grpc` | |
 | **java.net.HttpURLConnection** | * | `httpurlconnection` | |
+| **Hibernate** | 3.5.0+ | `hibernate` | |
 | **Hystrix** | 1.4.0+ | `hystrix` | |
 | **JAX-RS Client** | 2.0.0+ | `jaxrs` | Also supports DropWizard client 0.8.0+ |
 | **JDBC API** | * | `jdbc` | |
-| **Jedis (Redis client)** | 1.4.0+ | `jedis` | |
+| **Jedis (Redis client)** | 1.4.0 - 2.x | `jedis` | |
 | **Jersey** | 2.1+ | `jersey` | In tandem with JAX-RS Annotations |
 | **Jetty Server** | 6.0.0+, 8.0.0+ | `jetty` | |
 | **JMS Messaging** | * | `jms` | |
@@ -86,7 +87,7 @@ explicitly validated for compatibility with all instrumentations.
 | **Spring Data** | 1.5.0+ | `spring-data` | Automatic tracing of all `org.springframework.data.repository.Repository` implementor public methods |
 | **Spring Web** | 4.0+ | `spring-web` | Includes DispatcherServlet, HandlerAdapter, and RestTemplate |
 | **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
-| **Vertx Web** | 4.1.0+  | N/A | This works through the Netty instrumentation |
+| **Vertx Web** | 3.5.0+  | N/A | This works through the Netty instrumentation |
 
 _Italicized_ libraries are in beta and must be explicitly enabled by setting the
 `-Dsignalfx.integration.<name>.enabled=true` system property, where `<name>` is

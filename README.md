@@ -143,8 +143,8 @@ tracing) and report every span to the Agent. Where applicable, context
 propagation will be done via [B3
 headers](https://github.com/openzipkin/b3-propagation).
 
-See [our example app that uses
-this](https://github.com/signalfx/tracing-examples/tree/master/java-agent) for
+See [our example applications that use
+this utility](https://github.com/signalfx/tracing-examples/tree/master/signalfx-tracing/signalfx-java-tracing) for
 more details on how to use and configure the SignalFx Java Agent.
 
 # License and Versioning

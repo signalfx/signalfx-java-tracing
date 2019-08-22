@@ -8,7 +8,7 @@ import spock.lang.Shared
 
 class JedisClientTest extends AgentTestRunner {
 
-  public static final int PORT = 6399
+  public static final int PORT = 6400
 
   @Shared
   RedisServer redisServer = RedisServer.builder()

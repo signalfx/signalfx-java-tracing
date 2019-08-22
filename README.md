@@ -65,7 +65,7 @@ explicitly validated for compatibility with all instrumentations.
 | **Hystrix** | 1.4.0+ | `hystrix` | |
 | **JAX-RS Client** | 2.0.0+ | `jaxrs` | Also supports DropWizard client 0.8.0+ |
 | **JDBC API** | * | `jdbc` | |
-| **Jedis (Redis client)** | 1.4.0 - 2.x | `jedis` | |
+| **Jedis (Redis client)** | 1.4.0+ | `jedis` | |
 | **Jersey** | 2.1+ | `jersey` | In tandem with JAX-RS Annotations |
 | **Jetty Server** | 6.0.0+, 8.0.0+ | `jetty` | |
 | **JMS Messaging** | * | `jms` | |

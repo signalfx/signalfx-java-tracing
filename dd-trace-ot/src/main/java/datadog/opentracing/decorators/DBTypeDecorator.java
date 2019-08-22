@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing.decorators;
 
 import datadog.opentracing.DDSpanContext;
@@ -22,7 +23,7 @@ public class DBTypeDecorator extends AbstractDecorator {
 
     // Assign service name
     if (!super.shouldSetTag(context, tag, value)) {
-      if ("couchbase".equals(value) || "elasticsearch".equals(value)) {
+      if ("couchbase".equals(value) || "elasticsearch".equals(value) || "redis".equals(value)) {
         // these instrumentation have different behavior.
         return true;
       }

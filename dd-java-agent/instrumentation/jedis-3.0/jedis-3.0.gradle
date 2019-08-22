@@ -1,9 +1,9 @@
-// Modifed by SignalFx
+// Modified by SignalFx
 muzzle {
   pass {
     group = "redis.clients"
     module = "jedis"
-    versions = "[1.4.0,)"
+    versions = "[3.0.0-m1,)"
     assertInverse = true
   }
 }
@@ -19,7 +19,7 @@ testSets {
 }
 
 dependencies {
-  compileOnly group: 'redis.clients', name: 'jedis', version: '1.4.0'
+  compileOnly group: 'redis.clients', name: 'jedis', version: '3.0.0'
 
   compile project(':dd-java-agent:agent-tooling')
 
@@ -30,11 +30,10 @@ dependencies {
 
   testCompile project(':dd-java-agent:testing')
   // Ensure no cross interference
-  testCompile project(':dd-java-agent:instrumentation:jedis-3.0')
+  testCompile project(':dd-java-agent:instrumentation:jedis-1.4')
 
   testCompile group: 'com.github.kstyrc', name: 'embedded-redis', version: '0.6'
-  testCompile group: 'redis.clients', name: 'jedis', version: '1.4.0'
+  testCompile group: 'redis.clients', name: 'jedis', version: '3.0.0'
 
-  // Jedis 3.0 has API changes that prevent instrumentation from applying
-  latestDepTestCompile group: 'redis.clients', name: 'jedis', version: '2.+'
+  latestDepTestCompile group: 'redis.clients', name: 'jedis', version: '+'
 }

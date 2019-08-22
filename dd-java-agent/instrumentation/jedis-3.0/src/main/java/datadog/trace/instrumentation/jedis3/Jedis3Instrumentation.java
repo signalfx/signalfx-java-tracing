@@ -1,7 +1,7 @@
 // Modified by SignalFx
-package datadog.trace.instrumentation.jedis;
+package datadog.trace.instrumentation.jedis3;
 
-import static datadog.trace.instrumentation.jedis.JedisClientDecorator.DECORATE;
+import static datadog.trace.instrumentation.jedis3.JedisClientDecorator.DECORATE;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -18,14 +18,15 @@ import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import redis.clients.jedis.Protocol.Command;
+import redis.clients.jedis.commands.ProtocolCommand;
 
 @AutoService(Instrumenter.class)
-public final class JedisInstrumentation extends Instrumenter.Default {
+public final class Jedis3Instrumentation extends Instrumenter.Default {
 
   private static final String SERVICE_NAME = "redis";
   private static final String COMPONENT_NAME = SERVICE_NAME + "-command";
 
-  public JedisInstrumentation() {
+  public Jedis3Instrumentation() {
     super("jedis", "redis");
   }
 
@@ -50,7 +51,7 @@ public final class JedisInstrumentation extends Instrumenter.Default {
         isMethod()
             .and(isPublic())
             .and(named("sendCommand"))
-            .and(takesArgument(1, named("redis.clients.jedis.Protocol$Command"))),
+            .and(takesArgument(1, named("redis.clients.jedis.commands.ProtocolCommand"))),
         JedisAdvice.class.getName());
     // FIXME: This instrumentation only incorporates sending the command, not processing the result.
   }
@@ -58,10 +59,14 @@ public final class JedisInstrumentation extends Instrumenter.Default {
   public static class JedisAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Scope startSpan(@Advice.Argument(1) final Command command) {
-      final Scope scope = GlobalTracer.get().buildSpan("redis." + command.name()).startActive(true);
+    public static Scope startSpan(@Advice.Argument(1) final ProtocolCommand command) {
+      String commandName = "query";
+      if (command instanceof Command) {
+        commandName = ((Command) command).name();
+      }
+      final Scope scope = GlobalTracer.get().buildSpan("redis." + commandName).startActive(true);
       DECORATE.afterStart(scope.span());
-      DECORATE.onStatement(scope.span(), command.name());
+      DECORATE.onStatement(scope.span(), commandName);
       return scope;
     }
 

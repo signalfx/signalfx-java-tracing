@@ -1,4 +1,7 @@
 // Modified by SignalFx
+
+import org.junit.Assume
+
 import static java.util.concurrent.CompletableFuture.ThreadPerTaskExecutor
 
 import datadog.opentracing.DDSpan
@@ -132,7 +135,7 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
     "invokeAny with timeout" | invokeAnyTimeout    | new CustomThreadPoolExecutor()
 
     // Used internally by CompletableFuture when ForkJoinPool.commonPool() doesn't support parallelism
-    "execute Runnable"       | executeRunnable     | new ThreadPerTaskExecutor()
+    "execute Runnable"       | executeRunnable     | (System.getProperty("java.version").startsWith("1.7") ? Assume.assumeTrue(false) : new ThreadPerTaskExecutor())
   }
 
   def "#poolImpl '#name' disabled wrapping"() {

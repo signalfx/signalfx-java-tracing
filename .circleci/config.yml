@@ -26,7 +26,7 @@ jobs:
 
     - run:
         name: Build Project
-        command: GRADLE_OPTS="-Dorg.gradle.jvmargs='-Xmx1G -Xms64M' -Ddatadog.forkedMaxHeapSize=1G -Ddatadog.forkedMinHeapSize=64M" ./gradlew clean :dd-java-agent:shadowJar --build-cache --stacktrace --no-daemon
+        command: GRADLE_OPTS="-Dorg.gradle.jvmargs='-Xmx1G -Xms64M' -Ddatadog.forkedMaxHeapSize=1G -Ddatadog.forkedMinHeapSize=64M" ./gradlew clean :dd-java-agent:shadowJar --build-cache --stacktrace --no-daemon --parallel --max-workers=8
 
     - run:
         name: Collect Libs
@@ -67,7 +67,7 @@ jobs:
 
     - run:
         name: Run Tests
-        command: GRADLE_OPTS="-Ddatadog.forkedMaxHeapSize=2G -Ddatadog.forkedMinHeapSize=64M" ./gradlew $TEST_TASK --build-cache --stacktrace --no-daemon
+        command: GRADLE_OPTS="-Ddatadog.forkedMaxHeapSize=2G -Ddatadog.forkedMinHeapSize=64M" ./gradlew $TEST_TASK --build-cache --stacktrace --no-daemon --parallel --max-workers=4
 
     - run:
         name: Collect Reports
@@ -136,7 +136,7 @@ jobs:
 
     - run:
         name: Run Trace Agent Tests
-        command: ./gradlew traceAgentTest --build-cache --stacktrace --no-daemon
+        command: ./gradlew traceAgentTest --build-cache --stacktrace --no-daemon --parallel --max-workers=4
 
     - run:
         name: Collect Reports
@@ -168,7 +168,7 @@ jobs:
 
     - run:
         name: Build Project
-        command: GRADLE_OPTS="-Ddatadog.forkedMaxHeapSize=2G -Ddatadog.forkedMinHeapSize=64M" ./gradlew check -PskipTests --build-cache --stacktrace --no-daemon
+        command: GRADLE_OPTS="-Ddatadog.forkedMaxHeapSize=2G -Ddatadog.forkedMinHeapSize=64M" ./gradlew check -PskipTests --build-cache --stacktrace --no-daemon --parallel --max-workers=4
 
     - run:
         name: Collect Reports

@@ -74,6 +74,9 @@ public class Config {
   public static final String PROPAGATION_STYLE_EXTRACT = "propagation.style.extract";
   public static final String PROPAGATION_STYLE_INJECT = "propagation.style.inject";
 
+  public static final String KAFKA_ATTEMPT_PROPAGATION =
+      "instrumentation.kafka.attempt-propagation";
+
   public static final String JMX_FETCH_ENABLED = "jmxfetch.enabled";
   public static final String JMX_FETCH_METRICS_CONFIGS = "jmxfetch.metrics-configs";
   public static final String JMX_FETCH_CHECK_PERIOD = "jmxfetch.check-period";
@@ -125,6 +128,8 @@ public class Config {
   private static final String DEFAULT_PROPAGATION_STYLE_INJECT = PropagationStyle.B3.name();
   private static final boolean DEFAULT_JMX_FETCH_ENABLED = false;
 
+  public static final boolean DEFAULT_KAFKA_ATTEMPT_PROPAGATION = true;
+
   public static final int DEFAULT_JMX_FETCH_STATSD_PORT = 8125;
 
   public static final boolean DEFAULT_LOGS_INJECTION_ENABLED = false;
@@ -174,6 +179,8 @@ public class Config {
   @Getter private final boolean runtimeContextFieldInjection;
   @Getter private final Set<PropagationStyle> propagationStylesToExtract;
   @Getter private final Set<PropagationStyle> propagationStylesToInject;
+
+  @Getter private final boolean kafkaAttemptPropagation;
 
   @Getter private final boolean jmxFetchEnabled;
   @Getter private final List<String> jmxFetchMetricsConfigs;
@@ -252,6 +259,10 @@ public class Config {
             DEFAULT_PROPAGATION_STYLE_INJECT,
             PropagationStyle.class,
             true);
+
+    kafkaAttemptPropagation =
+        getBooleanSettingFromEnvironment(
+            KAFKA_ATTEMPT_PROPAGATION, DEFAULT_KAFKA_ATTEMPT_PROPAGATION);
 
     jmxFetchEnabled =
         getBooleanSettingFromEnvironment(JMX_FETCH_ENABLED, DEFAULT_JMX_FETCH_ENABLED);
@@ -341,6 +352,10 @@ public class Config {
         parsedPropagationStylesToInject == null
             ? parent.propagationStylesToInject
             : parsedPropagationStylesToInject;
+
+    kafkaAttemptPropagation =
+        getPropertyBooleanValue(
+            properties, KAFKA_ATTEMPT_PROPAGATION, parent.kafkaAttemptPropagation);
 
     jmxFetchEnabled =
         getPropertyBooleanValue(properties, JMX_FETCH_ENABLED, parent.jmxFetchEnabled);

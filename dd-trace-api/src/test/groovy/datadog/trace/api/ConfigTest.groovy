@@ -14,6 +14,7 @@ import static datadog.trace.api.Config.AGENT_UNIX_DOMAIN_SOCKET
 import static datadog.trace.api.Config.DB_STATEMENT_MAX_LENGTH
 import static datadog.trace.api.Config.DEFAULT_DB_STATEMENT_MAX_LENGTH
 import static datadog.trace.api.Config.DEFAULT_JMX_FETCH_STATSD_PORT
+import static datadog.trace.api.Config.DEFAULT_KAFKA_ATTEMPT_PROPAGATION
 import static datadog.trace.api.Config.GLOBAL_TAGS
 import static datadog.trace.api.Config.HEADER_TAGS
 import static datadog.trace.api.Config.HTTP_CLIENT_ERROR_STATUSES
@@ -26,6 +27,7 @@ import static datadog.trace.api.Config.JMX_FETCH_REFRESH_BEANS_PERIOD
 import static datadog.trace.api.Config.JMX_FETCH_STATSD_HOST
 import static datadog.trace.api.Config.JMX_FETCH_STATSD_PORT
 import static datadog.trace.api.Config.JMX_TAGS
+import static datadog.trace.api.Config.KAFKA_ATTEMPT_PROPAGATION
 import static datadog.trace.api.Config.TRACING_LIBRARY_KEY
 import static datadog.trace.api.Config.TRACING_LIBRARY_VALUE
 import static datadog.trace.api.Config.TRACING_VERSION_KEY
@@ -67,6 +69,7 @@ class ConfigTest extends Specification {
   private static final DD_AGENT_PORT_LEGACY_ENV = "DD_AGENT_PORT"
   private static final DD_TRACE_REPORT_HOSTNAME = "DD_TRACE_REPORT_HOSTNAME"
   private static final SIGNALFX_DB_STATEMENT_MAX_LENGTH = "SIGNALFX_DB_STATEMENT_MAX_LENGTH"
+  private static final SIGNALFX_KAFKA_ATTEMPT_PROPAGATION_ENV = "SIGNALFX_INSTRUMENTATION_KAFKA_ATTEMPT_PROPAGATION"
 
   def "verify defaults"() {
     when:
@@ -107,6 +110,7 @@ class ConfigTest extends Specification {
     config.jmxFetchStatsdPort == DEFAULT_JMX_FETCH_STATSD_PORT
     config.toString().contains("unnamed-java-app")
     config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
+    config.kafkaAttemptPropagation == DEFAULT_KAFKA_ATTEMPT_PROPAGATION
 
     where:
     provider << [{ new Config() }, { Config.get() }, {
@@ -148,6 +152,7 @@ class ConfigTest extends Specification {
     prop.setProperty(JMX_FETCH_STATSD_HOST, "statsd host")
     prop.setProperty(JMX_FETCH_STATSD_PORT, "321")
     prop.setProperty(DB_STATEMENT_MAX_LENGTH, "100")
+    prop.setProperty(KAFKA_ATTEMPT_PROPAGATION, "false")
 
     when:
     Config config = Config.get(prop)
@@ -180,6 +185,7 @@ class ConfigTest extends Specification {
     config.jmxFetchStatsdHost == "statsd host"
     config.jmxFetchStatsdPort == 321
     config.dbStatementMaxLength == 100
+    config.kafkaAttemptPropagation == false
   }
 
   def "specify overrides via system properties"() {
@@ -216,6 +222,7 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + JMX_FETCH_STATSD_HOST, "statsd host") // SFX
     System.setProperty(PREFIX + JMX_FETCH_STATSD_PORT, "321") // SFX
     System.setProperty(PREFIX + DB_STATEMENT_MAX_LENGTH, "100") // SFX
+    System.setProperty(PREFIX + KAFKA_ATTEMPT_PROPAGATION, "false") // SFX
 
     when:
     Config config = new Config()
@@ -251,6 +258,7 @@ class ConfigTest extends Specification {
     config.jmxFetchStatsdHost == "statsd host"
     config.jmxFetchStatsdPort == 321
     config.dbStatementMaxLength == 100
+    config.kafkaAttemptPropagation == false
 
     where:
     prefix      | _
@@ -269,6 +277,7 @@ class ConfigTest extends Specification {
     environmentVariables.set(DD_TRACE_REPORT_HOSTNAME, "true")
     environmentVariables.set(DD_SPAN_TAGS_ENV, "key1:value1,key2:value2")
     environmentVariables.set(SIGNALFX_DB_STATEMENT_MAX_LENGTH, "100")
+    environmentVariables.set(SIGNALFX_KAFKA_ATTEMPT_PROPAGATION_ENV, "false")
 
     when:
     def config = new Config()
@@ -283,6 +292,7 @@ class ConfigTest extends Specification {
     config.reportHostName == true
     config.spanTags == [key1: "value1", key2: "value2"]
     config.dbStatementMaxLength == 100
+    config.kafkaAttemptPropagation == false
   }
 
   def "malformed endpoint url fails"() {
@@ -308,6 +318,7 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + AGENT_HOST, "somewhere")
     System.setProperty(PREFIX + TRACE_AGENT_PORT, "123")
     System.setProperty(SIGNALFX_PREFIX + DB_STATEMENT_MAX_LENGTH, "1010")
+    System.setProperty(SIGNALFX_PREFIX + KAFKA_ATTEMPT_PROPAGATION, "false")
 
     when:
     def config = new Config()
@@ -318,6 +329,7 @@ class ConfigTest extends Specification {
     config.agentHost == "somewhere"
     config.agentPort == 123
     config.dbStatementMaxLength == 1010
+    config.kafkaAttemptPropagation == false
   }
 
   def "default when configured incorrectly"() {
@@ -339,6 +351,7 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + PROPAGATION_STYLE_EXTRACT, "some garbage")
     System.setProperty(PREFIX + PROPAGATION_STYLE_INJECT, " ")
     System.setProperty(PREFIX + DB_STATEMENT_MAX_LENGTH, "abs")
+    System.setProperty(PREFIX + KAFKA_ATTEMPT_PROPAGATION, " ")
 
     when:
     def config = new Config()
@@ -360,6 +373,7 @@ class ConfigTest extends Specification {
     config.propagationStylesToExtract.toList() == [Config.PropagationStyle.B3]
     config.propagationStylesToInject.toList() == [Config.PropagationStyle.B3]
     config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
+    config.kafkaAttemptPropagation == DEFAULT_KAFKA_ATTEMPT_PROPAGATION
   }
 
   def "sys props and env vars overrides for trace_agent_port and agent_port_legacy as expected"() {
@@ -432,7 +446,8 @@ class ConfigTest extends Specification {
     properties.setProperty(JMX_FETCH_STATSD_HOST, "statsd host")
     properties.setProperty(JMX_FETCH_STATSD_PORT, "321")
     properties.setProperty(DB_STATEMENT_MAX_LENGTH, "100")
-    
+    properties.setProperty(KAFKA_ATTEMPT_PROPAGATION, "false")
+
     when:
     def config = Config.get(properties)
 
@@ -461,6 +476,7 @@ class ConfigTest extends Specification {
     config.jmxFetchStatsdHost == "statsd host"
     config.jmxFetchStatsdPort == 321
     config.dbStatementMaxLength == 100
+    config.kafkaAttemptPropagation == false
   }
 
   def "override null properties"() {

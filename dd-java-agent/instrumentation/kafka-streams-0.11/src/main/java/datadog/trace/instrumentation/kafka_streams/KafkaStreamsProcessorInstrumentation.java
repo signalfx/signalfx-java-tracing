@@ -11,6 +11,7 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.api.Config;
 import io.opentracing.Scope;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.Format;
@@ -66,10 +67,13 @@ public class KafkaStreamsProcessorInstrumentation {
           return;
         }
 
-        final SpanContext extractedContext =
-            GlobalTracer.get()
-                .extract(
-                    Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(record.value.headers()));
+        SpanContext extractedContext = null;
+        if (Config.get().isKafkaAttemptPropagation()) {
+          extractedContext =
+              GlobalTracer.get()
+                  .extract(
+                      Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(record.value.headers()));
+        }
 
         final Scope scope =
             GlobalTracer.get()

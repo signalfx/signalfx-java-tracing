@@ -1,3 +1,4 @@
+// Modified by Signalfx
 muzzle {
   pass {
     group = "org.apache.kafka"
@@ -13,6 +14,10 @@ apply plugin: 'org.unbroken-dome.test-sets'
 
 testSets {
   latestDepTest {
+    dirName = 'test'
+  }
+
+  propertyTest {
     dirName = 'test'
   }
 }
@@ -43,3 +48,8 @@ dependencies {
   latestDepTestCompile group: 'org.springframework.kafka', name: 'spring-kafka-test', version: '+'
   latestDepTestCompile group: 'org.assertj', name: 'assertj-core', version: '3.+'
 }
+
+tasks.getByName('propertyTest').configure {
+  jvmArgs "-Dsignalfx.instrumentation.kafka.attempt-propagation=false"
+}
+test.dependsOn(propertyTest)

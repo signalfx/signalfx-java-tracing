@@ -70,7 +70,7 @@ explicitly validated for compatibility with all instrumentations.
 | **Jetty Server** | 6.0.0+, 8.0.0+ | `jetty` | |
 | **JMS Messaging** | * | `jms` | |
 | **JSP** | 7+ | `jsp` | |
-| **Kafka Client** | 0.11.0.0+ | `kafka` | |
+| **Kafka Client** | 0.11.0.0+ | `kafka` | Disable trace propagation for unsupported environments with `-Dsignalfx.instrumentation.kafka.attempt-propagation=false` |
 | **Lettuce (Redis Client)** | 5.0.0+ | `lettuce` | |
 | _Java MDC_ | * | `-Dsignalfx.logs.injection=true` on Java invocation | Injects `signalfx.trace_id` and `signalfx.span_id` to MDC contexts |
 | **Memcached (SpyMemcached)** | 2.10.0+ | `spymemcached` | |

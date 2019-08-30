@@ -1,5 +1,6 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
+import datadog.trace.api.Config
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.KafkaStreams
@@ -116,6 +117,8 @@ class KafkaStreamsTest extends AgentTestRunner {
     received.value() == greeting.toLowerCase()
     received.key() == null
 
+    def propagation = Config.get().isKafkaAttemptPropagation()
+
     assertTraces(3) {
       trace(0, 1) {
         // PRODUCER span 0
@@ -160,7 +163,11 @@ class KafkaStreamsTest extends AgentTestRunner {
           resourceName "Consume Topic $STREAM_PENDING"
           spanType "queue"
           errored false
-          childOf TEST_WRITER[0][0]
+          if (propagation) {
+            childOf TEST_WRITER[0][0]
+          } else {
+            parent()
+          }
 
           tags {
             "component" "java-kafka"
@@ -181,7 +188,11 @@ class KafkaStreamsTest extends AgentTestRunner {
           resourceName "Consume Topic $STREAM_PROCESSED"
           spanType "queue"
           errored false
-          childOf TEST_WRITER[1][0]
+          if (propagation) {
+            childOf TEST_WRITER[1][0]
+          } else {
+            parent()
+          }
           tags {
             "component" "java-kafka"
             "span.kind" "consumer"
@@ -196,10 +207,13 @@ class KafkaStreamsTest extends AgentTestRunner {
     }
 
     def headers = received.headers()
-    headers.iterator().hasNext()
-    new String(headers.headers("x-b3-traceid").iterator().next().value()) == new BigInteger(TEST_WRITER[1][0].traceId).toString(16).toLowerCase()
-    new String(headers.headers("x-b3-spanid").iterator().next().value()) == new BigInteger(TEST_WRITER[1][0].spanId).toString(16).toLowerCase()
-
+    if (propagation) {
+      assert headers.iterator().hasNext()
+      assert new String(headers.headers("x-b3-traceid").iterator().next().value()) == new BigInteger(TEST_WRITER[1][0].traceId).toString(16).toLowerCase()
+      assert new String(headers.headers("x-b3-spanid").iterator().next().value()) == new BigInteger(TEST_WRITER[1][0].spanId).toString(16).toLowerCase()
+    } else {
+      assert !headers.iterator().hasNext()
+    }
 
     cleanup:
     producerFactory?.stop()

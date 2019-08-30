@@ -1,5 +1,6 @@
 package datadog.trace.instrumentation.kafka_clients;
 
+import datadog.trace.api.Config;
 import io.opentracing.Scope;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.Format;
@@ -65,9 +66,12 @@ public class TracingIterable implements Iterable<ConsumerRecord> {
 
       try {
         if (next != null) {
-          final SpanContext spanContext =
-              GlobalTracer.get()
-                  .extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(next.headers()));
+          SpanContext spanContext = null;
+          if (Config.get().isKafkaAttemptPropagation()) {
+            spanContext =
+                GlobalTracer.get()
+                    .extract(Format.Builtin.TEXT_MAP, new TextMapExtractAdapter(next.headers()));
+          }
           currentScope =
               GlobalTracer.get().buildSpan(operationName).asChildOf(spanContext).startActive(true);
           decorator.afterStart(currentScope);

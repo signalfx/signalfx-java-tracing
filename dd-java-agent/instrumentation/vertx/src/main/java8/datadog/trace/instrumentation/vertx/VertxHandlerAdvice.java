@@ -1,7 +1,10 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
+import static datadog.trace.instrumentation.vertx.RoutingContextDecorator.DECORATE;
 import static io.opentracing.log.Fields.ERROR_OBJECT;
 
+import datadog.trace.context.TraceScope;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -14,11 +17,24 @@ public class VertxHandlerAdvice {
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static Scope startSpan(
       @Advice.This final Object source, @Advice.Argument(0) final Object event) {
-    return GlobalTracer.get()
-        .buildSpan(source.getClass().getName() + ".handle")
+
+    String operationName = source.getClass().getName();
+    int indexOfChar = operationName.indexOf('$');
+    operationName = operationName.substring(0, indexOfChar);
+
+    Scope  scope = GlobalTracer.get()
+        .buildSpan(operationName + ".handle")
         .withTag("handler.type", event.getClass().getName())
         .withTag("component", "vertx")
         .startActive(true);
+
+    final Span span = scope.span();
+    DECORATE.afterStart(span);
+    if (scope instanceof TraceScope) {
+      ((TraceScope) scope).setAsyncPropagation(true);
+    }
+      System.out.println("\nHANDLER ON METHOD ENTER: RETURNING SCOPE\n");
+    return scope;
   }
 
   @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
@@ -32,7 +48,12 @@ public class VertxHandlerAdvice {
         Tags.ERROR.set(span, true);
         span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
       }
-
+      if (scope instanceof TraceScope) {
+        ((TraceScope) scope).setAsyncPropagation(false);
+      }
+      System.out.println("\nHANDLER ON METHOD EXIT: CLOSING SCOPE\n");
+      DECORATE.beforeFinish(span);
+      span.finish();
       scope.close();
     }
   }

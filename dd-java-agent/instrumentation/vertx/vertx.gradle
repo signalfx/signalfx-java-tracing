@@ -1,3 +1,4 @@
+// Modified by SignalFx
 // Set properties before any plugins get loaded
 ext {
   minJavaVersionForTests = JavaVersion.VERSION_1_8
@@ -7,16 +8,16 @@ apply from: "${rootDir}/gradle/java.gradle"
 apply from: "${rootDir}/gradle/test-with-kotlin.gradle"
 
 muzzle {
-  pass {
-    group = "io.vertx"
-    module = "vertx-core"
-    versions = "[3.5.0,)"
-    assertInverse = true
-  }
+//  pass {
+//    group = "io.vertx"
+//    module = "vertx-core"
+//    versions = "[3.5.0,)"
+//    assertInverse = true
+//  }
   pass {
     group = "io.vertx"
     module = "vertx-web"
-    versions = "[3.5.0,)"
+    versions = "[3.0.0-milestone6, )"
     assertInverse = true
   }
   pass {
@@ -29,18 +30,44 @@ muzzle {
 
 apply plugin: 'org.unbroken-dome.test-sets'
 
+sourceSets {
+  main_java8 {
+    java.srcDirs "${project.projectDir}/src/main/java8"
+  }
+}
+
+compileMain_java8Java {
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
+}
+
 testSets {
   latestDepTest {
     dirName = 'test'
   }
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+compileTestJava {
+  sourceCompatibility = "1.8"
+  targetCompatibility = "1.8"
+}
+
+compileLatestDepTestJava {
+  sourceCompatibility = "1.8"
+  targetCompatibility = "1.8"
+}
 
 dependencies {
-  compileOnly group: 'io.vertx', name: 'vertx-core', version: '3.5.0'
-  compileOnly group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
+  main_java8CompileOnly group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
+  main_java8CompileOnly group: 'io.vertx', name: 'vertx-web', version: '3.1.0'
+
+  main_java8Compile project(':dd-java-agent:agent-tooling')
+
+  main_java8Compile deps.bytebuddy
+  main_java8Compile deps.opentracing
+
+  compileOnly sourceSets.main_java8.compileClasspath
+  compile sourceSets.main_java8.output
 
   compile project(':dd-java-agent:agent-tooling')
 
@@ -52,10 +79,9 @@ dependencies {
   testCompile project(':dd-java-agent:testing')
   testCompile project(':dd-java-agent:instrumentation:java-concurrent')
   testCompile project(':dd-java-agent:instrumentation:trace-annotation')
-  testCompile project(':dd-java-agent:instrumentation:netty-4.1')
-  testCompile group: 'io.vertx', name: 'vertx-core', version: '3.5.0'
-  testCompile group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
+  testCompile project(':dd-java-agent:instrumentation:netty-4.0')
+  testCompile group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
+  testCompile group: 'io.vertx', name: 'vertx-web', version: '3.1.0'
 
-  latestDepTestCompile group: 'io.vertx', name: 'vertx-core', version: '+'
-  latestDepTestCompile group: 'io.vertx', name: 'vertx-web', version: '+'
+  latestDepTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.+'
 }

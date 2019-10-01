@@ -1,15 +1,26 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
 import datadog.trace.agent.decorator.HttpServerDecorator;
+import datadog.trace.api.Config;
+import io.opentracing.Span;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.TreeSet;
 
 public class RoutingContextDecorator
     extends HttpServerDecorator<HttpServerRequest, HttpServerRequest, HttpServerResponse> {
 
   public static final RoutingContextDecorator DECORATE = new RoutingContextDecorator();
+  private boolean setKind =
+    !Config.get().integrationEnabled(new TreeSet<>(Arrays.asList("netty")), true);
+
+  public boolean shouldSetKind() {
+    return this.setKind;
+  }
 
   @Override
   protected String[] instrumentationNames() {
@@ -23,7 +34,7 @@ public class RoutingContextDecorator
 
   @Override
   protected String method(final HttpServerRequest httpServerRequest) {
-    return httpServerRequest.rawMethod();
+    return httpServerRequest.method().toString(); //return httpServerRequest.rawMethod();
   }
 
   @Override
@@ -33,7 +44,7 @@ public class RoutingContextDecorator
 
   @Override
   protected String peerHostname(final HttpServerRequest httpServerRequest) {
-    return httpServerRequest.host().split(":")[0];
+    return httpServerRequest.getHeader("Host").split(":")[0];
   }
 
   @Override
@@ -50,4 +61,11 @@ public class RoutingContextDecorator
   protected Integer status(final HttpServerResponse httpServerResponse) {
     return httpServerResponse.getStatusCode();
   }
+
+  @Override
+  public Span afterStart(final Span span) {
+    assert span != null;
+    return super.afterStart(span, this.shouldSetKind());
+  }
+
 }

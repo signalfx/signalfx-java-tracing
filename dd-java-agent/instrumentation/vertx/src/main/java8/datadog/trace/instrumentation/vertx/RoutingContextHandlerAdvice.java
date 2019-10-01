@@ -1,12 +1,16 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
 import static datadog.trace.instrumentation.vertx.RoutingContextDecorator.DECORATE;
 
 import datadog.trace.context.TraceScope;
+import static io.opentracing.log.Fields.ERROR_OBJECT;
 import io.opentracing.Scope;
 import io.opentracing.Span;
+import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Collections;
 import net.bytebuddy.asm.Advice;
 
 public class RoutingContextHandlerAdvice {
@@ -21,14 +25,15 @@ public class RoutingContextHandlerAdvice {
             .startActive(true);
 
     final Span span = scope.span();
-    DECORATE.afterStart(span);
+//    DECORATE.afterStart(span);
     DECORATE.onConnection(span, context.request());
     DECORATE.onRequest(span, context.request());
 
     if (scope instanceof TraceScope) {
       ((TraceScope) scope).setAsyncPropagation(true);
     }
-
+    System.out.println("\nROUTING CONTEXT ON METHOD ENTER: RETURNING SCOPE\n");
+    System.out.println("\n SPAN" + scope.span() +"\n");
     return scope;
   }
 
@@ -38,8 +43,22 @@ public class RoutingContextHandlerAdvice {
       @Advice.Enter final Scope scope,
       @Advice.Argument(0) final RoutingContext context) {
     if (scope != null) {
-      DECORATE.onResponse(scope.span(), context.response());
+      final Span span = scope.span();
+      DECORATE.onResponse(span, context.response());
 
+      if (throwable != null) {
+        Tags.ERROR.set(span, true);
+        DECORATE.onError(span, throwable);
+        span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
+      }
+
+      if (scope instanceof TraceScope) {
+        ((TraceScope) scope).setAsyncPropagation(false);
+      }
+      System.out.println("\nROUTING CONTEXT ON METHOD EXIT: CLOSING SCOPE\n");
+      System.out.println("\n SPAN" + scope.span() +"\n");
+      DECORATE.beforeFinish(span);
+      span.finish();
       scope.close();
     }
   }

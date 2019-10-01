@@ -1,7 +1,6 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
-import io.netty.channel.AbstractChannel
 import io.opentracing.tag.Tags
 import io.vertx.core.Vertx
 import io.vertx.core.VertxOptions
@@ -125,7 +124,7 @@ class VertxHttpClientTest extends AgentTestRunner {
     def throwable = errorFuture.get()
 
     then:
-    throwable.cause instanceof ConnectException
+    throwable instanceof ConnectException
 
     and:
     assertTraces(1) {
@@ -141,7 +140,13 @@ class VertxHttpClientTest extends AgentTestRunner {
           errored true
           tags {
             "$Tags.COMPONENT.key" "netty"
-            errorTags AbstractChannel.AnnotatedConnectException, "Connection refused: localhost/127.0.0.1:$invalidPort"
+            Class errorClass = ConnectException
+            try {
+              errorClass = Class.forName('io.netty.channel.AbstractChannel$AnnotatedConnectException')
+            } catch (ClassNotFoundException e) {
+              // Older versions use 'java.net.ConnectException' and do not have 'io.netty.channel.AbstractChannel$AnnotatedConnectException'
+            }
+            errorTags errorClass, "Connection refused: localhost/127.0.0.1:$invalidPort"
             defaultTags()
           }
         }

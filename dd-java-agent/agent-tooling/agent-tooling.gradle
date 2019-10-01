@@ -1,6 +1,8 @@
+// Modified by SignalFx
 apply from: "${rootDir}/gradle/java.gradle"
 
 minimumBranchCoverage = 0.6
+minimumInstructionCoverage = 0.8
 excludedClassesConverage += ['datadog.trace.agent.tooling.*']
 
 configurations {

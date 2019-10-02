@@ -22,10 +22,11 @@ public class RoutingContextHandlerAdvice {
         GlobalTracer.get()
             .buildSpan(source.getClass().getName() + ".handle")
             .withTag("handler.type", context.getClass().getName())
+            .withTag("component", "vertx")
             .startActive(true);
 
     final Span span = scope.span();
-//    DECORATE.afterStart(span);
+    DECORATE.afterStart(span);
     DECORATE.onConnection(span, context.request());
     DECORATE.onRequest(span, context.request());
 

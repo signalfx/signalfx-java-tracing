@@ -8,22 +8,10 @@ apply from: "${rootDir}/gradle/java.gradle"
 apply from: "${rootDir}/gradle/test-with-kotlin.gradle"
 
 muzzle {
-//  pass {
-//    group = "io.vertx"
-//    module = "vertx-core"
-//    versions = "[3.5.0,)"
-//    assertInverse = true
-//  }
   pass {
     group = "io.vertx"
     module = "vertx-web"
     versions = "[3.0.0-milestone6, )"
-    assertInverse = true
-  }
-  pass {
-    group = "io.netty"
-    module = "netty"
-    versions = "[4.1.0.Final,)"
     assertInverse = true
   }
 }
@@ -42,9 +30,17 @@ compileMain_java8Java {
 }
 
 testSets {
-  latestDepTest {
-    dirName = 'test'
+  v31Test {
+    dirName = 'v31Test'
   }
+  v35Test {
+    dirName = 'v35Test'
+  }
+//  latestv35DepTest { extendsFrom v35Test }
+
+//  latestDepTest {
+//    extendsFrom latestv35DepTest
+//  }
 }
 
 compileTestJava {
@@ -52,10 +48,20 @@ compileTestJava {
   targetCompatibility = "1.8"
 }
 
-compileLatestDepTestJava {
+compileV31TestJava {
   sourceCompatibility = "1.8"
   targetCompatibility = "1.8"
 }
+
+compileV35TestJava {
+  sourceCompatibility = "1.8"
+  targetCompatibility = "1.8"
+}
+
+//compileLatestDepTestJava {
+//  sourceCompatibility = "1.8"
+//  targetCompatibility = "1.8"
+//}
 
 dependencies {
   main_java8CompileOnly group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
@@ -83,5 +89,12 @@ dependencies {
   testCompile group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
   testCompile group: 'io.vertx', name: 'vertx-web', version: '3.1.0'
 
-  latestDepTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.+'
+  v35TestCompile project(':dd-java-agent:instrumentation:netty-4.1')
+  v35TestCompile group: 'io.vertx', name: 'vertx-core', version: '3.5.0'
+  v35TestCompile group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
+//  latestv35DepTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.+'
+//
+//  latestDepTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.+'
 }
+
+test.dependsOn(v31Test, v35Test)

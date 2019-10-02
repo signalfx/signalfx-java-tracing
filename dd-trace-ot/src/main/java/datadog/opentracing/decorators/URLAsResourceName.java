@@ -1,9 +1,11 @@
+// Modified by SignalFx
 package datadog.opentracing.decorators;
 
 import datadog.opentracing.DDSpanContext;
 import datadog.trace.api.DDTags;
 import io.opentracing.tag.Tags;
 import java.net.MalformedURLException;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /** Decorator for servlet contrib */
@@ -23,7 +25,14 @@ public class URLAsResourceName extends AbstractDecorator {
 
   @Override
   public boolean shouldSetTag(final DDSpanContext context, final String tag, final Object value) {
-    final String statusCode = String.valueOf(context.getTags().get(Tags.HTTP_STATUS.getKey()));
+    Map<String, Object> tags = context.getTags();
+    final String component = String.valueOf(tags.get(Tags.COMPONENT.getKey()));
+
+    if (component != null && component.equals("khttp")) {
+      return true;
+    }
+
+    final String statusCode = String.valueOf(tags.get(Tags.HTTP_STATUS.getKey()));
     // do nothing if the status code is already set and equals to 404.
     // TODO: it assumes that Status404Decorator is active. If it's not, it will lead to unexpected
     // behaviors

@@ -33,7 +33,6 @@ public class VertxHandlerAdvice {
     if (scope instanceof TraceScope) {
       ((TraceScope) scope).setAsyncPropagation(true);
     }
-      System.out.println("\nHANDLER ON METHOD ENTER: RETURNING SCOPE\n");
     return scope;
   }
 
@@ -51,7 +50,6 @@ public class VertxHandlerAdvice {
       if (scope instanceof TraceScope) {
         ((TraceScope) scope).setAsyncPropagation(false);
       }
-      System.out.println("\nHANDLER ON METHOD EXIT: CLOSING SCOPE\n");
       DECORATE.beforeFinish(span);
       span.finish();
       scope.close();

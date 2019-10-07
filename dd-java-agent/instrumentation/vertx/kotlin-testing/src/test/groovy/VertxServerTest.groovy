@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
@@ -19,7 +20,8 @@ class VertxServerTest extends AgentTestRunner {
   @Shared
   Vertx server
 
-  def setupSpec() { port = PortUtils.randomOpenPort()
+  def setupSpec() {
+    port = PortUtils.randomOpenPort()
     server = VertxWebTestServer.start(port)
   }
 

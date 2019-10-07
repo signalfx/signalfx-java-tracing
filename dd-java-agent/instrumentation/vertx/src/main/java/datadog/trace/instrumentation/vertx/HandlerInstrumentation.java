@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -39,7 +40,6 @@ public final class HandlerInstrumentation extends Instrumenter.Default {
 
   @Override
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
-    System.out.println("\nIN HANDLER INSTRUMENTATION\n");
     Map adviceMap = new HashMap();
     adviceMap.put(
         isMethod()
@@ -51,7 +51,6 @@ public final class HandlerInstrumentation extends Instrumenter.Default {
             .and(named("handle"))
             .and(takesArgument(0, named("io.vertx.ext.web.RoutingContext"))),
         packageName + ".RoutingContextHandlerAdvice");
-    System.out.println("ADVICE MAP: \n" + adviceMap + "\n");
     return adviceMap;
   }
 }

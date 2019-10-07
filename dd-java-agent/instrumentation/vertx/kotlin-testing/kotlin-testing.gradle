@@ -1,3 +1,4 @@
+// Modified by SignalFx
 ext {
   minJavaVersionForTests = JavaVersion.VERSION_1_8
 }

@@ -1,0 +1,91 @@
+// Modified by SignalFx
+import datadog.trace.api.Trace;
+import io.vertx.core.*;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
+public class VertxWebTestServer extends AbstractVerticle {
+
+  public static Vertx start(final int port) throws ExecutionException, InterruptedException {
+    /* This is highly against Vertx ideas, but our tests are synchronous
+    so we have to make sure server is up and running */
+    final CompletableFuture<Void> future = new CompletableFuture<>();
+
+    final Vertx vertx = Vertx.vertx(new VertxOptions());
+    vertx.deployVerticle(
+      new VertxWebTestServer(port),
+      res -> {
+        if (!res.succeeded()) {
+          throw new RuntimeException("Cannot deploy server Verticle");
+        }
+        future.complete(null);
+      });
+
+    future.get();
+
+    return vertx;
+  }
+
+  private final int port;
+
+  public VertxWebTestServer(final int port) {
+    this.port = port;
+  }
+
+  @Override
+  public void start(final Future<Void> startFuture) {
+    final Router router = Router.router(vertx);
+
+    router
+        .route("/")
+        .handler(
+            new Handler<RoutingContext>() {
+              public void handle(RoutingContext routingContext) {
+                routingContext.response().putHeader("content-type", "text/html").end("Hello World");
+              }
+            });
+    router
+        .route("/error")
+        .handler(
+            new Handler<RoutingContext>() {
+              public void handle(RoutingContext routingContext) {
+                routingContext.response().setStatusCode(500).end();
+              }
+            });
+    router
+        .route("/test")
+        .handler(
+            new Handler<RoutingContext>() {
+              public void handle(RoutingContext routingContext) {
+                tracedMethod();
+                routingContext.next();
+              }
+            });
+    router
+      .route("/test")
+        .blockingHandler(
+            new Handler<RoutingContext>() {
+              public void handle(RoutingContext routingContext) {
+                routingContext.next();
+              }
+            });
+    router
+      .route("/test")
+        .handler(
+            new Handler<RoutingContext>() {
+              public void handle(RoutingContext routingContext) {
+                routingContext.response().putHeader("content-type", "text/html").end("Hello World");
+              }
+            });
+
+    vertx
+      .createHttpServer()
+      .requestHandler(router::accept)
+      .listen(port, h -> startFuture.complete());
+  }
+
+  @Trace
+  public void tracedMethod() {}
+}

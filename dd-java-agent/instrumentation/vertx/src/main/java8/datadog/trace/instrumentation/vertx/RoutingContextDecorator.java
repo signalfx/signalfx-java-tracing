@@ -34,7 +34,7 @@ public class RoutingContextDecorator
 
   @Override
   protected String method(final HttpServerRequest httpServerRequest) {
-    return httpServerRequest.method().toString(); //return httpServerRequest.rawMethod();
+    return httpServerRequest.method().toString();
   }
 
   @Override

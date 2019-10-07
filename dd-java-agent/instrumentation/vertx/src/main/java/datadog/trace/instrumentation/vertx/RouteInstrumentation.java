@@ -1,4 +1,3 @@
-// Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -17,15 +16,15 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
 @AutoService(Instrumenter.class)
-public final class HandlerInstrumentation extends Instrumenter.Default {
+public final class RouteInstrumentation extends Instrumenter.Default {
 
-  public HandlerInstrumentation() {
+  public RouteInstrumentation() {
     super("vertx", "vert.x");
   }
 
   @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return not(isInterface()).and(safeHasSuperType(named("io.vertx.core.Handler")));
+    return not(isInterface()).and(safeHasSuperType(named("io.vertx.ext.web.Route")));
   }
 
   @Override
@@ -43,15 +42,8 @@ public final class HandlerInstrumentation extends Instrumenter.Default {
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
     Map adviceMap = new HashMap();
     adviceMap.put(
-        isMethod()
-            .and(named("handle"))
-            .and(not(takesArgument(0, named("io.vertx.ext.web.RoutingContext")))),
-        packageName + ".VertxHandlerAdvice");
-    adviceMap.put(
-        isMethod()
-            .and(named("handle"))
-            .and(takesArgument(0, named("io.vertx.ext.web.RoutingContext"))),
-        packageName + ".RoutingContextHandlerAdvice");
+        isMethod().and(named("handler")).and(takesArgument(0, named("io.vertx.core.Handler"))),
+        packageName + ".RouteAdvice");
     return adviceMap;
   }
 }

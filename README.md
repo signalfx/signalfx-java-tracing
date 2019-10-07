@@ -88,7 +88,7 @@ explicitly validated for compatibility with all instrumentations.
 | **Spring Data** | 1.5.0+ | `spring-data` | Automatic tracing of all `org.springframework.data.repository.Repository` implementor public methods |
 | **Spring Web** | 4.0+ | `spring-web` | Includes DispatcherServlet, HandlerAdapter, and RestTemplate |
 | **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
-| **Vertx Web** | 3.1.0+  | `vertx` | This works primarily through the Netty instrumentation for requests, but it includes spans for handlers. |
+| **Vertx Web** | 3.0.0+  | `vertx` | This works primarily through the Netty instrumentation for requests, but it includes spans for handlers. |
 
 _Italicized_ libraries are in beta and must be explicitly enabled by setting the
 `-Dsignalfx.integration.<name>.enabled=true` system property, where `<name>` is

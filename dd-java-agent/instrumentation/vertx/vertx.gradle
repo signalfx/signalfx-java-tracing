@@ -29,9 +29,14 @@ compileMain_java8Java {
   targetCompatibility = 1.8
 }
 
+dependencies {
+  main_java8CompileOnly "org.projectlombok:lombok:${project.lombok.version}" transitive false
+  main_java8AnnotationProcessor "org.projectlombok:lombok:${project.lombok.version}" transitive false
+}
+
 testSets {
-  v31Test {
-    dirName = 'v31Test'
+  v30Test {
+    dirName = 'v30Test'
   }
   v35Test {
     dirName = 'v35Test'
@@ -48,7 +53,7 @@ compileTestJava {
   targetCompatibility = "1.8"
 }
 
-compileV31TestJava {
+compileV30TestJava {
   sourceCompatibility = "1.8"
   targetCompatibility = "1.8"
 }
@@ -60,7 +65,7 @@ compileV35TestJava {
 
 dependencies {
   main_java8CompileOnly group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
-  main_java8CompileOnly group: 'io.vertx', name: 'vertx-web', version: '3.1.0'
+  main_java8CompileOnly group: 'io.vertx', name: 'vertx-web', version: '3.0.0'
 
   main_java8Compile project(':dd-java-agent:agent-tooling')
 
@@ -82,7 +87,7 @@ dependencies {
   testCompile project(':dd-java-agent:instrumentation:trace-annotation')
   testCompile project(':dd-java-agent:instrumentation:netty-4.0')
   testCompile group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
-  testCompile group: 'io.vertx', name: 'vertx-web', version: '3.1.0'
+  testCompile group: 'io.vertx', name: 'vertx-web', version: '3.0.0'
 
   v35TestCompile project(':dd-java-agent:instrumentation:netty-4.1')
   v35TestCompile group: 'io.vertx', name: 'vertx-core', version: '3.5.0'
@@ -92,5 +97,5 @@ dependencies {
   latestDepTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.+'
 }
 
-test.dependsOn(v31Test, v35Test)
+test.dependsOn(v30Test, v35Test)
 latestDepTest.dependsOn(latestv35DepTest)

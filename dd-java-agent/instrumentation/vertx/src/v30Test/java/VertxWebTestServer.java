@@ -41,44 +41,34 @@ public class VertxWebTestServer extends AbstractVerticle {
     router
         .route("/")
         .handler(
-            new Handler<RoutingContext>() {
-              public void handle(RoutingContext routingContext) {
+           routingContext -> {
                 routingContext.response().putHeader("content-type", "text/html").end("Hello World");
-              }
             });
     router
         .route("/error")
         .handler(
-            new Handler<RoutingContext>() {
-              public void handle(RoutingContext routingContext) {
+            routingContext -> {
                 routingContext.response().setStatusCode(500).end();
-              }
             });
     router
         .route("/test")
         .handler(
-            new Handler<RoutingContext>() {
-              public void handle(RoutingContext routingContext) {
+            routingContext -> {
                 tracedMethod();
                 routingContext.next();
-              }
             });
     router
       .route("/test")
-        .blockingHandler(
-            new Handler<RoutingContext>() {
-              public void handle(RoutingContext routingContext) {
-                routingContext.next();
-              }
-            });
+      .blockingHandler(
+         routingContext -> {
+              routingContext.next();
+          });
     router
       .route("/test")
-        .handler(
-            new Handler<RoutingContext>() {
-              public void handle(RoutingContext routingContext) {
-                routingContext.response().putHeader("content-type", "text/html").end("Hello World");
-              }
-            });
+      .handler(
+          routingContext -> {
+              routingContext.response().putHeader("content-type", "text/html").end("Hello World");
+          });
 
     vertx
       .createHttpServer()

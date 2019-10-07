@@ -19,14 +19,20 @@ public class VertxHandlerAdvice {
       @Advice.This final Object source, @Advice.Argument(0) final Object event) {
 
     String operationName = source.getClass().getName();
+
     int indexOfChar = operationName.indexOf('$');
-    operationName = operationName.substring(0, indexOfChar);
+    if (indexOfChar != -1) {
+      String auto = "$1234567890";
+      if (auto.indexOf(operationName.charAt(indexOfChar+1)) != -1) {
+        operationName = operationName.substring(0, indexOfChar);
+      }
+    }
 
     Scope  scope = GlobalTracer.get()
         .buildSpan(operationName + ".handle")
         .withTag("handler.type", event.getClass().getName())
         .withTag("component", "vertx")
-        .startActive(true);
+        .startActive(false);
 
     final Span span = scope.span();
     DECORATE.afterStart(span);

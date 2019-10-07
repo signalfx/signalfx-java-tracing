@@ -46,12 +46,12 @@ class VertxServerTest extends AgentTestRunner {
 
     and:
     assertTraces(1) {
-      trace(0, 6) {
+      trace(0, 5) {
         span(0) {
-          childOf span(2)
+          childOf span(3)
           traceId "123"
           serviceName "unnamed-java-app"
-          operationName "VertxWebTestServer\$3.handle"
+          operationName "VertxWebTestServer.handle"
           resourceName "/test"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
@@ -86,25 +86,8 @@ class VertxServerTest extends AgentTestRunner {
         }
         span(2) {
           traceId "123"
-          childOf span(4)
-          operationName "VertxWebTestServer\$4.handle"
-          spanType DDSpanTypes.HTTP_SERVER
-          tags {
-            "$Tags.COMPONENT.key" "vertx"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" 200
-            "$Tags.HTTP_URL.key" "http://localhost:$port/test"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
-            "$Tags.PEER_PORT.key" Integer
-            "handler.type" "io.vertx.ext.web.impl.RoutingContextDecorator"
-            defaultTags()
-          }
-        }
-        span(3) {
           childOf span(1)
-          traceId "123"
-          operationName "VertxWebTestServer\$5.handle"
+          operationName "VertxWebTestServer.handle"
           spanType DDSpanTypes.HTTP_SERVER
           tags {
             "$Tags.COMPONENT.key" "vertx"
@@ -118,8 +101,8 @@ class VertxServerTest extends AgentTestRunner {
             defaultTags()
           }
         }
-        span(4) {
-          childOf span(3)
+        span(3) {
+          childOf span(2)
           traceId "123"
           operationName "io.vertx.ext.web.impl.BlockingHandlerDecorator.handle"
           spanType DDSpanTypes.HTTP_SERVER
@@ -135,8 +118,8 @@ class VertxServerTest extends AgentTestRunner {
             defaultTags()
           }
         }
-        span(5) {
-          childOf span(3)
+        span(4) {
+          childOf span(2)
           traceId "123"
           operationName "VertxWebTestServer.tracedMethod"
           tags {
@@ -185,12 +168,10 @@ class VertxServerTest extends AgentTestRunner {
 
     where:
     responseCode                             | name         | path          | error
-//    HttpResponseStatus.OK                    | "/"          | ""            | false
-    HttpResponseStatus.NOT_FOUND             | "404"        | "doesnt-exit" | false
-//    HttpResponseStatus.INTERNAL_SERVER_ERROR | "/error"     | "error"       | true
+    HttpResponseStatus.NOT_FOUND             | "404"        | "doesnt-exist" | false
   }
 
-  def "test OK response handling"() {
+  def "test #responseCode response handling"() {
     setup:
     def request = new Request.Builder().url("http://localhost:$port/$path").get().build()
     def response = client.newCall(request).execute()
@@ -204,7 +185,7 @@ class VertxServerTest extends AgentTestRunner {
         span(0) {
           childOf span(1)
           serviceName "unnamed-java-app"
-          operationName "VertxWebTestServer\$1.handle"
+          operationName "VertxWebTestServer.handle"
           resourceName name
           spanType DDSpanTypes.HTTP_SERVER
           errored error
@@ -251,72 +232,6 @@ class VertxServerTest extends AgentTestRunner {
     where:
     responseCode                             | name         | path          | error
     HttpResponseStatus.OK                    | "/"          | ""            | false
-//    HttpResponseStatus.NOT_FOUND             | "404"        | "doesnt-exit" | false
-//    HttpResponseStatus.INTERNAL_SERVER_ERROR | "/error"     | "error"       | true
-  }
-
-  def "test server error response handling"() {
-    setup:
-    def request = new Request.Builder().url("http://localhost:$port/$path").get().build()
-    def response = client.newCall(request).execute()
-
-    expect:
-    response.code() == responseCode.code()
-
-    and:
-    assertTraces(1) {
-      trace(0, 2) {
-        span(0) {
-          childOf span(1)
-          serviceName "unnamed-java-app"
-          operationName "VertxWebTestServer\$2.handle"
-          resourceName name
-          spanType DDSpanTypes.HTTP_SERVER
-          errored error
-          tags {
-            "$Tags.COMPONENT.key" "vertx"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" responseCode.code()
-            "$Tags.HTTP_URL.key" "http://localhost:$port/$path"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
-            "$Tags.PEER_PORT.key" Integer
-            "handler.type" "io.vertx.ext.web.impl.RoutingContextImpl"
-
-            if (error) {
-              tag("error", true)
-            }
-            defaultTags()
-          }
-        }
-        span(1) {
-          serviceName "unnamed-java-app"
-          operationName "netty.request"
-          resourceName name
-          spanType DDSpanTypes.HTTP_SERVER
-          errored error
-          tags {
-            "$Tags.COMPONENT.key" "netty"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" responseCode.code()
-            "$Tags.HTTP_URL.key" "http://localhost:$port/$path"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
-            "$Tags.PEER_PORT.key" Integer
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            if (error) {
-              tag("error", true)
-            }
-            defaultTags()
-          }
-        }
-      }
-    }
-
-    where:
-    responseCode                             | name         | path          | error
-//    HttpResponseStatus.OK                    | "/"          | ""            | false
-//    HttpResponseStatus.NOT_FOUND             | "404"        | "doesnt-exit" | false
     HttpResponseStatus.INTERNAL_SERVER_ERROR | "/error"     | "error"       | true
   }
 

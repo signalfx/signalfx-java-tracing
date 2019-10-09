@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.decorator
 
 import datadog.trace.api.DDTags
@@ -21,6 +22,27 @@ class ServerDecoratorTest extends BaseDecoratorTest {
       1 * span.setTag(DDTags.ANALYTICS_SAMPLE_RATE, 1.0)
     }
     0 * _
+  }
+
+  def "test afterStart set span kind"() {
+    setup:
+    def decorator = newDecorator()
+    when:
+    decorator.afterStart(span, setKind)
+
+    then:
+    1 * span.setTag(Tags.COMPONENT.key, "test-component")
+    value * span.setTag(Tags.SPAN_KIND.key, "server")
+    1 * span.setTag(DDTags.SPAN_TYPE, decorator.spanType())
+    if (decorator.traceAnalyticsEnabled) {
+      1 * span.setTag(DDTags.ANALYTICS_SAMPLE_RATE, 1.0)
+    }
+    0 * _
+
+    where:
+    setKind     |   value
+      true      |    1
+      false     |    0
   }
 
   def "test beforeFinish"() {

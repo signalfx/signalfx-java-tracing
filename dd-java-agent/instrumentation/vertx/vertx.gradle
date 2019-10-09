@@ -1,38 +1,79 @@
+// Modified by SignalFx
 // Set properties before any plugins get loaded
 ext {
   minJavaVersionForTests = JavaVersion.VERSION_1_8
 }
 
 apply from: "${rootDir}/gradle/java.gradle"
+apply from: "${rootDir}/gradle/test-with-kotlin.gradle"
 
 muzzle {
   pass {
     group = "io.vertx"
     module = "vertx-web"
-    versions = "[4.1.0.Final,)"
-    assertInverse = true
-  }
-  pass {
-    group = "io.netty"
-    module = "netty"
-    versions = "[4.1.0.Final,)"
+    versions = "[3.0.0-milestone6, )"
     assertInverse = true
   }
 }
 
 apply plugin: 'org.unbroken-dome.test-sets'
 
-testSets {
-  latestDepTest {
-    dirName = 'test'
+sourceSets {
+  main_java8 {
+    java.srcDirs "${project.projectDir}/src/main/java8"
   }
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+compileMain_java8Java {
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
+}
 
 dependencies {
-  compileOnly group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
+  main_java8CompileOnly "org.projectlombok:lombok:${project.lombok.version}" transitive false
+  main_java8AnnotationProcessor "org.projectlombok:lombok:${project.lombok.version}" transitive false
+}
+
+testSets {
+  v30Test {
+    dirName = 'v30Test'
+  }
+  v35Test {
+    dirName = 'v35Test'
+  }
+  latestv35DepTest { extendsFrom v35Test }
+
+  latestDepTest {
+    extendsFrom latestv35DepTest
+  }
+}
+
+compileTestJava {
+  sourceCompatibility = "1.8"
+  targetCompatibility = "1.8"
+}
+
+compileV30TestJava {
+  sourceCompatibility = "1.8"
+  targetCompatibility = "1.8"
+}
+
+compileV35TestJava {
+  sourceCompatibility = "1.8"
+  targetCompatibility = "1.8"
+}
+
+dependencies {
+  main_java8CompileOnly group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
+  main_java8CompileOnly group: 'io.vertx', name: 'vertx-web', version: '3.0.0'
+
+  main_java8Compile project(':dd-java-agent:agent-tooling')
+
+  main_java8Compile deps.bytebuddy
+  main_java8Compile deps.opentracing
+
+  compileOnly sourceSets.main_java8.compileClasspath
+  compile sourceSets.main_java8.output
 
   compile project(':dd-java-agent:agent-tooling')
 
@@ -44,8 +85,17 @@ dependencies {
   testCompile project(':dd-java-agent:testing')
   testCompile project(':dd-java-agent:instrumentation:java-concurrent')
   testCompile project(':dd-java-agent:instrumentation:trace-annotation')
-  testCompile project(':dd-java-agent:instrumentation:netty-4.1')
-  testCompile group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
+  v30TestCompile project(':dd-java-agent:instrumentation:netty-4.0')
+  v30TestCompile group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
+  v30TestCompile group: 'io.vertx', name: 'vertx-web', version: '3.0.0'
+
+  v35TestCompile project(':dd-java-agent:instrumentation:netty-4.1')
+  v35TestCompile group: 'io.vertx', name: 'vertx-core', version: '3.5.0'
+  v35TestCompile group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
+  latestv35DepTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.+'
 
   latestDepTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.+'
 }
+
+test.dependsOn(v30Test, v35Test)
+latestDepTest.dependsOn(latestv35DepTest)

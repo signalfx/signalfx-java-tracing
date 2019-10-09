@@ -7,6 +7,7 @@ import io.netty.handler.codec.http.HttpResponseStatus
 import io.opentracing.tag.Tags
 import io.vertx.core.Vertx
 import io.vertx.core.Handler
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import spock.lang.Shared
@@ -46,9 +47,9 @@ class VertxServerTest extends AgentTestRunner {
 
     and:
     assertTraces(1) {
-      trace(0, 5) {
+      trace(0, 7) {
         span(0) {
-          childOf span(3)
+          childOf span(2)
           traceId "123"
           serviceName "unnamed-java-app"
           operationName "VertxWebTestServer.handle"
@@ -86,7 +87,33 @@ class VertxServerTest extends AgentTestRunner {
         }
         span(2) {
           traceId "123"
+          childOf span(5)
+          operationName "VertxWebTestServer\$MyHandler.handle"
+          spanType DDSpanTypes.HTTP_SERVER
+          tags {
+            "$Tags.COMPONENT.key" "vertx"
+            "$Tags.HTTP_METHOD.key" "GET"
+            "$Tags.HTTP_STATUS.key" 200
+            "$Tags.HTTP_URL.key" "http://localhost:$port/test"
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
+            "$Tags.PEER_PORT.key" Integer
+            "handler.type" "io.vertx.ext.web.impl.RoutingContextDecorator"
+            defaultTags()
+          }
+        }
+        span(3) {
+          childOf span(2)
+          traceId "123"
+          operationName "VertxWebTestServer.tracedMethod"
+          tags {
+            "$Tags.COMPONENT.key" "trace"
+            defaultTags()
+          }
+        }
+        span(4) {
           childOf span(1)
+          traceId "123"
           operationName "VertxWebTestServer.handle"
           spanType DDSpanTypes.HTTP_SERVER
           tags {
@@ -101,8 +128,8 @@ class VertxServerTest extends AgentTestRunner {
             defaultTags()
           }
         }
-        span(3) {
-          childOf span(2)
+        span(5) {
+          childOf span(4)
           traceId "123"
           operationName "io.vertx.ext.web.impl.BlockingHandlerDecorator.handle"
           spanType DDSpanTypes.HTTP_SERVER
@@ -118,8 +145,8 @@ class VertxServerTest extends AgentTestRunner {
             defaultTags()
           }
         }
-        span(4) {
-          childOf span(2)
+        span(6) {
+          childOf span(4)
           traceId "123"
           operationName "VertxWebTestServer.tracedMethod"
           tags {
@@ -255,6 +282,72 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.COMPONENT.key" "vertx"
             "handler.type" "java.lang.Object"
             defaultTags()
+          }
+        }
+      }
+    }
+  }
+
+  def "test post"() {
+    setup:
+    def requestBody = new MultipartBody.Builder()
+      .setType(MultipartBody.FORM)
+      .addFormDataPart("test", "Testing post")
+      .build()
+
+    def request = new Request.Builder()
+      .url("http://localhost:$port/test/post")
+      .header("x-b3-traceid", "7b")
+      .header("x-b3-spanid", "1c8")
+      .post(requestBody)
+      .build()
+
+    def response = client.newCall(request).execute()
+
+    expect:
+    response.code() == 201
+    response.body().string() == "Testing post"
+
+    and:
+    assertTraces(1) {
+      trace(0, 2) {
+        span(0) {
+          traceId "123"
+          serviceName "unnamed-java-app"
+          operationName "VertxWebTestServer.handle"
+          resourceName "/test/post"
+          spanType DDSpanTypes.HTTP_SERVER
+          errored false
+          tags {
+            "$Tags.COMPONENT.key" "vertx"
+            "$Tags.HTTP_METHOD.key" "POST"
+            "$Tags.HTTP_STATUS.key" 201
+            "$Tags.HTTP_URL.key" "http://localhost:$port/test/post"
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
+            "$Tags.PEER_PORT.key" Integer
+            "handler.type" "io.vertx.ext.web.impl.RoutingContextImpl"
+            defaultTags(true)
+          }
+        }
+        span(1) {
+          traceId "123"
+          parentId "456"
+          serviceName "unnamed-java-app"
+          operationName "netty.request"
+          resourceName "/test/post"
+          spanType DDSpanTypes.HTTP_SERVER
+          errored false
+          tags {
+            "$Tags.COMPONENT.key" "netty"
+            "$Tags.HTTP_METHOD.key" "POST"
+            "$Tags.HTTP_STATUS.key" 201
+            "$Tags.HTTP_URL.key" "http://localhost:$port/test/post"
+            "$Tags.PEER_HOSTNAME.key" "localhost"
+            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
+            "$Tags.PEER_PORT.key" Integer
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
+            defaultTags(true)
           }
         }
       }

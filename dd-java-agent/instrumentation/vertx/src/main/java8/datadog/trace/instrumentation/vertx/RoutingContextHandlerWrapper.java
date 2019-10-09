@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
 import io.opentracing.Scope;

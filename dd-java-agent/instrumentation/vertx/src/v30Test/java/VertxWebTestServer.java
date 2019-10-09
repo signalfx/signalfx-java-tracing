@@ -8,6 +8,13 @@ import java.util.concurrent.ExecutionException;
 
 public class VertxWebTestServer extends AbstractVerticle {
 
+  class MyHandler implements Handler<RoutingContext> {
+    public void handle(RoutingContext routingContext) {
+      tracedMethod();
+      routingContext.next();
+    }
+  }
+
   public static Vertx start(final int port) throws ExecutionException, InterruptedException {
     /* This is highly against Vertx ideas, but our tests are synchronous
     so we have to make sure server is up and running */
@@ -53,22 +60,29 @@ public class VertxWebTestServer extends AbstractVerticle {
     router
         .route("/test")
         .handler(
-            routingContext -> {
-                tracedMethod();
-                routingContext.next();
-            });
+          routingContext -> {
+            tracedMethod();
+            routingContext.next();
+          });
     router
       .route("/test")
-      .blockingHandler(
-         routingContext -> {
-              routingContext.next();
-          });
+      .blockingHandler( new MyHandler());
     router
       .route("/test")
       .handler(
           routingContext -> {
               routingContext.response().putHeader("content-type", "text/html").end("Hello World");
           });
+    router
+      .route("/test/post")
+      .handler(routingContext -> {
+        routingContext
+          .response()
+          .setStatusCode(201)
+          .putHeader("content-type",
+            "application/json; charset=utf-8")
+          .end("Testing post");
+      });
 
     vertx
       .createHttpServer()

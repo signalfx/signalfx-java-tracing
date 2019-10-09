@@ -67,5 +67,4 @@ public class RoutingContextDecorator
     assert span != null;
     return super.afterStart(span, this.shouldSetKind());
   }
-
 }

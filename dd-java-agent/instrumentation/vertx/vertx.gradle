@@ -85,9 +85,9 @@ dependencies {
   testCompile project(':dd-java-agent:testing')
   testCompile project(':dd-java-agent:instrumentation:java-concurrent')
   testCompile project(':dd-java-agent:instrumentation:trace-annotation')
-  testCompile project(':dd-java-agent:instrumentation:netty-4.0')
-  testCompile group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
-  testCompile group: 'io.vertx', name: 'vertx-web', version: '3.0.0'
+  v30TestCompile project(':dd-java-agent:instrumentation:netty-4.0')
+  v30TestCompile group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
+  v30TestCompile group: 'io.vertx', name: 'vertx-web', version: '3.0.0'
 
   v35TestCompile project(':dd-java-agent:instrumentation:netty-4.1')
   v35TestCompile group: 'io.vertx', name: 'vertx-core', version: '3.5.0'

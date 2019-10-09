@@ -3,10 +3,18 @@ import datadog.trace.api.Trace;
 import io.vertx.core.*;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 public class VertxWebTestServer extends AbstractVerticle {
+
+  class MyHandler implements Handler<RoutingContext> {
+    public void handle(RoutingContext routingContext) {
+      tracedMethod();
+      routingContext.next();
+    }
+  }
 
   public static Vertx start(final int port) throws ExecutionException, InterruptedException {
     /* This is highly against Vertx ideas, but our tests are synchronous
@@ -56,14 +64,21 @@ public class VertxWebTestServer extends AbstractVerticle {
                 tracedMethod();
                 routingContext.next();
             })
-        .blockingHandler(
-              routingContext -> {
-                routingContext.next();
-            })
+        .blockingHandler( new MyHandler())
         .handler(
               routingContext -> {
                 routingContext.response().putHeader("content-type", "text/html").end("Hello World");
             });
+    router
+      .route("/test/post")
+      .handler(routingContext -> {
+        routingContext
+          .response()
+          .setStatusCode(201)
+          .putHeader("content-type",
+            "application/json; charset=utf-8")
+          .end("Testing post");
+      });
 
     vertx
         .createHttpServer()
@@ -72,5 +87,5 @@ public class VertxWebTestServer extends AbstractVerticle {
   }
 
   @Trace
-  public void tracedMethod() { }
+  public void tracedMethod() {}
 }

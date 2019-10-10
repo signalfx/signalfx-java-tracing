@@ -52,9 +52,8 @@ class VertxServerTest extends AgentTestRunner {
           childOf span(2)
           traceId "123"
           serviceName "unnamed-java-app"
-          operationName "VertxWebTestServer.handle"
-          resourceName "/test"
-          spanType DDSpanTypes.HTTP_SERVER
+          operationName "VertxWebTestServer\$\$Lambda.handle"
+          resourceName "VertxWebTestServer\$\$Lambda.handle"
           errored false
           tags {
             "$Tags.COMPONENT.key" "vertx"
@@ -72,6 +71,7 @@ class VertxServerTest extends AgentTestRunner {
           traceId "123"
           parentId "456"
           operationName "netty.request"
+          resourceName "/test"
           spanType DDSpanTypes.HTTP_SERVER
           tags {
             "$Tags.COMPONENT.key" "netty"
@@ -89,7 +89,7 @@ class VertxServerTest extends AgentTestRunner {
           traceId "123"
           childOf span(5)
           operationName "VertxWebTestServer\$MyHandler.handle"
-          spanType DDSpanTypes.HTTP_SERVER
+          resourceName "VertxWebTestServer\$MyHandler.handle"
           tags {
             "$Tags.COMPONENT.key" "vertx"
             "$Tags.HTTP_METHOD.key" "GET"
@@ -106,6 +106,7 @@ class VertxServerTest extends AgentTestRunner {
           childOf span(2)
           traceId "123"
           operationName "VertxWebTestServer.tracedMethod"
+          resourceName "VertxWebTestServer.tracedMethod"
           tags {
             "$Tags.COMPONENT.key" "trace"
             defaultTags()
@@ -114,8 +115,8 @@ class VertxServerTest extends AgentTestRunner {
         span(4) {
           childOf span(1)
           traceId "123"
-          operationName "VertxWebTestServer.handle"
-          spanType DDSpanTypes.HTTP_SERVER
+          operationName "VertxWebTestServer\$\$Lambda.handle"
+          resourceName "VertxWebTestServer\$\$Lambda.handle"
           tags {
             "$Tags.COMPONENT.key" "vertx"
             "$Tags.HTTP_METHOD.key" "GET"
@@ -132,7 +133,7 @@ class VertxServerTest extends AgentTestRunner {
           childOf span(4)
           traceId "123"
           operationName "io.vertx.ext.web.impl.BlockingHandlerDecorator.handle"
-          spanType DDSpanTypes.HTTP_SERVER
+          resourceName "io.vertx.ext.web.impl.BlockingHandlerDecorator.handle"
           tags {
             "$Tags.COMPONENT.key" "vertx"
             "$Tags.HTTP_METHOD.key" "GET"
@@ -149,6 +150,7 @@ class VertxServerTest extends AgentTestRunner {
           childOf span(4)
           traceId "123"
           operationName "VertxWebTestServer.tracedMethod"
+          resourceName "VertxWebTestServer.tracedMethod"
           tags {
             "$Tags.COMPONENT.key" "trace"
             defaultTags()
@@ -212,9 +214,8 @@ class VertxServerTest extends AgentTestRunner {
         span(0) {
           childOf span(1)
           serviceName "unnamed-java-app"
-          operationName "VertxWebTestServer.handle"
-          resourceName name
-          spanType DDSpanTypes.HTTP_SERVER
+          operationName "VertxWebTestServer\$\$Lambda.handle"
+          resourceName "VertxWebTestServer\$\$Lambda.handle"
           errored error
           tags {
             "$Tags.COMPONENT.key" "vertx"
@@ -277,7 +278,7 @@ class VertxServerTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "VertxServerTest.handle"
-          spanType DDSpanTypes.HTTP_SERVER
+          resourceName "VertxServerTest.handle"
           tags {
             "$Tags.COMPONENT.key" "vertx"
             "handler.type" "java.lang.Object"
@@ -314,9 +315,8 @@ class VertxServerTest extends AgentTestRunner {
         span(0) {
           traceId "123"
           serviceName "unnamed-java-app"
-          operationName "VertxWebTestServer.handle"
-          resourceName "/test/post"
-          spanType DDSpanTypes.HTTP_SERVER
+          operationName "VertxWebTestServer\$\$Lambda.handle"
+          resourceName "VertxWebTestServer\$\$Lambda.handle"
           errored false
           tags {
             "$Tags.COMPONENT.key" "vertx"

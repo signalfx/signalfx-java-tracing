@@ -50,9 +50,10 @@ public final class RoutingContextHandlerWrapper implements Handler<RoutingContex
   public static Scope startSpan(
     final Object source, final RoutingContext context) {
     String operationName = source.getClass().getName();
-    int indexOfChar = operationName.indexOf("$");
+
+    int indexOfChar = operationName.lastIndexOf('$');
     if (indexOfChar != -1) {
-      String auto = "$1234567890";
+      String auto = "1234567890";
       if (auto.indexOf(operationName.charAt(indexOfChar+1)) != -1) {
         operationName = operationName.substring(0, indexOfChar);
       }

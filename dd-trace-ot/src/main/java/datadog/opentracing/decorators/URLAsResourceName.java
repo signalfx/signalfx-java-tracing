@@ -28,7 +28,7 @@ public class URLAsResourceName extends AbstractDecorator {
     Map<String, Object> tags = context.getTags();
     final String component = String.valueOf(tags.get(Tags.COMPONENT.getKey()));
 
-    if (component != null && component.equals("khttp")) {
+    if (component != null && (component.equals("khttp") || component.equals("vertx"))) {
       return true;
     }
 

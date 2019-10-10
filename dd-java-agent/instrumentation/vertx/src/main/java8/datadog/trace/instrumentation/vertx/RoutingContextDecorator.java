@@ -3,6 +3,7 @@ package datadog.trace.instrumentation.vertx;
 
 import datadog.trace.agent.decorator.HttpServerDecorator;
 import datadog.trace.api.Config;
+import datadog.trace.api.DDSpanTypes;
 import io.opentracing.Span;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -66,5 +67,14 @@ public class RoutingContextDecorator
   public Span afterStart(final Span span) {
     assert span != null;
     return super.afterStart(span, this.shouldSetKind());
+  }
+
+  @Override
+  protected String spanType() {
+    if (shouldSetKind()) {
+      return DDSpanTypes.HTTP_SERVER;
+
+    }
+    return null;
   }
 }

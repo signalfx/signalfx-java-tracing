@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.opentracing.DDSpan
 import datadog.opentracing.DDSpanContext
 import datadog.opentracing.DDTracer
@@ -70,9 +71,10 @@ class OT31ApiTest extends DDSpecification {
 
     then:
     textMap == [
-      "x-datadog-trace-id"         : context.traceId,
-      "x-datadog-parent-id"        : context.spanId,
-      "x-datadog-sampling-priority": "$context.samplingPriority",
+      "x-b3-traceid" : new BigInteger(context.traceId).toString(16).toLowerCase(),
+      "x-b3-spanid" : new BigInteger(context.spanId).toString(16).toLowerCase(),
+      "x-b3-parentspanid" : "0",
+      "x-b3-sampled" : "$context.samplingPriority"
     ]
 
     when:

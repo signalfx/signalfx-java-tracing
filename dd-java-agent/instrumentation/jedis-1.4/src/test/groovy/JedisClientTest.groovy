@@ -142,4 +142,30 @@ class JedisClientTest extends AgentTestRunner {
       }
     }
   }
+
+  def "auth command doesn't leak password"() {
+    when:
+    jedis.auth("myPassword")
+
+    then:
+    thrown(RuntimeException)
+
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          serviceName "unnamed-java-app"
+          operationName "redis.AUTH"
+          resourceName "redis.AUTH"
+          spanType DDSpanTypes.REDIS
+          tags {
+            "$Tags.DB_STATEMENT.key" "AUTH"
+            "$Tags.COMPONENT.key" "redis"
+            "$Tags.DB_TYPE.key" "redis"
+            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            defaultTags()
+          }
+        }
+      }
+    }
+  }
 }

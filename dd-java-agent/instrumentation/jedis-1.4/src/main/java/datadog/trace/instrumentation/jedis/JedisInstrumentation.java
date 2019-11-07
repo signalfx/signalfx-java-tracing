@@ -65,11 +65,13 @@ public final class JedisInstrumentation extends Instrumenter.Default {
       final Scope scope = GlobalTracer.get().buildSpan("redis." + command.name()).startActive(true);
       DECORATE.afterStart(scope.span());
       String statement = command.name();
-      if (Config.get().isRedisCaptureCommandArguments() && args.length > 0) {
+      if (args.length > 0
+          && !statement.toLowerCase().equals("auth")
+          && Config.get().isRedisCaptureCommandArguments()) {
         statement += ":";
-        for (int i = 0; i < args.length; i++) {
+        for (final byte[] word : args) {
           try {
-            statement += " " + new String(args[i], "UTF-8");
+            statement += " " + new String(word, "UTF-8");
           } catch (UnsupportedEncodingException e) {
           }
         }

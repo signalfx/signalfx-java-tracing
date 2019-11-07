@@ -71,7 +71,7 @@ public class LettuceClientDecorator extends DatabaseClientDecorator<RedisURI> {
     span.setTag(DDTags.RESOURCE_NAME, LettuceInstrumentationUtil.getCommandResourceName(commandName));
 
     String statement = commandName;
-    if (command != null && Config.get().isRedisCaptureCommandArguments()) {
+    if (command != null && !statement.toLowerCase().equals("auth") && Config.get().isRedisCaptureCommandArguments()) {
       CommandArgs cmdArgs = command.getArgs();
       if (cmdArgs != null) {
         String args = cmdArgs.toCommandString();

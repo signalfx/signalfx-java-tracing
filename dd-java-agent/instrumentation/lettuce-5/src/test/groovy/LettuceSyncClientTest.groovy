@@ -4,6 +4,7 @@ import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
 import io.lettuce.core.ClientOptions
 import io.lettuce.core.RedisClient
+import io.lettuce.core.RedisCommandExecutionException
 import io.lettuce.core.RedisConnectionException
 import io.lettuce.core.api.StatefulConnection
 import io.lettuce.core.api.sync.RedisCommands
@@ -363,6 +364,35 @@ class LettuceSyncClientTest extends AgentTestRunner {
             "db.type" "redis"
             "db.statement" "DEBUG: SEGFAULT"
             "span.kind" "client"
+          }
+        }
+      }
+    }
+  }
+
+  def "auth command arguments shouldn't be captured"() {
+    when:
+    syncCommands.auth("myPassword")
+
+    then:
+    thrown(RedisCommandExecutionException)
+
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          serviceName "redis"
+          operationName "AUTH"
+          spanType DDSpanTypes.REDIS
+          resourceName "AUTH"
+          errored true
+
+          tags {
+            defaultTags()
+            "component" "redis"
+            "db.type" "redis"
+            "db.statement" "AUTH"
+            "span.kind" "client"
+            errorTags RedisCommandExecutionException, "ERR Client sent AUTH, but no password is set"
           }
         }
       }

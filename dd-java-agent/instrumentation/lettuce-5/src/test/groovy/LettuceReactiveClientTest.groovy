@@ -98,6 +98,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "SET: key<TESTSETKEY> value<TESTSETVAL>"
             "span.kind" "client"
           }
         }
@@ -127,6 +128,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "GET: key<TESTKEY>"
             "span.kind" "client"
           }
         }
@@ -164,6 +166,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "GET: key<NON_EXISTENT_KEY>"
             "span.kind" "client"
           }
         }
@@ -199,6 +202,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "RANDOMKEY"
             "span.kind" "client"
           }
         }
@@ -224,6 +228,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "COMMAND"
             "db.command.results.count" 157
             "span.kind" "client"
           }
@@ -250,6 +255,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "COMMAND"
             "db.command.cancelled" true
             "db.command.results.count" 2
             "span.kind" "client"
@@ -289,6 +295,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "DEBUG: SEGFAULT"
             "span.kind" "client"
           }
         }
@@ -314,6 +321,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "SHUTDOWN: NOSAVE"
             "span.kind" "client"
           }
         }

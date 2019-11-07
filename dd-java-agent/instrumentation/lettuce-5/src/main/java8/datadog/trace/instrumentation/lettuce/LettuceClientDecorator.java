@@ -2,9 +2,11 @@
 package datadog.trace.instrumentation.lettuce;
 
 import datadog.trace.agent.decorator.DatabaseClientDecorator;
+import datadog.trace.api.Config;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import io.lettuce.core.RedisURI;
+import io.lettuce.core.protocol.CommandArgs;
 import io.lettuce.core.protocol.RedisCommand;
 import io.opentracing.Span;
 import io.opentracing.tag.Tags;
@@ -66,8 +68,18 @@ public class LettuceClientDecorator extends DatabaseClientDecorator<RedisURI> {
   public Span onCommand(final Span span, final RedisCommand command) {
     final String commandName = LettuceInstrumentationUtil.getCommandName(command);
     span.setOperationName(commandName);
-    span.setTag(
-        DDTags.RESOURCE_NAME, LettuceInstrumentationUtil.getCommandResourceName(commandName));
-    return span;
+    span.setTag(DDTags.RESOURCE_NAME, LettuceInstrumentationUtil.getCommandResourceName(commandName));
+
+    String statement = commandName;
+    if (command != null && Config.get().isRedisCaptureCommandArguments()) {
+      CommandArgs cmdArgs = command.getArgs();
+      if (cmdArgs != null) {
+        String args = cmdArgs.toCommandString();
+        if (!args.isEmpty()) {
+          statement += ": " + args;
+        }
+      }
+    }
+    return super.onStatement(span, statement);
   }
 }

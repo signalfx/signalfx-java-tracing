@@ -6,6 +6,7 @@ import org.junit.contrib.java.lang.system.EnvironmentVariables
 import org.junit.contrib.java.lang.system.RestoreSystemProperties
 import spock.lang.Specification
 
+import static datadog.trace.api.Config.DEFAULT_REDIS_CAPTURE_COMMAND_ARGUMENTS
 import static datadog.trace.api.Config.ENDPOINT_URL
 import static datadog.trace.api.Config.AGENT_HOST
 import static datadog.trace.api.Config.AGENT_PATH
@@ -28,6 +29,7 @@ import static datadog.trace.api.Config.JMX_FETCH_STATSD_HOST
 import static datadog.trace.api.Config.JMX_FETCH_STATSD_PORT
 import static datadog.trace.api.Config.JMX_TAGS
 import static datadog.trace.api.Config.KAFKA_ATTEMPT_PROPAGATION
+import static datadog.trace.api.Config.REDIS_CAPTURE_COMMAND_ARGUMENTS
 import static datadog.trace.api.Config.TRACING_LIBRARY_KEY
 import static datadog.trace.api.Config.TRACING_LIBRARY_VALUE
 import static datadog.trace.api.Config.TRACING_VERSION_KEY
@@ -70,6 +72,7 @@ class ConfigTest extends Specification {
   private static final DD_TRACE_REPORT_HOSTNAME = "DD_TRACE_REPORT_HOSTNAME"
   private static final SIGNALFX_DB_STATEMENT_MAX_LENGTH = "SIGNALFX_DB_STATEMENT_MAX_LENGTH"
   private static final SIGNALFX_KAFKA_ATTEMPT_PROPAGATION_ENV = "SIGNALFX_INSTRUMENTATION_KAFKA_ATTEMPT_PROPAGATION"
+  private static final SIGNALFX_REDIS_CAPTURE_COMMAND_ARGUMENTS = "SIGNALFX_INSTRUMENTATION_REDIS_CAPTURE_COMMAND_ARGUMENTS"
 
   def "verify defaults"() {
     when:
@@ -111,6 +114,7 @@ class ConfigTest extends Specification {
     config.toString().contains("unnamed-java-app")
     config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
     config.kafkaAttemptPropagation == DEFAULT_KAFKA_ATTEMPT_PROPAGATION
+    config.redisCaptureCommandArguments == DEFAULT_REDIS_CAPTURE_COMMAND_ARGUMENTS
 
     where:
     provider << [{ new Config() }, { Config.get() }, {
@@ -153,6 +157,7 @@ class ConfigTest extends Specification {
     prop.setProperty(JMX_FETCH_STATSD_PORT, "321")
     prop.setProperty(DB_STATEMENT_MAX_LENGTH, "100")
     prop.setProperty(KAFKA_ATTEMPT_PROPAGATION, "false")
+    prop.setProperty(REDIS_CAPTURE_COMMAND_ARGUMENTS, "false")
 
     when:
     Config config = Config.get(prop)
@@ -186,6 +191,7 @@ class ConfigTest extends Specification {
     config.jmxFetchStatsdPort == 321
     config.dbStatementMaxLength == 100
     config.kafkaAttemptPropagation == false
+    config.redisCaptureCommandArguments == false
   }
 
   def "specify overrides via system properties"() {
@@ -223,6 +229,7 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + JMX_FETCH_STATSD_PORT, "321") // SFX
     System.setProperty(PREFIX + DB_STATEMENT_MAX_LENGTH, "100") // SFX
     System.setProperty(PREFIX + KAFKA_ATTEMPT_PROPAGATION, "false") // SFX
+    System.setProperty(PREFIX + REDIS_CAPTURE_COMMAND_ARGUMENTS, "false") // SFX
 
     when:
     Config config = new Config()
@@ -259,6 +266,7 @@ class ConfigTest extends Specification {
     config.jmxFetchStatsdPort == 321
     config.dbStatementMaxLength == 100
     config.kafkaAttemptPropagation == false
+    config.redisCaptureCommandArguments == false
 
     where:
     prefix      | _
@@ -278,6 +286,7 @@ class ConfigTest extends Specification {
     environmentVariables.set(DD_SPAN_TAGS_ENV, "key1:value1,key2:value2")
     environmentVariables.set(SIGNALFX_DB_STATEMENT_MAX_LENGTH, "100")
     environmentVariables.set(SIGNALFX_KAFKA_ATTEMPT_PROPAGATION_ENV, "false")
+    environmentVariables.set(SIGNALFX_REDIS_CAPTURE_COMMAND_ARGUMENTS, "false")
 
     when:
     def config = new Config()
@@ -293,6 +302,7 @@ class ConfigTest extends Specification {
     config.spanTags == [key1: "value1", key2: "value2"]
     config.dbStatementMaxLength == 100
     config.kafkaAttemptPropagation == false
+    config.redisCaptureCommandArguments == false
   }
 
   def "malformed endpoint url fails"() {
@@ -319,6 +329,7 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + TRACE_AGENT_PORT, "123")
     System.setProperty(SIGNALFX_PREFIX + DB_STATEMENT_MAX_LENGTH, "1010")
     System.setProperty(SIGNALFX_PREFIX + KAFKA_ATTEMPT_PROPAGATION, "false")
+    System.setProperty(SIGNALFX_PREFIX + REDIS_CAPTURE_COMMAND_ARGUMENTS, "false")
 
     when:
     def config = new Config()
@@ -330,6 +341,7 @@ class ConfigTest extends Specification {
     config.agentPort == 123
     config.dbStatementMaxLength == 1010
     config.kafkaAttemptPropagation == false
+    config.redisCaptureCommandArguments == false
   }
 
   def "default when configured incorrectly"() {
@@ -352,6 +364,7 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + PROPAGATION_STYLE_INJECT, " ")
     System.setProperty(PREFIX + DB_STATEMENT_MAX_LENGTH, "abs")
     System.setProperty(PREFIX + KAFKA_ATTEMPT_PROPAGATION, " ")
+    System.setProperty(PREFIX + REDIS_CAPTURE_COMMAND_ARGUMENTS, " ")
 
     when:
     def config = new Config()
@@ -374,6 +387,7 @@ class ConfigTest extends Specification {
     config.propagationStylesToInject.toList() == [Config.PropagationStyle.B3]
     config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
     config.kafkaAttemptPropagation == DEFAULT_KAFKA_ATTEMPT_PROPAGATION
+    config.redisCaptureCommandArguments == DEFAULT_REDIS_CAPTURE_COMMAND_ARGUMENTS
   }
 
   def "sys props and env vars overrides for trace_agent_port and agent_port_legacy as expected"() {
@@ -447,6 +461,7 @@ class ConfigTest extends Specification {
     properties.setProperty(JMX_FETCH_STATSD_PORT, "321")
     properties.setProperty(DB_STATEMENT_MAX_LENGTH, "100")
     properties.setProperty(KAFKA_ATTEMPT_PROPAGATION, "false")
+    properties.setProperty(REDIS_CAPTURE_COMMAND_ARGUMENTS, "false")
 
     when:
     def config = Config.get(properties)
@@ -477,6 +492,7 @@ class ConfigTest extends Specification {
     config.jmxFetchStatsdPort == 321
     config.dbStatementMaxLength == 100
     config.kafkaAttemptPropagation == false
+    config.redisCaptureCommandArguments == false
   }
 
   def "override null properties"() {

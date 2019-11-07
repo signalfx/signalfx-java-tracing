@@ -48,7 +48,7 @@ class JedisClientTest extends AgentTestRunner {
           resourceName "redis.SET"
           spanType DDSpanTypes.REDIS
           tags {
-            "$Tags.DB_STATEMENT.key" "SET"
+            "$Tags.DB_STATEMENT.key" "SET: foo bar"
             "$Tags.COMPONENT.key" "redis"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
@@ -75,7 +75,7 @@ class JedisClientTest extends AgentTestRunner {
           resourceName "redis.SET"
           spanType DDSpanTypes.REDIS
           tags {
-            "$Tags.DB_STATEMENT.key" "SET"
+            "$Tags.DB_STATEMENT.key" "SET: foo bar"
             "$Tags.COMPONENT.key" "redis"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
@@ -90,7 +90,7 @@ class JedisClientTest extends AgentTestRunner {
           resourceName "redis.GET"
           spanType DDSpanTypes.REDIS
           tags {
-            "$Tags.DB_STATEMENT.key" "GET"
+            "$Tags.DB_STATEMENT.key" "GET: foo"
             "$Tags.COMPONENT.key" "redis"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
@@ -117,7 +117,7 @@ class JedisClientTest extends AgentTestRunner {
           resourceName "redis.SET"
           spanType DDSpanTypes.REDIS
           tags {
-            "$Tags.DB_STATEMENT.key" "SET"
+            "$Tags.DB_STATEMENT.key" "SET: foo bar"
             "$Tags.COMPONENT.key" "redis"
             "$Tags.DB_TYPE.key" "redis"
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT

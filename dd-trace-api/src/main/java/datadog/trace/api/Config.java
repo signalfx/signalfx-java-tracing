@@ -76,6 +76,8 @@ public class Config {
 
   public static final String KAFKA_ATTEMPT_PROPAGATION =
       "instrumentation.kafka.attempt-propagation";
+  public static final String REDIS_CAPTURE_COMMAND_ARGUMENTS =
+      "instrumentation.redis.capture-command-arguments";
 
   public static final String JMX_FETCH_ENABLED = "jmxfetch.enabled";
   public static final String JMX_FETCH_METRICS_CONFIGS = "jmxfetch.metrics-configs";
@@ -129,6 +131,7 @@ public class Config {
   private static final boolean DEFAULT_JMX_FETCH_ENABLED = false;
 
   public static final boolean DEFAULT_KAFKA_ATTEMPT_PROPAGATION = true;
+  public static final boolean DEFAULT_REDIS_CAPTURE_COMMAND_ARGUMENTS = true;
 
   public static final int DEFAULT_JMX_FETCH_STATSD_PORT = 8125;
 
@@ -181,6 +184,7 @@ public class Config {
   @Getter private final Set<PropagationStyle> propagationStylesToInject;
 
   @Getter private final boolean kafkaAttemptPropagation;
+  @Getter private final boolean redisCaptureCommandArguments;
 
   @Getter private final boolean jmxFetchEnabled;
   @Getter private final List<String> jmxFetchMetricsConfigs;
@@ -263,6 +267,9 @@ public class Config {
     kafkaAttemptPropagation =
         getBooleanSettingFromEnvironment(
             KAFKA_ATTEMPT_PROPAGATION, DEFAULT_KAFKA_ATTEMPT_PROPAGATION);
+    redisCaptureCommandArguments =
+        getBooleanSettingFromEnvironment(
+            REDIS_CAPTURE_COMMAND_ARGUMENTS, DEFAULT_REDIS_CAPTURE_COMMAND_ARGUMENTS);
 
     jmxFetchEnabled =
         getBooleanSettingFromEnvironment(JMX_FETCH_ENABLED, DEFAULT_JMX_FETCH_ENABLED);
@@ -356,6 +363,10 @@ public class Config {
     kafkaAttemptPropagation =
         getPropertyBooleanValue(
             properties, KAFKA_ATTEMPT_PROPAGATION, parent.kafkaAttemptPropagation);
+
+    redisCaptureCommandArguments =
+        getPropertyBooleanValue(
+            properties, REDIS_CAPTURE_COMMAND_ARGUMENTS, parent.redisCaptureCommandArguments);
 
     jmxFetchEnabled =
         getPropertyBooleanValue(properties, JMX_FETCH_ENABLED, parent.jmxFetchEnabled);

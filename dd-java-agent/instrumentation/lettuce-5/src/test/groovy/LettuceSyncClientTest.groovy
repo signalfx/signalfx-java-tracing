@@ -173,6 +173,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "SET: key<TESTSETKEY> value<TESTSETVAL>"
             "span.kind" "client"
           }
         }
@@ -199,6 +200,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "GET: key<TESTKEY>"
             "span.kind" "client"
           }
         }
@@ -225,6 +227,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "GET: key<NON_EXISTENT_KEY>"
             "span.kind" "client"
           }
         }
@@ -251,6 +254,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "RANDOMKEY"
             "span.kind" "client"
           }
         }
@@ -277,6 +281,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "LPUSH: key<TESTLIST> value<TESTLIST ELEMENT>"
             "span.kind" "client"
           }
         }
@@ -303,6 +308,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "HMSET: key<user> key<firstname> value<John> key<lastname> value<Doe> key<age> value<53>"
             "span.kind" "client"
           }
         }
@@ -329,6 +335,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "HGETALL: key<TESTHM>"
             "span.kind" "client"
           }
         }
@@ -354,6 +361,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "DEBUG: SEGFAULT"
             "span.kind" "client"
           }
         }
@@ -379,6 +387,7 @@ class LettuceSyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "SHUTDOWN: NOSAVE"
             "span.kind" "client"
           }
         }

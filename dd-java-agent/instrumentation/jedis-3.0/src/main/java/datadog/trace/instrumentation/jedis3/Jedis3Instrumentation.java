@@ -10,8 +10,10 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.api.Config;
 import io.opentracing.Scope;
 import io.opentracing.util.GlobalTracer;
+import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -59,14 +61,27 @@ public final class Jedis3Instrumentation extends Instrumenter.Default {
   public static class JedisAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Scope startSpan(@Advice.Argument(1) final ProtocolCommand command) {
+    public static Scope startSpan(
+        @Advice.Argument(1) final ProtocolCommand command,
+        @Advice.Argument(2) final byte[][] args) {
       String commandName = "query";
       if (command instanceof Command) {
         commandName = ((Command) command).name();
       }
       final Scope scope = GlobalTracer.get().buildSpan("redis." + commandName).startActive(true);
       DECORATE.afterStart(scope.span());
-      DECORATE.onStatement(scope.span(), commandName);
+
+      String statement = commandName;
+      if (Config.get().isRedisCaptureCommandArguments() && args.length > 0) {
+        statement += ":";
+        for (int i = 0; i < args.length; i++) {
+          try {
+            statement += " " + new String(args[i], "UTF-8");
+          } catch (UnsupportedEncodingException e) {
+          }
+        }
+      }
+      DECORATE.onStatement(scope.span(), statement);
       return scope;
     }
 

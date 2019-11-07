@@ -2,7 +2,6 @@
 package datadog.opentracing.propagation;
 
 import static datadog.opentracing.propagation.HttpCodec.ZERO;
-import static datadog.opentracing.propagation.HttpCodec.validateUInt64BitsID;
 
 import com.google.common.base.Strings;
 import datadog.opentracing.DDSpanContext;
@@ -24,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 class B3HttpCodec {
+
+  static final BigInteger UINT128_MAX = new BigInteger("2").pow(128).subtract(BigInteger.ONE);
 
   private static final String OT_BAGGAGE_PREFIX = "ot-baggage-";
   private static final String TRACE_ID_KEY = "x-b3-traceid";
@@ -116,19 +117,14 @@ class B3HttpCodec {
           }
 
           if (TRACE_ID_KEY.equalsIgnoreCase(key)) {
-            final String trimmedValue;
             final int length = value.length();
             if (length > 32) {
               log.debug("Header {} exceeded max length of 32: {}", TRACE_ID_KEY, value);
               continue;
-            } else if (length > 16) {
-              trimmedValue = value.substring(length - 16);
-            } else {
-              trimmedValue = value;
             }
-            traceId = validateUInt64BitsID(trimmedValue, HEX_RADIX);
+            traceId = validateUInt128BitsID(value, HEX_RADIX);
           } else if (SPAN_ID_KEY.equalsIgnoreCase(key)) {
-            spanId = validateUInt64BitsID(value, HEX_RADIX);
+            spanId = validateUInt128BitsID(value, HEX_RADIX);
           } else if (SAMPLING_PRIORITY_KEY.equalsIgnoreCase(key)) {
             samplingPriority = convertSamplingPriority(value);
           }
@@ -163,6 +159,17 @@ class B3HttpCodec {
       }
 
       return null;
+    }
+
+    static String validateUInt128BitsID(final String value, final int radix)
+        throws IllegalArgumentException {
+      final BigInteger parsedValue = new BigInteger(value, radix);
+      if (parsedValue.compareTo(BigInteger.ZERO) == -1 || parsedValue.compareTo(UINT128_MAX) == 1) {
+        throw new IllegalArgumentException(
+            "ID out of range, must be between 0 and 2^128-1, got: " + value);
+      }
+      // We use decimals
+      return parsedValue.toString();
     }
 
     private int convertSamplingPriority(final String samplingPriority) {

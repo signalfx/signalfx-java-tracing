@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing.propagation
 
 import datadog.trace.api.sampling.PrioritySampling
@@ -8,6 +9,7 @@ import spock.lang.Specification
 import static datadog.opentracing.propagation.B3HttpCodec.SAMPLING_PRIORITY_KEY
 import static datadog.opentracing.propagation.B3HttpCodec.SPAN_ID_KEY
 import static datadog.opentracing.propagation.B3HttpCodec.TRACE_ID_KEY
+import static datadog.opentracing.propagation.B3HttpCodec.UINT128_MAX
 import static datadog.opentracing.propagation.HttpCodec.UINT64_MAX
 
 class B3HttpExtractorTest extends Specification {
@@ -38,15 +40,17 @@ class B3HttpExtractorTest extends Specification {
     context.origin == null
 
     where:
-    traceId             | spanId              | samplingPriority | expectedSamplingPriority
-    1G                  | 2G                  | null             | PrioritySampling.UNSET
-    2G                  | 3G                  | 1                | PrioritySampling.SAMPLER_KEEP
-    3G                  | 4G                  | 0                | PrioritySampling.SAMPLER_DROP
-    UINT64_MAX          | UINT64_MAX.minus(1) | 0                | PrioritySampling.SAMPLER_DROP
-    UINT64_MAX.minus(1) | UINT64_MAX          | 1                | PrioritySampling.SAMPLER_KEEP
+    traceId              | spanId               | samplingPriority | expectedSamplingPriority
+    1G                   | 2G                   | null             | PrioritySampling.UNSET
+    2G                   | 3G                   | 1                | PrioritySampling.SAMPLER_KEEP
+    3G                   | 4G                   | 0                | PrioritySampling.SAMPLER_DROP
+    UINT64_MAX           | UINT64_MAX.minus(1)  | 0                | PrioritySampling.SAMPLER_DROP
+    UINT64_MAX.minus(1)  | UINT64_MAX           | 1                | PrioritySampling.SAMPLER_KEEP
+    UINT128_MAX          | UINT128_MAX.minus(1) | 0                | PrioritySampling.SAMPLER_DROP
+    UINT128_MAX.minus(1) | UINT128_MAX          | 1                | PrioritySampling.SAMPLER_KEEP
   }
 
-  def "extract 128 bit id truncates id to 64 bit"() {
+  def "extract 128 bit id supported"() {
     setup:
     def headers = [
       (TRACE_ID_KEY.toUpperCase()): traceId,
@@ -71,13 +75,16 @@ class B3HttpExtractorTest extends Specification {
     "0"                                 | "1"                      | null                  | "0"
     "00001"                             | "00001"                  | "1"                   | "1"
     "463ac35c9f6413ad"                  | "463ac35c9f6413ad"       | "5060571933882717101" | "5060571933882717101"
-    "463ac35c9f6413ad48485a3953bb6124"  | "1"                      | "5208512171318403364" | "1"
+    "463ac35c9f6413ad48485a3953bb6124"  | "1" | "93351075330931896558786731617803788580"   | "1"
+    "463ac35c9f6413ad48485a3953bb6124"  | "463ac35c9f6413ad48485a3953bb6124" | "93351075330931896558786731617803788580" | "93351075330931896558786731617803788580"
     "f".multiply(16)                    | "1"                      | "$UINT64_MAX"         | "1"
-    "a".multiply(16) + "f".multiply(16) | "1"                      | "$UINT64_MAX"         | "1"
+    "a".multiply(16) + "f".multiply(16) | "1" | "226854911280625642315065319645748658175"  | "1"
     "1" + "f".multiply(32)              | "1"                      | null                  | "1"
     "0" + "f".multiply(32)              | "1"                      | null                  | "1"
+    "f".multiply(32)                    | "1"                      | "$UINT128_MAX"        | "1"
+    "1"                                 | "f".multiply(32)         | "1"                   | "$UINT128_MAX"
     "1"                                 | "f".multiply(16)         | "1"                   | "$UINT64_MAX"
-    "1"                                 | "1" + "f".multiply(16)   | null                  | "0"
+    "1"                                 | "1" + "f".multiply(32)   | null                  | "0"
     "1"                                 | "000" + "f".multiply(16) | "1"                   | "$UINT64_MAX"
   }
 

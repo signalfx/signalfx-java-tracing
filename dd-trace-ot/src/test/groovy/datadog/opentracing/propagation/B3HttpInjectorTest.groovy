@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing.propagation
 
 import datadog.opentracing.DDSpanContext
@@ -14,6 +15,7 @@ import static datadog.opentracing.propagation.B3HttpCodec.OT_BAGGAGE_PREFIX
 import static datadog.opentracing.propagation.B3HttpCodec.TRACE_ID_KEY
 import static datadog.opentracing.propagation.B3HttpCodec.SPAN_ID_KEY
 import static datadog.opentracing.propagation.B3HttpCodec.FLAGS_KEY
+import static datadog.opentracing.propagation.B3HttpCodec.UINT128_MAX
 import static datadog.opentracing.propagation.HttpCodec.UINT64_MAX
 
 class B3HttpInjectorTest extends Specification {
@@ -65,14 +67,16 @@ class B3HttpInjectorTest extends Specification {
     0 * _
 
     where:
-    traceId                        | spanId                         | samplingPriority              | expectedSamplingPriority
-    "1"                            | "2"                            | PrioritySampling.UNSET        | null
-    "2"                            | "3"                            | PrioritySampling.SAMPLER_KEEP | 1
-    "4"                            | "5"                            | PrioritySampling.SAMPLER_DROP | 0
-    "5"                            | "6"                            | PrioritySampling.USER_KEEP    | 1
-    "6"                            | "7"                            | PrioritySampling.USER_DROP    | 0
-    UINT64_MAX.toString()          | UINT64_MAX.minus(1).toString() | PrioritySampling.UNSET        | null
-    UINT64_MAX.minus(1).toString() | UINT64_MAX.toString()          | PrioritySampling.SAMPLER_KEEP | 1
+    traceId                         | spanId                          | samplingPriority              | expectedSamplingPriority
+    "1"                             | "2"                             | PrioritySampling.UNSET        | null
+    "2"                             | "3"                             | PrioritySampling.SAMPLER_KEEP | 1
+    "4"                             | "5"                             | PrioritySampling.SAMPLER_DROP | 0
+    "5"                             | "6"                             | PrioritySampling.USER_KEEP    | 1
+    "6"                             | "7"                             | PrioritySampling.USER_DROP    | 0
+    UINT64_MAX.toString()           | UINT64_MAX.minus(1).toString()  | PrioritySampling.UNSET        | null
+    UINT64_MAX.minus(1).toString()  | UINT64_MAX.toString()           | PrioritySampling.SAMPLER_KEEP | 1
+    UINT128_MAX.toString()          | UINT128_MAX.minus(1).toString() | PrioritySampling.UNSET        | null
+    UINT128_MAX.minus(1).toString() | UINT128_MAX.toString()          | PrioritySampling.SAMPLER_KEEP | 1
   }
 
   def "unparseable ids"() {

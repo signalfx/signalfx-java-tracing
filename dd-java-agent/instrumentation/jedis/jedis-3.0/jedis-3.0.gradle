@@ -21,6 +21,7 @@ testSets {
 dependencies {
   compileOnly group: 'redis.clients', name: 'jedis', version: '3.0.0'
 
+  compile project(':dd-java-agent:instrumentation:jedis')
   compile project(':dd-java-agent:agent-tooling')
 
   compile deps.bytebuddy
@@ -30,7 +31,7 @@ dependencies {
 
   testCompile project(':dd-java-agent:testing')
   // Ensure no cross interference
-  testCompile project(':dd-java-agent:instrumentation:jedis-1.4')
+  testCompile project(':dd-java-agent:instrumentation:jedis:jedis-1.4')
 
   testCompile group: 'com.github.kstyrc', name: 'embedded-redis', version: '0.6'
   testCompile group: 'redis.clients', name: 'jedis', version: '3.0.0'

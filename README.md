@@ -65,14 +65,14 @@ explicitly validated for compatibility with all instrumentations.
 | **Hystrix** | 1.4.0+ | `hystrix` | |
 | **JAX-RS Client** | 2.0.0+ | `jaxrs` | Also supports DropWizard client 0.8.0+ |
 | **JDBC API** | * | `jdbc` | |
-| **Jedis (Redis client)** | 1.4.0+ | `jedis` | |
+| **Jedis (Redis client)** | 1.4.0+ | `jedis` | Prevent command arguments from being sourced in `db.statement` tag with `-Dsignalfx.instrumentation.redis.capture-command-arguments=false` |
 | **Jersey** | 2.1+ | `jersey` | In tandem with JAX-RS Annotations |
 | **Jetty Server** | 6.0.0+, 8.0.0+ | `jetty` | |
 | **JMS Messaging** | * | `jms` | |
 | **JSP** | 7+ | `jsp` | |
 | **Kafka Client** | 0.11.0.0+ | `kafka` | Disable trace propagation for unsupported environments with `-Dsignalfx.instrumentation.kafka.attempt-propagation=false` |
 | **khttp** | 0.1.0+ | `khttp` | |
-| **Lettuce (Redis Client)** | 5.0.0+ | `lettuce` | |
+| **Lettuce (Redis Client)** | 5.0.0+ | `lettuce` | Prevent command arguments from being sourced in `db.statement` tag with `-Dsignalfx.instrumentation.redis.capture-command-arguments=false` |
 | _Java MDC_ | * | `-Dsignalfx.logs.injection=true` on Java invocation | Injects `signalfx.trace_id` and `signalfx.span_id` to MDC contexts |
 | **Memcached (SpyMemcached)** | 2.10.0+ | `spymemcached` | |
 | **Mongo Client** | 3.1+ | `mongo` | |

@@ -1,0 +1,6 @@
+// Modified by SignalFx
+apply from: "${rootDir}/gradle/java.gradle"
+
+dependencies {
+  compile project(':dd-java-agent:agent-tooling')
+}

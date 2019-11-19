@@ -5,6 +5,7 @@ import datadog.trace.api.DDSpanTypes
 import io.lettuce.core.ClientOptions
 import io.lettuce.core.ConnectionFuture
 import io.lettuce.core.RedisClient
+import io.lettuce.core.RedisCommandExecutionException
 import io.lettuce.core.RedisFuture
 import io.lettuce.core.RedisURI
 import io.lettuce.core.api.StatefulConnection
@@ -197,6 +198,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "SET: key<TESTSETKEY> value<TESTSETVAL>"
             "span.kind" "client"
           }
         }
@@ -235,6 +237,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "GET: key<TESTKEY>"
             "span.kind" "client"
           }
         }
@@ -287,6 +290,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "GET: key<NON_EXISTENT_KEY>"
             "span.kind" "client"
           }
         }
@@ -325,6 +329,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "RANDOMKEY"
             "span.kind" "client"
           }
         }
@@ -382,6 +387,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "HMSET: key<TESTHM> key<firstname> value<John> key<lastname> value<Doe> key<age> value<53>"
             "span.kind" "client"
           }
         }
@@ -398,6 +404,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "HGETALL: key<TESTHM>"
             "span.kind" "client"
           }
         }
@@ -444,6 +451,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "DEL: key<key1> key<key2>"
             errorTags(IllegalStateException, "TestException")
             "span.kind" "client"
           }
@@ -486,6 +494,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
             "component" "redis"
             "db.type" "redis"
             "db.command.cancelled" true
+            "db.statement" "SADD: key<SKEY> value<1> value<2>"
             "span.kind" "client"
           }
         }
@@ -511,7 +520,37 @@ class LettuceAsyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "DEBUG: SEGFAULT"
             "span.kind" "client"
+          }
+        }
+      }
+    }
+  }
+
+  def "auth command arguments shouldn't be captured"() {
+    when:
+    asyncCommands.auth("myPassword")
+
+    then:
+    thrown RedisCommandExecutionException
+
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          serviceName "redis"
+          operationName "AUTH"
+          spanType DDSpanTypes.REDIS
+          resourceName "AUTH"
+          errored true
+
+          tags {
+            defaultTags()
+            "component" "redis"
+            "db.type" "redis"
+            "db.statement" "AUTH"
+            "span.kind" "client"
+            errorTags RedisCommandExecutionException, "ERR Client sent AUTH, but no password is set"
           }
         }
       }
@@ -537,6 +576,7 @@ class LettuceAsyncClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "SHUTDOWN: NOSAVE"
             "span.kind" "client"
           }
         }

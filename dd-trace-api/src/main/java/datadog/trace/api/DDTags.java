@@ -7,7 +7,7 @@ public class DDTags {
   public static final String RESOURCE_NAME = "resource.name";
   public static final String THREAD_NAME = "thread.name";
   public static final String THREAD_ID = "thread.id";
-  public static final String DB_STATEMENT = "sql.query";
+  public static final String DB_STATEMENT = "db.statement";
 
   public static final String USER_NAME = "user.principal";
   public static final String ENTITY_NAME = "entity.name";

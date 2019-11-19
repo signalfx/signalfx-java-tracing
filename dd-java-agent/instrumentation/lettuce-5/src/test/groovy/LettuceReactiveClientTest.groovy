@@ -4,6 +4,7 @@ import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
 import io.lettuce.core.ClientOptions
 import io.lettuce.core.RedisClient
+import io.lettuce.core.RedisCommandExecutionException
 import io.lettuce.core.api.StatefulConnection
 import io.lettuce.core.api.reactive.RedisReactiveCommands
 import io.lettuce.core.api.sync.RedisCommands
@@ -98,6 +99,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "SET: key<TESTSETKEY> value<TESTSETVAL>"
             "span.kind" "client"
           }
         }
@@ -127,6 +129,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "GET: key<TESTKEY>"
             "span.kind" "client"
           }
         }
@@ -164,6 +167,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "GET: key<NON_EXISTENT_KEY>"
             "span.kind" "client"
           }
         }
@@ -199,6 +203,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "RANDOMKEY"
             "span.kind" "client"
           }
         }
@@ -224,6 +229,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "COMMAND"
             "db.command.results.count" 157
             "span.kind" "client"
           }
@@ -250,6 +256,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "COMMAND"
             "db.command.cancelled" true
             "db.command.results.count" 2
             "span.kind" "client"
@@ -289,7 +296,45 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "DEBUG: SEGFAULT"
             "span.kind" "client"
+          }
+        }
+      }
+    }
+  }
+
+  def "auth command arguments shouldn't be captured"() {
+    setup:
+    def conds = new AsyncConditions()
+
+    when:
+    reactiveCommands.auth("myPassword").subscribe null, {
+      exc ->
+        conds.evaluate {
+          assert exc instanceof RedisCommandExecutionException
+        }
+    }
+
+    then:
+    conds.await()
+
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          serviceName "redis"
+          operationName "AUTH"
+          spanType DDSpanTypes.REDIS
+          resourceName "AUTH"
+          errored true
+
+          tags {
+            defaultTags()
+            "component" "redis"
+            "db.type" "redis"
+            "db.statement" "AUTH"
+            "span.kind" "client"
+            errorTags RedisCommandExecutionException, "ERR Client sent AUTH, but no password is set"
           }
         }
       }
@@ -314,6 +359,7 @@ class LettuceReactiveClientTest extends AgentTestRunner {
             defaultTags()
             "component" "redis"
             "db.type" "redis"
+            "db.statement" "SHUTDOWN: NOSAVE"
             "span.kind" "client"
           }
         }

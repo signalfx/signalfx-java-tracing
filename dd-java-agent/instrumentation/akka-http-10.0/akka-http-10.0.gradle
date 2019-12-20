@@ -59,6 +59,14 @@ muzzle {
     // later versions of akka-http expect streams to be provided
     extraDependency 'com.typesafe.akka:akka-stream_2.12:2.5.11'
   }
+  //There is no akka-http 10.0.x series for scala 2.13
+  pass {
+    group = 'com.typesafe.akka'
+    module = 'akka-http_2.13'
+    versions = "[10.1.8,)"
+    // later versions of akka-http expect streams to be provided
+    extraDependency 'com.typesafe.akka:akka-stream_2.13:2.5.23'
+  }
 }
 
 dependencies {
@@ -90,9 +98,7 @@ dependencies {
   version101TestCompile project(':dd-java-agent:instrumentation:java-concurrent')
   version101TestCompile project(':dd-java-agent:instrumentation:trace-annotation')
 
-  // Lock latest dep on '10.1.6' because '10.1.6+21-f063bff5' was released that breaks things
-  // Once 10.1.7 is released we should be able to go back to '+'
-  latestDepTestCompile group: 'com.typesafe.akka', name: 'akka-http_2.11', version: '10.1.6'
+  latestDepTestCompile group: 'com.typesafe.akka', name: 'akka-http_2.11', version: '+'
   latestDepTestCompile group: 'com.typesafe.akka', name: 'akka-stream_2.11', version: '+'
   latestDepTestCompile project(':dd-java-agent:testing')
   latestDepTestCompile project(':dd-java-agent:instrumentation:java-concurrent')

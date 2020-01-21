@@ -7,7 +7,6 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import io.grpc.ServerInterceptor;
-import io.opentracing.util.GlobalTracer;
 import java.util.List;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
@@ -31,10 +30,12 @@ public class GrpcServerBuilderInstrumentation extends Instrumenter.Default {
   public String[] helperClassNames() {
     return new String[] {
       "datadog.trace.instrumentation.grpc.server.TracingServerInterceptor",
+      "datadog.trace.instrumentation.grpc.server.TracingServerInterceptor$TracingServerCall",
       "datadog.trace.instrumentation.grpc.server.TracingServerInterceptor$TracingServerCallListener",
       "datadog.trace.agent.decorator.BaseDecorator",
       "datadog.trace.agent.decorator.ServerDecorator",
       packageName + ".GrpcServerDecorator",
+      packageName + ".GrpcExtractAdapter"
     };
   }
 
@@ -56,7 +57,7 @@ public class GrpcServerBuilderInstrumentation extends Instrumenter.Default {
         }
       }
       if (shouldRegister) {
-        interceptors.add(0, new TracingServerInterceptor(GlobalTracer.get()));
+        interceptors.add(0, TracingServerInterceptor.INSTANCE);
       }
     }
   }

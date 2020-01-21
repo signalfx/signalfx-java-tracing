@@ -1,15 +1,16 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.util.GlobalTracer;
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.Tags;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
 import datadog.trace.context.TraceScope;
-import static io.opentracing.log.Fields.ERROR_OBJECT;
-import io.opentracing.tag.Tags;
 import java.util.Collections;
 
 import static datadog.trace.instrumentation.vertx.RoutingContextDecorator.DECORATE;
@@ -27,12 +28,12 @@ public final class RoutingContextHandlerWrapper implements Handler<RoutingContex
 
   @Override
   public void handle(RoutingContext rc) {
-    Scope scope = startSpan(handler, rc);
+    AgentScope scope = startAndActivate(handler, rc);
     try {
       handler.handle(rc);
-      stopSpan(null, scope, rc);
+      stopAndClose(null, scope, rc);
     } catch (final Throwable throwable) {
-      stopSpan(throwable, scope, rc);
+      stopAndClose(throwable, scope, rc);
       throw throwable;
     }
   }
@@ -47,7 +48,7 @@ public final class RoutingContextHandlerWrapper implements Handler<RoutingContex
     return handler;
   }
 
-  public static Scope startSpan(
+  public static AgentScope startAndActivate(
     final Object source, final RoutingContext context) {
     String operationName = source.getClass().getName();
 
@@ -59,42 +60,35 @@ public final class RoutingContextHandlerWrapper implements Handler<RoutingContex
       }
     }
 
-    final Scope scope =
-      GlobalTracer.get()
-        .buildSpan(operationName + ".handle")
-        .withTag("handler.type", context.getClass().getName())
-        .withTag("component", "vertx")
-        .startActive(false);
+    final AgentSpan span =
+        startSpan(operationName + ".handle")
+        .setTag("handler.type", context.getClass().getName())
+        .setTag("component", "vertx");
 
-    final Span span = scope.span();
     DECORATE.afterStart(span);
     DECORATE.onConnection(span, context.request());
     DECORATE.onRequest(span, context.request());
 
-    if (scope instanceof TraceScope) {
-      ((TraceScope) scope).setAsyncPropagation(true);
-    }
-
+    final AgentScope scope = activateSpan(span, false);
+    scope.setAsyncPropagation(true);
     return scope;
   }
 
-  public static void stopSpan(
+  public static void stopAndClose(
     final Throwable throwable,
-    final Scope scope,
+    final AgentScope scope,
     final RoutingContext context) {
     if (scope != null) {
-      final Span span = scope.span();
+      final AgentSpan span = scope.span();
       DECORATE.onResponse(span, context.response());
 
       if (throwable != null) {
-        Tags.ERROR.set(span, true);
+        span.setTag(Tags.ERROR, true);
         DECORATE.onError(span, throwable);
-        span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
+        span.addThrowable(throwable);
       }
 
-      if (scope instanceof TraceScope) {
-        ((TraceScope) scope).setAsyncPropagation(false);
-      }
+      scope.setAsyncPropagation(false);
 
       DECORATE.beforeFinish(span);
       span.finish();

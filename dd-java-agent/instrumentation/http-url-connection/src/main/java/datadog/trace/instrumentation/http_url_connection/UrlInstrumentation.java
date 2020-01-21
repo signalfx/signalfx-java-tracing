@@ -1,6 +1,7 @@
 package datadog.trace.instrumentation.http_url_connection;
 
-import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.is;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
@@ -12,12 +13,12 @@ import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.api.Config;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.tag.Tags;
-import io.opentracing.util.GlobalTracer;
+import datadog.trace.bootstrap.InternalJarURLHandler;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.Tags;
 import java.net.URL;
-import java.util.Collections;
+import java.net.URLStreamHandler;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -49,33 +50,36 @@ public class UrlInstrumentation extends Instrumenter.Default {
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void errorSpan(
-        @Advice.This final URL url, @Advice.Thrown final Throwable throwable) {
+        @Advice.This final URL url,
+        @Advice.Thrown final Throwable throwable,
+        @Advice.FieldValue("handler") final URLStreamHandler handler) {
       if (throwable != null) {
-        final boolean isTraceRequest = Thread.currentThread().getName().equals("dd-agent-writer");
-        if (isTraceRequest) {
+        // Various agent components end up calling `openConnection` indirectly
+        // when loading classes. Avoid tracing these calls.
+        final boolean disableTracing = handler instanceof InternalJarURLHandler;
+        if (disableTracing) {
           return;
         }
 
         String protocol = url.getProtocol();
         protocol = protocol != null ? protocol : "url";
 
-        final Span span =
-            GlobalTracer.get()
-                .buildSpan(protocol + ".request")
-                .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-                .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
-                .withTag(Tags.COMPONENT.getKey(), COMPONENT)
-                .start();
-        try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
-          Tags.HTTP_URL.set(span, url.toString());
-          Tags.PEER_PORT.set(span, url.getPort() == -1 ? 80 : url.getPort());
-          Tags.PEER_HOSTNAME.set(span, url.getHost());
+        final AgentSpan span =
+            startSpan(protocol + ".request")
+                .setTag(Tags.SPAN_KIND, Tags.SPAN_KIND_CLIENT)
+                .setTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
+                .setTag(Tags.COMPONENT, COMPONENT);
+
+        try (final AgentScope scope = activateSpan(span, false)) {
+          span.setTag(Tags.HTTP_URL, url.toString());
+          span.setTag(Tags.PEER_PORT, url.getPort() == -1 ? 80 : url.getPort());
+          span.setTag(Tags.PEER_HOSTNAME, url.getHost());
           if (Config.get().isHttpClientSplitByDomain()) {
             span.setTag(DDTags.SERVICE_NAME, url.getHost());
           }
 
-          Tags.ERROR.set(span, true);
-          span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
+          span.setError(true);
+          span.addThrowable(throwable);
           span.finish();
         }
       }

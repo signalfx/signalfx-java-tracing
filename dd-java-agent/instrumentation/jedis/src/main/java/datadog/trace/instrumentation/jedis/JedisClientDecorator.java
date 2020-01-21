@@ -4,7 +4,7 @@ package datadog.trace.instrumentation.jedis;
 import datadog.trace.agent.decorator.DatabaseClientDecorator;
 import datadog.trace.api.Config;
 import datadog.trace.api.DDSpanTypes;
-import io.opentracing.Span;
+import datadog.trace.instrumentation.api.AgentSpan;
 import java.io.UnsupportedEncodingException;
 
 public abstract class JedisClientDecorator<COMMAND> extends DatabaseClientDecorator<COMMAND> {
@@ -34,7 +34,8 @@ public abstract class JedisClientDecorator<COMMAND> extends DatabaseClientDecora
     return "redis";
   }
 
-  public Span onStatement(final Span span, final String commandName, final byte[][] cmdArgs) {
+  public AgentSpan onStatement(
+      final AgentSpan span, final String commandName, final byte[][] cmdArgs) {
     String statement = commandName;
     if (cmdArgs.length > 0
         && !statement.toLowerCase().equals("auth")

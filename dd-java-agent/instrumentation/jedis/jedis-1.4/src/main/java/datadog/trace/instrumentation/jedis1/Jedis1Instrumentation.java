@@ -1,6 +1,8 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.jedis1;
 
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.jedis1.Jedis1ClientDecorator.DECORATE;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
@@ -10,8 +12,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import io.opentracing.Scope;
-import io.opentracing.util.GlobalTracer;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -59,17 +61,17 @@ public final class Jedis1Instrumentation extends Instrumenter.Default {
   public static class JedisAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Scope startSpan(
+    public static AgentScope onEnter(
         @Advice.Argument(1) final Command command, @Advice.Argument(2) final byte[][] args) {
-      final Scope scope = GlobalTracer.get().buildSpan("redis." + command.name()).startActive(true);
-      DECORATE.afterStart(scope.span());
-      DECORATE.onStatement(scope.span(), command.name(), args);
-      return scope;
+      final AgentSpan span = startSpan("redis." + command.name());
+      DECORATE.afterStart(span);
+      DECORATE.onStatement(span, command.name(), args);
+      return activateSpan(span, true);
     }
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void stopSpan(
-        @Advice.Enter final Scope scope, @Advice.Thrown final Throwable throwable) {
+        @Advice.Enter final AgentScope scope, @Advice.Thrown final Throwable throwable) {
       DECORATE.onError(scope.span(), throwable);
       DECORATE.beforeFinish(scope.span());
       scope.close();

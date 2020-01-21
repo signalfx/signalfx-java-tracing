@@ -1,42 +1,48 @@
 package datadog.trace.instrumentation.netty41.server;
 
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.netty41.server.NettyHttpServerDecorator.DECORATE;
+import static datadog.trace.instrumentation.netty41.server.NettyRequestExtractAdapter.GETTER;
 
-import datadog.trace.context.TraceScope;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.AgentSpan.Context;
 import datadog.trace.instrumentation.netty41.AttributeKeys;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpRequest;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.SpanContext;
-import io.opentracing.propagation.Format;
-import io.opentracing.util.GlobalTracer;
 
 public class HttpServerRequestTracingHandler extends ChannelInboundHandlerAdapter {
 
   @Override
   public void channelRead(final ChannelHandlerContext ctx, final Object msg) {
+
     if (!(msg instanceof HttpRequest)) {
-      ctx.fireChannelRead(msg); // superclass does not throw
+      final AgentSpan span = ctx.channel().attr(AttributeKeys.SERVER_ATTRIBUTE_KEY).get();
+      if (span == null) {
+        ctx.fireChannelRead(msg); // superclass does not throw
+      } else {
+        try (final AgentScope scope = activateSpan(span, false)) {
+          scope.setAsyncPropagation(true);
+          ctx.fireChannelRead(msg); // superclass does not throw
+        }
+      }
       return;
     }
+
     final HttpRequest request = (HttpRequest) msg;
 
-    final SpanContext extractedContext =
-        GlobalTracer.get()
-            .extract(Format.Builtin.HTTP_HEADERS, new NettyRequestExtractAdapter(request));
+    final Context extractedContext = propagate().extract(request.headers(), GETTER);
 
-    final Span span =
-        GlobalTracer.get().buildSpan("netty.request").asChildOf(extractedContext).start();
-    try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
+    final AgentSpan span = startSpan("netty.request", extractedContext);
+    try (final AgentScope scope = activateSpan(span, false)) {
       DECORATE.afterStart(span);
       DECORATE.onConnection(span, ctx.channel());
       DECORATE.onRequest(span, request);
 
-      if (scope instanceof TraceScope) {
-        ((TraceScope) scope).setAsyncPropagation(true);
-      }
+      scope.setAsyncPropagation(true);
 
       ctx.channel().attr(AttributeKeys.SERVER_ATTRIBUTE_KEY).set(span);
 

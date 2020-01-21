@@ -3,7 +3,7 @@ apply from: "${rootDir}/gradle/java.gradle"
 
 minimumBranchCoverage = 0.6
 minimumInstructionCoverage = 0.8
-excludedClassesConverage += ['datadog.trace.agent.tooling.*']
+excludedClassesCoverage += ['datadog.trace.agent.tooling.*']
 
 configurations {
   // classpath used by the instrumentation muzzle plugin
@@ -11,14 +11,17 @@ configurations {
 }
 
 dependencies {
-  compile project(':dd-java-agent:agent-bootstrap')
+  compile(project(':dd-java-agent:agent-bootstrap')) {
+    // This only needs to exist in the bootstrap, not the instrumentation jar.
+    exclude group: 'org.slf4j', module: 'slf4j-simple'
+  }
   compile group: 'com.blogspot.mydailyjava', name: 'weak-lock-free', version: '0.15'
   compile deps.bytebuddy
   compile deps.bytebuddyagent
   annotationProcessor deps.autoservice
   implementation deps.autoservice
 
-  compileOnly project(':dd-trace-ot')
+  compile project(':dd-trace-ot')
 
   testCompile deps.opentracing
   testCompile project(':dd-java-agent:testing')

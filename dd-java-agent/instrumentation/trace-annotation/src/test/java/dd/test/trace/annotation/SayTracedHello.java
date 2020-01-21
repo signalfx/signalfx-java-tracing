@@ -1,41 +1,37 @@
 // Modified by SignalFx
 package dd.test.trace.annotation;
 
+import static datadog.trace.instrumentation.api.AgentTracer.activeSpan;
+
 import datadog.trace.api.DDTags;
 import datadog.trace.api.Trace;
-import io.opentracing.tag.StringTag;
-import io.opentracing.util.GlobalTracer;
 import java.util.concurrent.Callable;
 
 public class SayTracedHello {
 
   @Trace
   public static String sayHello() {
-    new StringTag(DDTags.SERVICE_NAME)
-        .set(GlobalTracer.get().scopeManager().active().span(), "test");
+    activeSpan().setTag(DDTags.SERVICE_NAME, "test");
+    return "hello!";
+  }
+
+  @Trace(resourceName = "WORLD")
+  public static String sayHelloOnlyResourceSet() {
+    activeSpan().setTag(DDTags.SERVICE_NAME, "test");
     return "hello!";
   }
 
   @Trace(operationName = "SAY_HA")
   public static String sayHA() {
-    new StringTag(DDTags.SERVICE_NAME)
-        .set(GlobalTracer.get().scopeManager().active().span(), "test");
-    new StringTag(DDTags.SPAN_TYPE).set(GlobalTracer.get().scopeManager().active().span(), "DB");
+    activeSpan().setTag(DDTags.SERVICE_NAME, "test");
+    activeSpan().setTag(DDTags.SPAN_TYPE, "DB");
     return "HA!!";
   }
 
   @com.signalfx.tracing.api.Trace()
   public static String sayHelloAlt() {
-    new StringTag(DDTags.SERVICE_NAME)
-        .set(GlobalTracer.get().scopeManager().active().span(), "test");
+    activeSpan().setTag(DDTags.SERVICE_NAME, "test");
     return "hello!";
-  }
-
-  @Trace(operationName = "NEW_TRACE")
-  public static String sayHELLOsayHA() {
-    new StringTag(DDTags.SERVICE_NAME)
-        .set(GlobalTracer.get().scopeManager().active().span(), "test2");
-    return sayHello() + sayHA();
   }
 
   @com.signalfx.tracing.api.Trace(operationName = "farewell")
@@ -43,8 +39,38 @@ public class SayTracedHello {
     return "bye";
   }
 
+  @Trace(operationName = "SAY_HA", resourceName = "EARTH")
+  public static String sayHAWithResource() {
+    activeSpan().setTag(DDTags.SERVICE_NAME, "test");
+    activeSpan().setTag(DDTags.SPAN_TYPE, "DB");
+    return "HA EARTH!!";
+  }
+
+  @Trace(operationName = "NEW_TRACE")
+  public static String sayHELLOsayHA() {
+    activeSpan().setTag(DDTags.SERVICE_NAME, "test2");
+    return sayHello() + sayHA();
+  }
+
+  @Trace(operationName = "NEW_TRACE", resourceName = "WORLD")
+  public static String sayHELLOsayHAWithResource() {
+    activeSpan().setTag(DDTags.SERVICE_NAME, "test2");
+    return sayHello() + sayHA();
+  }
+
+  @Trace(operationName = "NEW_TRACE", resourceName = "WORLD")
+  public static String sayHELLOsayHAMixedResourceChildren() {
+    activeSpan().setTag(DDTags.SERVICE_NAME, "test2");
+    return sayHello() + sayHAWithResource();
+  }
+
   @Trace(operationName = "ERROR")
   public static String sayERROR() {
+    throw new RuntimeException();
+  }
+
+  @Trace(operationName = "ERROR", resourceName = "WORLD")
+  public static String sayERRORWithResource() {
     throw new RuntimeException();
   }
 

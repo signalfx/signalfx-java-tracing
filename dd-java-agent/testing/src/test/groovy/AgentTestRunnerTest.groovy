@@ -2,6 +2,7 @@ import com.google.common.reflect.ClassPath
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.SpockRunner
 import datadog.trace.agent.test.utils.ClasspathUtils
+import datadog.trace.agent.test.utils.ConfigUtils
 import datadog.trace.agent.test.utils.GlobalTracerUtils
 import datadog.trace.agent.tooling.Constants
 import io.opentracing.Span
@@ -9,8 +10,8 @@ import io.opentracing.Tracer
 import spock.lang.Shared
 
 import java.lang.reflect.Field
+import java.util.concurrent.TimeoutException
 
-import static datadog.trace.agent.test.utils.TraceUtils.resetConfig
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 import static datadog.trace.api.Config.TRACE_CLASSES_EXCLUDE
 
@@ -23,8 +24,9 @@ class AgentTestRunnerTest extends AgentTestRunner {
   private Class sharedSpanClass
 
   static {
-    System.setProperty("dd." + TRACE_CLASSES_EXCLUDE, "config.exclude.packagename.*, config.exclude.SomeClass,config.exclude.SomeClass\$NestedClass")
-    resetConfig()
+    ConfigUtils.updateConfig {
+      System.setProperty("dd." + TRACE_CLASSES_EXCLUDE, "config.exclude.packagename.*, config.exclude.SomeClass,config.exclude.SomeClass\$NestedClass")
+    }
 
     // when test class initializes, opentracing should be set up, but not the agent.
     OT_LOADER = io.opentracing.Tracer.getClassLoader()
@@ -64,6 +66,16 @@ class AgentTestRunnerTest extends AgentTestRunner {
     getAgentTransformer() != null
     GlobalTracerUtils.getUnderlyingGlobalTracer() == datadog.trace.api.GlobalTracer.get()
     bootstrapClassesIncorrectlyLoaded == []
+  }
+
+  def "waiting for child spans times out"() {
+    when:
+    runUnderTrace("parent") {
+      blockUntilChildSpansFinished(1)
+    }
+
+    then:
+    thrown(TimeoutException)
   }
 
   def "logging works"() {

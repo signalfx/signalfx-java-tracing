@@ -1,17 +1,20 @@
 package datadog.trace.instrumentation.netty41.client;
 
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.activeSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.netty41.client.NettyHttpClientDecorator.DECORATE;
+import static datadog.trace.instrumentation.netty41.client.NettyResponseInjectAdapter.SETTER;
 
 import datadog.trace.context.TraceScope;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
 import datadog.trace.instrumentation.netty41.AttributeKeys;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpRequest;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.propagation.Format;
-import io.opentracing.util.GlobalTracer;
 import java.net.InetSocketAddress;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,19 +37,17 @@ public class HttpClientRequestTracingHandler extends ChannelOutboundHandlerAdapt
 
     final HttpRequest request = (HttpRequest) msg;
 
-    final Span span = GlobalTracer.get().buildSpan("netty.client.request").start();
-    try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
+    ctx.channel().attr(AttributeKeys.CLIENT_PARENT_ATTRIBUTE_KEY).set(activeSpan());
+
+    final AgentSpan span = startSpan("netty.client.request");
+    try (final AgentScope scope = activateSpan(span, false)) {
       DECORATE.afterStart(span);
       DECORATE.onRequest(span, request);
       DECORATE.onPeerConnection(span, (InetSocketAddress) ctx.channel().remoteAddress());
 
       // AWS calls are often signed, so we can't add headers without breaking the signature.
       if (!request.headers().contains("amz-sdk-invocation-id")) {
-        GlobalTracer.get()
-            .inject(
-                span.context(),
-                Format.Builtin.HTTP_HEADERS,
-                new NettyResponseInjectAdapter(request));
+        propagate().inject(span, request.headers(), SETTER);
       }
 
       ctx.channel().attr(AttributeKeys.CLIENT_ATTRIBUTE_KEY).set(span);

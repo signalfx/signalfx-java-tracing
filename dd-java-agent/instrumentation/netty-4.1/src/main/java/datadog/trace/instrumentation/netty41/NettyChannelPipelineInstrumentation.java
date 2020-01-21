@@ -2,6 +2,7 @@
 package datadog.trace.instrumentation.netty41;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.instrumentation.api.AgentTracer.activeScope;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -29,8 +30,6 @@ import io.netty.handler.codec.http.HttpResponseDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.util.Attribute;
-import io.opentracing.Scope;
-import io.opentracing.util.GlobalTracer;
 import java.util.HashMap;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
@@ -57,6 +56,7 @@ public class NettyChannelPipelineInstrumentation extends Instrumenter.Default {
   public String[] helperClassNames() {
     return new String[] {
       packageName + ".AttributeKeys",
+      packageName + ".AttributeKeys$1",
       packageName + ".NettyUtils",
       "datadog.trace.agent.decorator.BaseDecorator",
       // client helpers
@@ -99,8 +99,17 @@ public class NettyChannelPipelineInstrumentation extends Instrumenter.Default {
    */
   public static class ChannelPipelineAddAdvice {
     @Advice.OnMethodEnter
-    public static int checkDepth() {
-      return CallDepthThreadLocalMap.incrementCallDepth(ChannelPipeline.class);
+    public static int checkDepth(@Advice.Argument(2) final ChannelHandler handler) {
+      // Previously we used one unique call depth tracker for all handlers, using
+      // ChannelPipeline.class as a key.
+      // The problem with this approach is that it does not work with netty's
+      // io.netty.channel.ChannelInitializer which provides an `initChannel` that can be used to
+      // `addLast` other handlers. In that case the depth would exceed 0 and handlers added from
+      // initializers would not be considered.
+      // Using the specific handler key instead of the generic ChannelPipeline.class will help us
+      // both to handle such cases and avoid adding our additional handlers in case of internal
+      // calls of `addLast` to other method overloads with a compatible signature.
+      return CallDepthThreadLocalMap.incrementCallDepth(handler.getClass());
     }
 
     @Advice.OnMethodExit(suppress = Throwable.class)
@@ -142,7 +151,7 @@ public class NettyChannelPipelineInstrumentation extends Instrumenter.Default {
       } catch (final IllegalArgumentException e) {
         // Prevented adding duplicate handlers.
       } finally {
-        CallDepthThreadLocalMap.reset(ChannelPipeline.class);
+        CallDepthThreadLocalMap.reset(handler.getClass());
       }
     }
   }
@@ -150,9 +159,9 @@ public class NettyChannelPipelineInstrumentation extends Instrumenter.Default {
   public static class ChannelPipelineConnectAdvice {
     @Advice.OnMethodEnter
     public static void addParentSpan(@Advice.This final ChannelPipeline pipeline) {
-      final Scope scope = GlobalTracer.get().scopeManager().active();
-      if (scope instanceof TraceScope) {
-        final TraceScope.Continuation continuation = ((TraceScope) scope).capture();
+      final TraceScope scope = activeScope();
+      if (scope != null) {
+        final TraceScope.Continuation continuation = scope.capture();
         if (null != continuation) {
           final Attribute<TraceScope.Continuation> attribute =
               pipeline.channel().attr(AttributeKeys.PARENT_CONNECT_CONTINUATION_ATTRIBUTE_KEY);

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import datadog.opentracing.ContainerInfo;
 import datadog.opentracing.DDSpan;
 import datadog.opentracing.DDTraceOTInfo;
 import datadog.trace.common.writer.unixdomainsockets.UnixDomainSocketFactory;
@@ -33,7 +34,10 @@ public class DDApi implements Api {
   private static final String DATADOG_META_LANG = "Datadog-Meta-Lang";
   private static final String DATADOG_META_LANG_VERSION = "Datadog-Meta-Lang-Version";
   private static final String DATADOG_META_LANG_INTERPRETER = "Datadog-Meta-Lang-Interpreter";
+  private static final String DATADOG_META_LANG_INTERPRETER_VENDOR =
+      "Datadog-Meta-Lang-Interpreter-Vendor";
   private static final String DATADOG_META_TRACER_VERSION = "Datadog-Meta-Tracer-Version";
+  private static final String DATADOG_CONTAINER_ID = "Datadog-Container-ID";
   private static final String X_DATADOG_TRACE_COUNT = "X-Datadog-Trace-Count";
 
   private static final int HTTP_TIMEOUT = 1; // 1 second for conenct/read/write operations
@@ -84,10 +88,11 @@ public class DDApi implements Api {
    * Send traces to the DD agent
    *
    * @param traces the traces to be sent
-   * @return the staus code returned
+   * @return a Response object -- encapsulating success of communication, sending, and result
+   *     parsing
    */
   @Override
-  public boolean sendTraces(final List<List<DDSpan>> traces) {
+  public Response sendTraces(final List<List<DDSpan>> traces) {
     final List<byte[]> serializedTraces = new ArrayList<>(traces.size());
     int sizeInBytes = 0;
     for (final List<DDSpan> trace : traces) {
@@ -97,6 +102,8 @@ public class DDApi implements Api {
         serializedTraces.add(serializedTrace);
       } catch (final JsonProcessingException e) {
         log.warn("Error serializing trace", e);
+
+        // TODO: DQH - Incorporate the failed serialization into the Response object???
       }
     }
 
@@ -109,7 +116,7 @@ public class DDApi implements Api {
   }
 
   @Override
-  public boolean sendSerializedTraces(
+  public Response sendSerializedTraces(
       final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces) {
     try {
       final RequestBody body =
@@ -150,7 +157,7 @@ public class DDApi implements Api {
               .put(body)
               .build();
 
-      try (final Response response = httpClient.newCall(request).execute()) {
+      try (final okhttp3.Response response = httpClient.newCall(request).execute()) {
         if (response.code() != 200) {
           if (log.isDebugEnabled()) {
             log.debug(
@@ -163,14 +170,14 @@ public class DDApi implements Api {
           } else if (nextAllowedLogTime < System.currentTimeMillis()) {
             nextAllowedLogTime = System.currentTimeMillis() + MILLISECONDS_BETWEEN_ERROR_LOG;
             log.warn(
-                "Error while sending {} of {} traces to the DD agent. Status: {} (going silent for {} minutes)",
+                "Error while sending {} of {} traces to the DD agent. Status: {} {} (going silent for {} minutes)",
                 traces.size(),
                 representativeCount,
                 response.code(),
                 response.message(),
                 TimeUnit.MILLISECONDS.toMinutes(MILLISECONDS_BETWEEN_ERROR_LOG));
           }
-          return false;
+          return Response.failed(response.code());
         }
 
         log.debug(
@@ -183,14 +190,19 @@ public class DDApi implements Api {
           if (!"".equals(responseString) && !"OK".equalsIgnoreCase(responseString)) {
             final JsonNode parsedResponse = OBJECT_MAPPER.readTree(responseString);
             final String endpoint = tracesUrl.toString();
+
             for (final ResponseListener listener : responseListeners) {
               listener.onResponse(endpoint, parsedResponse);
             }
+            return Response.success(response.code(), parsedResponse);
           }
+
+          return Response.success(response.code());
         } catch (final JsonParseException e) {
           log.debug("Failed to parse DD agent response: " + responseString, e);
+
+          return Response.success(response.code(), e);
         }
-        return true;
       }
     } catch (final IOException e) {
       if (log.isDebugEnabled()) {
@@ -211,7 +223,7 @@ public class DDApi implements Api {
             e.getMessage(),
             TimeUnit.MILLISECONDS.toMinutes(MILLISECONDS_BETWEEN_ERROR_LOG));
       }
-      return false;
+      return Response.failed(e);
     }
   }
 
@@ -230,7 +242,7 @@ public class DDApi implements Api {
       final RequestBody body = RequestBody.create(MSGPACK, OBJECT_MAPPER.writeValueAsBytes(data));
       final Request request = prepareRequest(url).put(body).build();
 
-      try (final Response response = client.newCall(request).execute()) {
+      try (final okhttp3.Response response = client.newCall(request).execute()) {
         return response.code() == 200;
       }
     } catch (final IOException e) {
@@ -263,21 +275,25 @@ public class DDApi implements Api {
   }
 
   private static Request.Builder prepareRequest(final HttpUrl url) {
-    return new Request.Builder()
-        .url(url)
-        .addHeader(DATADOG_META_LANG, "java")
-        .addHeader(DATADOG_META_LANG_VERSION, DDTraceOTInfo.JAVA_VERSION)
-        .addHeader(DATADOG_META_LANG_INTERPRETER, DDTraceOTInfo.JAVA_VM_NAME)
-        .addHeader(DATADOG_META_TRACER_VERSION, DDTraceOTInfo.VERSION);
+    final Request.Builder builder =
+        new Request.Builder()
+            .url(url)
+            .addHeader(DATADOG_META_LANG, "java")
+            .addHeader(DATADOG_META_LANG_VERSION, DDTraceOTInfo.JAVA_VERSION)
+            .addHeader(DATADOG_META_LANG_INTERPRETER, DDTraceOTInfo.JAVA_VM_NAME)
+            .addHeader(DATADOG_META_LANG_INTERPRETER_VENDOR, DDTraceOTInfo.JAVA_VM_VENDOR)
+            .addHeader(DATADOG_META_TRACER_VERSION, DDTraceOTInfo.VERSION);
+
+    final String containerId = ContainerInfo.get().getContainerId();
+    if (containerId == null) {
+      return builder;
+    } else {
+      return builder.addHeader(DATADOG_CONTAINER_ID, containerId);
+    }
   }
 
   @Override
   public String toString() {
     return "DDApi { tracesUrl=" + tracesUrl + " }";
-  }
-
-  public interface ResponseListener {
-    /** Invoked after the api receives a response from the core agent. */
-    void onResponse(String endpoint, JsonNode responseJson);
   }
 }

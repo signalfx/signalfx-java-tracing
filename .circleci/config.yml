@@ -39,6 +39,7 @@ jobs:
     - persist_to_workspace:
         root: .
         paths:
+        - .gradle
         - workspace
 
     - save_cache:
@@ -94,12 +95,23 @@ jobs:
     <<: *default_test_job
     environment:
     # We are building on Java8, this is our default JVM so no need to set more homes
-    - TEST_TASK: test latestDepTest jacocoTestReport jacocoTestCoverageVerification
+    - TEST_TASK: test jacocoTestReport jacocoTestCoverageVerification
+
+  test_latest8:
+    <<: *default_test_job
+    environment:
+    # We are building on Java8, this is our default JVM so no need to set more homes
+    - TEST_TASK: latestDepTest
 
   test_ibm8:
     <<: *default_test_job
     environment:
     - TEST_TASK: testJavaIBM8
+
+  test_zulu8:
+    <<: *default_test_job
+    environment:
+    - TEST_TASK: testJavaZULU8
 
   test_9:
     <<: *default_test_job
@@ -115,6 +127,21 @@ jobs:
     <<: *default_test_job
     environment:
     - TEST_TASK: testJava11
+
+  test_zulu11:
+    <<: *default_test_job
+    environment:
+    - TEST_TASK: testJavaZULU11
+
+  test_12:
+    <<: *default_test_job
+    environment:
+    - TEST_TASK: testJava12
+
+  test_13:
+    <<: *default_test_job
+    environment:
+    - TEST_TASK: testJava13
 
   agent_integration_tests:
     <<: *defaults
@@ -190,10 +217,7 @@ jobs:
 
     - run:
         name: Verify Muzzle
-        # Note: we do not have `--max-workers` here to have number of workers (threads) equal to number of CPUs (32 currently).
-        # This should speed things up slightly because muzzle may do a lot of IO bound work: reading off disk and downloading
-        # dependencies.
-        command: SKIP_BUILDSCAN="true" GRADLE_OPTS="-Dorg.gradle.jvmargs='-Xmx2G -Xms64M' -Ddatadog.forkedMaxHeapSize=2G -Ddatadog.forkedMinHeapSize=64M" ./gradlew muzzle --parallel --stacktrace --no-daemon
+        command: SKIP_BUILDSCAN="true" GRADLE_OPTS="-Dorg.gradle.jvmargs='-Xmx2G -Xms64M' -Ddatadog.forkedMaxHeapSize=2G -Ddatadog.forkedMinHeapSize=64M" ./gradlew muzzle --parallel --stacktrace --no-daemon --max-workers=16
 
     - save_cache:
         key: signalfx-java-tracing-version-scan-{{ checksum "signalfx-java-tracing.gradle" }}
@@ -220,7 +244,19 @@ workflows:
         filters:
           tags:
             only: /.*/
+    - test_latest8:
+        requires:
+        - build
+        filters:
+          tags:
+            only: /.*/
     - test_ibm8:
+        requires:
+        - build
+        filters:
+          tags:
+            only: /.*/
+    - test_zulu8:
         requires:
         - build
         filters:
@@ -239,6 +275,24 @@ workflows:
           tags:
             only: /.*/
     - test_11:
+        requires:
+        - build
+        filters:
+          tags:
+            only: /.*/
+    - test_zulu11:
+        requires:
+        - build
+        filters:
+          tags:
+            only: /.*/
+    - test_12:
+        requires:
+        - build
+        filters:
+          tags:
+            only: /.*/
+    - test_13:
         requires:
         - build
         filters:

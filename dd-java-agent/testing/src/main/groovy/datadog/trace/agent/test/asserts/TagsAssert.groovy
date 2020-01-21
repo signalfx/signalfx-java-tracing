@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.test.asserts
 
 import datadog.opentracing.DDSpan

@@ -3,7 +3,7 @@ package datadog.trace.instrumentation.ratpack;
 import com.google.common.net.HostAndPort;
 import datadog.trace.agent.decorator.HttpServerDecorator;
 import datadog.trace.api.DDTags;
-import io.opentracing.Span;
+import datadog.trace.instrumentation.api.AgentSpan;
 import java.net.URI;
 import lombok.extern.slf4j.Slf4j;
 import ratpack.handling.Context;
@@ -24,6 +24,11 @@ public class RatpackServerDecorator extends HttpServerDecorator<Request, Request
   @Override
   protected String component() {
     return "ratpack";
+  }
+
+  @Override
+  protected boolean traceAnalyticsDefault() {
+    return false;
   }
 
   @Override
@@ -65,7 +70,7 @@ public class RatpackServerDecorator extends HttpServerDecorator<Request, Request
     }
   }
 
-  public Span onContext(final Span span, final Context ctx) {
+  public AgentSpan onContext(final AgentSpan span, final Context ctx) {
 
     String description = ctx.getPathBinding().getDescription();
     if (description == null || description.isEmpty()) {
@@ -77,5 +82,14 @@ public class RatpackServerDecorator extends HttpServerDecorator<Request, Request
     span.setTag(DDTags.RESOURCE_NAME, description);
 
     return span;
+  }
+
+  @Override
+  public AgentSpan onError(final AgentSpan span, final Throwable throwable) {
+    // Attempt to unwrap ratpack.handling.internal.HandlerException without direct reference.
+    if (throwable instanceof Error && throwable.getCause() != null) {
+      return super.onError(span, throwable.getCause());
+    }
+    return super.onError(span, throwable);
   }
 }

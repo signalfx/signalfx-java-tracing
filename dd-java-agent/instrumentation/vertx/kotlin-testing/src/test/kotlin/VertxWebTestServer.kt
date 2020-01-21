@@ -1,5 +1,5 @@
 // Modified by SignalFx
-import datadog.trace.api.Trace
+import com.signalfx.tracing.api.Trace
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.Future
 import io.vertx.core.Vertx

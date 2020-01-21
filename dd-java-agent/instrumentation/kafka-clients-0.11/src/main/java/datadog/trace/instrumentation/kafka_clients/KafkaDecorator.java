@@ -1,11 +1,11 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.kafka_clients;
 
 import datadog.trace.agent.decorator.ClientDecorator;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.tag.Tags;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.Tags;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
@@ -54,27 +54,25 @@ public abstract class KafkaDecorator extends ClientDecorator {
   @Override
   protected abstract String spanKind();
 
-  public void onConsume(final Scope scope, final ConsumerRecord record) {
-    final Span span = scope.span();
+  public void onConsume(final AgentSpan span, final ConsumerRecord record) {
     if (record != null) {
       final String topic = record.topic() == null ? "kafka" : record.topic();
       span.setTag(DDTags.RESOURCE_NAME, "Consume Topic " + topic);
-      Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
+      span.setTag(Tags.MESSAGE_BUS_DESTINATION, topic);
       span.setTag("partition", record.partition());
       span.setTag("offset", record.offset());
     }
   }
 
-  public void onProduce(final Scope scope, final ProducerRecord record) {
+  public void onProduce(final AgentSpan span, final ProducerRecord record) {
     if (record != null) {
-      final Span span = scope.span();
 
       final String topic = record.topic() == null ? "kafka" : record.topic();
       if (record.partition() != null) {
         span.setTag("kafka.partition", record.partition());
       }
 
-      Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
+      span.setTag(Tags.MESSAGE_BUS_DESTINATION, topic);
       span.setTag(DDTags.RESOURCE_NAME, "Produce Topic " + topic);
     }
   }

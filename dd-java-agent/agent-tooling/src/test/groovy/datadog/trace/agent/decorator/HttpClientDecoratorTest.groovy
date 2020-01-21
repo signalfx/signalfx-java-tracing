@@ -3,18 +3,18 @@ package datadog.trace.agent.decorator
 
 import datadog.trace.api.Config
 import datadog.trace.api.DDTags
-import io.opentracing.Span
+import datadog.trace.instrumentation.api.AgentSpan
 import io.opentracing.tag.Tags
 import spock.lang.Shared
 
-import static datadog.trace.agent.test.utils.TraceUtils.withConfigOverride
+import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
 
 class HttpClientDecoratorTest extends ClientDecoratorTest {
 
   @Shared
   def testUrl = new URI("http://myhost/somepath")
 
-  def span = Mock(Span)
+  def span = Mock(AgentSpan)
 
   def "test onRequest"() {
     setup:
@@ -27,12 +27,12 @@ class HttpClientDecoratorTest extends ClientDecoratorTest {
 
     then:
     if (req) {
-      1 * span.setTag(Tags.HTTP_METHOD.key, "test-method")
-      1 * span.setTag(Tags.HTTP_URL.key, "$testUrl")
-      1 * span.setTag(Tags.PEER_HOSTNAME.key, "test-host")
-      1 * span.setTag(Tags.PEER_PORT.key, 555)
+      1 * span.setTag(Tags.HTTP_METHOD.key, req.method)
+      1 * span.setTag(Tags.HTTP_URL.key, "$req.url")
+      1 * span.setTag(Tags.PEER_HOSTNAME.key, req.host)
+      1 * span.setTag(Tags.PEER_PORT.key, req.port)
       if (renameService) {
-        1 * span.setTag(DDTags.SERVICE_NAME, "test-host")
+        1 * span.setTag(DDTags.SERVICE_NAME, req.host)
       }
     }
     0 * _
@@ -45,30 +45,41 @@ class HttpClientDecoratorTest extends ClientDecoratorTest {
     true          | [method: "test-method", url: testUrl, host: "test-host", port: 555]
   }
 
-  def "test url handling"() {
+  def "test url handling for #url"() {
     setup:
     def decorator = newDecorator()
 
     when:
-    decorator.onRequest(span, req)
+    withConfigOverride(Config.HTTP_CLIENT_TAG_QUERY_STRING, "$tagQueryString") {
+      decorator.onRequest(span, req)
+    }
 
     then:
-    if (expected) {
-      1 * span.setTag(Tags.HTTP_URL.key, expected)
+    if (expectedUrl) {
+      1 * span.setTag(Tags.HTTP_URL.key, expectedUrl)
+    }
+    if (expectedUrl && tagQueryString) {
+      1 * span.setTag(DDTags.HTTP_QUERY, expectedQuery)
+      1 * span.setTag(DDTags.HTTP_FRAGMENT, expectedFragment)
     }
     1 * span.setTag(Tags.HTTP_METHOD.key, null)
     1 * span.setTag(Tags.PEER_HOSTNAME.key, null)
-    1 * span.setTag(Tags.PEER_PORT.key, null)
     0 * _
 
     where:
-    url                                  | expected
-    null                                 | null
-    ""                                   | "/"
-    "/path?query"                        | "/path"
-    "https://host:0"                     | "https://host/"
-    "https://host/path"                  | "https://host/path"
-    "http://host:99/path?query#fragment" | "http://host:99/path"
+    tagQueryString | url                                                   | expectedUrl           | expectedQuery      | expectedFragment
+    false          | null                                                  | null                  | null               | null
+    false          | ""                                                    | "/"                   | ""                 | null
+    false          | "/path?query"                                         | "/path"               | ""                 | null
+    false          | "https://host:0"                                      | "https://host/"       | ""                 | null
+    false          | "https://host/path"                                   | "https://host/path"   | ""                 | null
+    false          | "http://host:99/path?query#fragment"                  | "http://host:99/path" | ""                 | null
+    true           | null                                                  | null                  | null               | null
+    true           | ""                                                    | "/"                   | null               | null
+    true           | "/path?encoded+%28query%29%3F"                        | "/path"               | "encoded+(query)?" | null
+    true           | "https://host:0"                                      | "https://host/"       | null               | null
+    true           | "https://host/path"                                   | "https://host/path"   | null               | null
+    true           | "http://host:99/path?query#encoded+%28fragment%29%3F" | "http://host:99/path" | "query"            | "encoded+(fragment)?"
 
     req = [url: url == null ? null : new URI(url)]
   }
@@ -87,7 +98,7 @@ class HttpClientDecoratorTest extends ClientDecoratorTest {
       1 * span.setTag(Tags.HTTP_STATUS.key, status)
     }
     if (error) {
-      1 * span.setTag(Tags.ERROR.key, true)
+      1 * span.setError(true)
     }
     0 * _
 

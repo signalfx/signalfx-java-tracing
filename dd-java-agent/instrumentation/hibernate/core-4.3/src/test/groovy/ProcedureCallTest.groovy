@@ -1,7 +1,8 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
-import io.opentracing.tag.Tags
+import datadog.trace.instrumentation.api.Tags
 import org.hibernate.Session
 import org.hibernate.SessionFactory
 import org.hibernate.cfg.Configuration
@@ -72,8 +73,8 @@ class ProcedureCallTest extends AgentTestRunner {
           spanType DDSpanTypes.HIBERNATE
           parent()
           tags {
-            "$Tags.COMPONENT.key" "java-hibernate"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "java-hibernate"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }
@@ -84,8 +85,8 @@ class ProcedureCallTest extends AgentTestRunner {
           spanType DDSpanTypes.HIBERNATE
           childOf span(0)
           tags {
-            "$Tags.COMPONENT.key" "java-hibernate"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "java-hibernate"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }
@@ -96,8 +97,8 @@ class ProcedureCallTest extends AgentTestRunner {
           spanType DDSpanTypes.HIBERNATE
           childOf span(0)
           tags {
-            "$Tags.COMPONENT.key" "java-hibernate"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "java-hibernate"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$DDTags.ENTITY_NAME" "TEST_PROC"
             defaultTags()
           }
@@ -139,8 +140,8 @@ class ProcedureCallTest extends AgentTestRunner {
           spanType DDSpanTypes.HIBERNATE
           parent()
           tags {
-            "$Tags.COMPONENT.key" "java-hibernate"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "java-hibernate"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }
@@ -151,8 +152,8 @@ class ProcedureCallTest extends AgentTestRunner {
           spanType DDSpanTypes.HIBERNATE
           childOf span(0)
           tags {
-            "$Tags.COMPONENT.key" "java-hibernate"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "java-hibernate"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }
@@ -165,8 +166,8 @@ class ProcedureCallTest extends AgentTestRunner {
           errored(true)
           tags {
             errorTags(SQLGrammarException, "could not prepare statement")
-            "$Tags.COMPONENT.key" "java-hibernate"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "java-hibernate"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$DDTags.ENTITY_NAME" "TEST_PROC"
             defaultTags()
           }

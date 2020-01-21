@@ -6,10 +6,10 @@ import datadog.opentracing.DDTracer
 import datadog.trace.common.writer.ListWriter
 import datadog.trace.context.ScopeListener
 import datadog.trace.util.gc.GCUtils
+import datadog.trace.util.test.DDSpecification
 import io.opentracing.Scope
 import io.opentracing.Span
 import io.opentracing.noop.NoopSpan
-import spock.lang.Specification
 import spock.lang.Subject
 import spock.lang.Timeout
 
@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import static java.util.concurrent.TimeUnit.SECONDS
 
-class ScopeManagerTest extends Specification {
+class ScopeManagerTest extends DDSpecification {
   def latch
   def writer
   def tracer
@@ -96,19 +96,19 @@ class ScopeManagerTest extends Specification {
   def "sets parent as current upon close"() {
     setup:
     def parentScope = tracer.buildSpan("parent").startActive(finishSpan)
-    def childScope = tracer.buildSpan("parent").startActive(finishSpan)
+    def childScope = noopChild ? tracer.scopeManager().activate(NoopSpan.INSTANCE, finishSpan) : tracer.buildSpan("parent").startActive(finishSpan)
 
     expect:
     scopeManager.active() == childScope
-    childScope.span().context().parentId == parentScope.span().context().spanId
-    childScope.span().context().trace == parentScope.span().context().trace
+    noopChild || childScope.span().context().parentId == parentScope.span().context().spanId
+    noopChild || childScope.span().context().trace == parentScope.span().context().trace
 
     when:
     childScope.close()
 
     then:
     scopeManager.active() == parentScope
-    spanFinished(childScope.span()) == finishSpan
+    noopChild || spanFinished(childScope.span()) == finishSpan
     !spanFinished(parentScope.span())
     writer == []
 
@@ -116,13 +116,17 @@ class ScopeManagerTest extends Specification {
     parentScope.close()
 
     then:
-    spanFinished(childScope.span()) == finishSpan
+    noopChild || spanFinished(childScope.span()) == finishSpan
     spanFinished(parentScope.span()) == finishSpan
-    writer == [[parentScope.span(), childScope.span()]] || !finishSpan
+    writer == [[parentScope.span(), childScope.span()]] || !finishSpan || noopChild
     scopeManager.active() == null
 
     where:
-    finishSpan << [true, false]
+    finishSpan | noopChild
+    true       | false
+    false      | false
+    true       | true
+    false      | true
   }
 
   def "ContinuableScope only creates continuations when propagation is set"() {
@@ -568,7 +572,7 @@ class ScopeManagerTest extends Specification {
   }
 
   boolean spanFinished(Span span) {
-    return ((DDSpan) span).isFinished()
+    return ((DDSpan) span)?.isFinished()
   }
 
   class AtomicReferenceScope extends AtomicReference<Span> implements ScopeContext, Scope {
@@ -600,8 +604,19 @@ class ScopeManagerTest extends Specification {
     }
 
     @Override
+    Scope activate(Span span) {
+      set(span)
+      return this
+    }
+
+    @Override
     Scope active() {
       return get() == null ? null : this
+    }
+
+    @Override
+    Span activeSpan() {
+      return active()?.span()
     }
 
     String toString() {

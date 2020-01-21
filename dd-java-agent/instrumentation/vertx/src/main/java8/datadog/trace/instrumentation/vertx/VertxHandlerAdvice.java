@@ -2,20 +2,20 @@
 package datadog.trace.instrumentation.vertx;
 
 import static datadog.trace.instrumentation.vertx.RoutingContextDecorator.DECORATE;
-import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
 
 import datadog.trace.context.TraceScope;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.tag.Tags;
-import io.opentracing.util.GlobalTracer;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.Tags;
 import java.util.Collections;
 import net.bytebuddy.asm.Advice;
 
 public class VertxHandlerAdvice {
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
-  public static Scope startSpan(
+  public static AgentScope onEnter(
       @Advice.This final Object source, @Advice.Argument(0) final Object event) {
 
     String operationName = source.getClass().getName();
@@ -28,35 +28,31 @@ public class VertxHandlerAdvice {
       }
     }
 
-    final Scope scope = GlobalTracer.get()
-        .buildSpan(operationName + ".handle")
-        .withTag("handler.type", event.getClass().getName())
-        .withTag("component", "vertx")
-        .startActive(false);
+    final AgentSpan span =
+        startSpan(operationName + ".handle")
+        .setTag("handler.type", event.getClass().getName())
+        .setTag("component", "vertx");
 
-    final Span span = scope.span();
     DECORATE.afterStart(span);
-    if (scope instanceof TraceScope) {
-      ((TraceScope) scope).setAsyncPropagation(true);
-    }
+
+    final AgentScope scope = activateSpan(span, false);
+    scope.setAsyncPropagation(true);
     return scope;
   }
 
   @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
   public static void stopSpan(
       @Advice.Thrown final Throwable throwable,
-      @Advice.Enter final Scope scope,
+      @Advice.Enter final AgentScope scope,
       @Advice.This final Object source) {
     if (scope != null) {
-      final Span span = scope.span();
+      final AgentSpan span = scope.span();
       if (throwable != null) {
-        Tags.ERROR.set(span, true);
-        span.log(Collections.singletonMap(ERROR_OBJECT, throwable));
-      }
-      if (scope instanceof TraceScope) {
-        ((TraceScope) scope).setAsyncPropagation(false);
+        span.setTag(Tags.ERROR, true);
+        span.addThrowable(throwable);
       }
       DECORATE.beforeFinish(span);
+      scope.setAsyncPropagation(false);
       span.finish();
       scope.close();
     }

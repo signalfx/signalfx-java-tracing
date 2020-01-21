@@ -1,14 +1,15 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.khttp;
 
+import static datadog.trace.instrumentation.khttp.KHttpHeadersInjectAdapter.SETTER;
 import static datadog.trace.instrumentation.khttp.KHttpDecorator.DECORATE;
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
 
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.Tracer;
-import io.opentracing.propagation.Format;
-import io.opentracing.util.GlobalTracer;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
 import java.util.HashMap;
 import java.util.Map;
 import khttp.KHttp;
@@ -20,7 +21,7 @@ import net.bytebuddy.implementation.bytecode.assign.Assigner;
 public class KHttpAdvice {
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
-  public static Scope methodEnter(
+  public static AgentScope methodEnter(
       @Advice.Argument(
               value = 2,
               optional = true,
@@ -31,9 +32,8 @@ public class KHttpAdvice {
     if (callDepth > 0) {
       return null;
     }
-    final Tracer tracer = GlobalTracer.get();
-    final Scope scope = tracer.buildSpan("http.request").startActive(true);
-    final Span span = scope.span();
+
+    final AgentSpan span = startSpan("http.request");
     DECORATE.afterStart(span);
 
     boolean awsClientCall = false;
@@ -52,20 +52,22 @@ public class KHttpAdvice {
         // EmptyMap is read-only so we need to overwrite default arg for header injection
         headers = new HashMap<String, String>();
       }
-      tracer.inject(
-          span.context(), Format.Builtin.HTTP_HEADERS, new KHttpHeadersInjectAdapter(headers));
+
+      propagate().inject(span, headers, SETTER);
     }
-    return scope;
+    return activateSpan(span, true);
   }
 
   @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
   public static void methodExit(
-      @Advice.Enter final Scope scope,
+      @Advice.Enter final AgentScope scope,
       @Advice.Return final Response response,
       @Advice.Thrown final Throwable throwable) {
+    CallDepthThreadLocalMap.reset(KHttp.class);
+
     if (scope != null) {
       try {
-        final Span span = scope.span();
+        final AgentSpan span = scope.span();
         Request request = response.getRequest();
         DECORATE.onRequest(span, request);
         DECORATE.onResponse(span, response);
@@ -73,7 +75,6 @@ public class KHttpAdvice {
         DECORATE.beforeFinish(span);
       } finally {
         scope.close();
-        CallDepthThreadLocalMap.reset(KHttp.class);
       }
     }
   }

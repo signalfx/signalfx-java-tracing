@@ -1,5 +1,6 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.instrumentation.api.Tags
 import example.GreeterGrpc
 import example.Helloworld
 import io.grpc.BindableService
@@ -10,7 +11,6 @@ import io.grpc.StatusRuntimeException
 import io.grpc.inprocess.InProcessChannelBuilder
 import io.grpc.inprocess.InProcessServerBuilder
 import io.grpc.stub.StreamObserver
-import io.opentracing.tag.Tags
 
 import java.util.concurrent.TimeUnit
 
@@ -47,8 +47,9 @@ class GrpcTest extends AgentTestRunner {
           childOf trace(1).get(0)
           errored false
           tags {
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$Tags.COMPONENT.key" "grpc-server"
+            "status.code" "OK"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.COMPONENT" "grpc-server"
             defaultTags(true)
           }
         }
@@ -60,8 +61,8 @@ class GrpcTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$Tags.COMPONENT.key" "grpc-server"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.COMPONENT" "grpc-server"
             "message.type" "example.Helloworld\$Request"
             defaultTags()
           }
@@ -77,8 +78,8 @@ class GrpcTest extends AgentTestRunner {
           errored false
           tags {
             "status.code" "OK"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.COMPONENT.key" "grpc-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "grpc-client"
             defaultTags()
           }
         }
@@ -90,8 +91,8 @@ class GrpcTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.COMPONENT.key" "grpc-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "grpc-client"
             "message.type" "example.Helloworld\$Response"
             defaultTags()
           }
@@ -136,10 +137,17 @@ class GrpcTest extends AgentTestRunner {
           resourceName "example.Greeter/SayHello"
           spanType DDSpanTypes.RPC
           childOf trace(1).get(0)
-          errored false
+          errored true
           tags {
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$Tags.COMPONENT.key" "grpc-server"
+            "status.code" "${status.code.name()}"
+            "status.description" description
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.COMPONENT" "grpc-server"
+            if (status.cause != null) {
+              errorTags status.cause.class, status.cause.message
+            } else {
+              tag "error", true
+            }
             defaultTags(true)
           }
         }
@@ -151,8 +159,8 @@ class GrpcTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$Tags.COMPONENT.key" "grpc-server"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.COMPONENT" "grpc-server"
             "message.type" "example.Helloworld\$Request"
             defaultTags()
           }
@@ -169,8 +177,8 @@ class GrpcTest extends AgentTestRunner {
           tags {
             "status.code" "${status.code.name()}"
             "status.description" description
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.COMPONENT.key" "grpc-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "grpc-client"
             tag "error", true
             defaultTags()
           }
@@ -223,8 +231,8 @@ class GrpcTest extends AgentTestRunner {
           childOf trace(1).get(0)
           errored true
           tags {
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$Tags.COMPONENT.key" "grpc-server"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.COMPONENT" "grpc-server"
             errorTags error.class, error.message
             defaultTags(true)
           }
@@ -237,8 +245,8 @@ class GrpcTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$Tags.COMPONENT.key" "grpc-server"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.COMPONENT" "grpc-server"
             "message.type" "example.Helloworld\$Request"
             defaultTags()
           }
@@ -254,8 +262,8 @@ class GrpcTest extends AgentTestRunner {
           errored true
           tags {
             "status.code" "UNKNOWN"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.COMPONENT.key" "grpc-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "grpc-client"
             tag "error", true
             defaultTags()
           }

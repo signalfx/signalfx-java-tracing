@@ -1,5 +1,7 @@
 package datadog.trace.agent.jmxfetch;
 
+import static org.datadog.jmxfetch.AppConfig.ACTION_COLLECT;
+
 import com.google.common.collect.ImmutableList;
 import datadog.trace.api.Config;
 import java.io.IOException;
@@ -16,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.datadog.jmxfetch.App;
 import org.datadog.jmxfetch.AppConfig;
+import org.datadog.jmxfetch.reporter.ReporterFactory;
 
 @Slf4j
 public class JMXFetch {
@@ -38,6 +41,14 @@ public class JMXFetch {
       return;
     }
 
+    if (!log.isDebugEnabled()
+        && System.getProperty("org.slf4j.simpleLogger.log.org.datadog.jmxfetch") == null) {
+      // Reduce noisiness of jmxfetch logging.
+      System.setProperty("org.slf4j.simpleLogger.log.org.datadog.jmxfetch", "warn");
+    }
+
+    final String jmxFetchConfigDir = config.getJmxFetchConfigDir();
+    final List<String> jmxFetchConfigs = config.getJmxFetchConfigs();
     final List<String> internalMetricsConfigs = getInternalMetricFiles();
     final List<String> metricsConfigs = config.getJmxFetchMetricsConfigs();
     final Integer checkPeriod = config.getJmxFetchCheckPeriod();
@@ -48,7 +59,9 @@ public class JMXFetch {
     final String logLevel = getLogLevel();
 
     log.info(
-        "JMXFetch config: {} {} {} {} {} {} {} {}",
+        "JMXFetch config: {} {} {} {} {} {} {} {} {} {}",
+        jmxFetchConfigDir,
+        jmxFetchConfigs,
         internalMetricsConfigs,
         metricsConfigs,
         checkPeriod,
@@ -57,17 +70,26 @@ public class JMXFetch {
         reporter,
         logLocation,
         logLevel);
-    final AppConfig appConfig =
-        AppConfig.create(
-            DEFAULT_CONFIGS,
-            internalMetricsConfigs,
-            metricsConfigs,
-            checkPeriod,
-            refreshBeansPeriod,
-            globalTags,
-            reporter,
-            logLocation,
-            logLevel);
+
+    final AppConfig.AppConfigBuilder configBuilder =
+        AppConfig.builder()
+            .action(ImmutableList.of(ACTION_COLLECT))
+            // App should be run as daemon otherwise CLI apps would not exit once main method exits.
+            .daemon(true)
+            .confdDirectory(jmxFetchConfigDir)
+            .yamlFileList(jmxFetchConfigs)
+            .targetDirectInstances(true)
+            .instanceConfigResources(DEFAULT_CONFIGS)
+            .metricConfigResources(internalMetricsConfigs)
+            .metricConfigFiles(metricsConfigs)
+            .refreshBeansPeriod(refreshBeansPeriod)
+            .globalTags(globalTags)
+            .reporter(ReporterFactory.getReporter(reporter));
+
+    if (checkPeriod != null) {
+      configBuilder.checkPeriod(checkPeriod);
+    }
+    final AppConfig appConfig = configBuilder.build();
 
     final Thread thread =
         new Thread(
@@ -131,9 +153,17 @@ public class JMXFetch {
         for (final String config : split) {
           integrationName.clear();
           integrationName.add(config.replace(".yaml", ""));
-          if (Config.integrationEnabled(integrationName, false)) {
+          if (Config.get().isJmxFetchIntegrationEnabled(integrationName, false)) {
             final URL resource = JMXFetch.class.getResource("metricconfigs/" + config);
-            result.add(resource.getPath().split("\\.jar!/")[1]);
+
+            // jar!/ means a file internal to a jar, only add the part after if it exists
+            final String path = resource.getPath();
+            final int filenameIndex = path.indexOf("jar!/");
+            if (filenameIndex != -1) {
+              result.add(path.substring(filenameIndex + 5));
+            } else {
+              result.add(path.substring(1));
+            }
           }
         }
         return result;

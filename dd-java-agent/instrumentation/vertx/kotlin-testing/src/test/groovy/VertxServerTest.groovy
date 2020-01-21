@@ -3,8 +3,8 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.instrumentation.api.Tags
 import io.netty.handler.codec.http.HttpResponseStatus
-import io.opentracing.tag.Tags
 import io.vertx.core.Vertx
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -55,14 +55,14 @@ class VertxServerTest extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "$Tags.COMPONENT.key" "netty"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" 200
-            "$Tags.HTTP_URL.key" "http://localhost:$port/test"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
-            "$Tags.PEER_PORT.key" Integer
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
+            "$Tags.COMPONENT" "netty"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
+            "$Tags.HTTP_URL" "http://localhost:$port/test"
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             defaultTags(true)
           }
         }
@@ -92,14 +92,14 @@ class VertxServerTest extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored error
           tags {
-            "$Tags.COMPONENT.key" "netty"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" responseCode.code()
-            "$Tags.HTTP_URL.key" "http://localhost:$port/$path"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
-            "$Tags.PEER_PORT.key" Integer
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
+            "$Tags.COMPONENT" "netty"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" responseCode.code()
+            "$Tags.HTTP_URL" "http://localhost:$port/$path"
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             if (error) {
               tag("error", true)
             }

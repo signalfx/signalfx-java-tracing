@@ -4,15 +4,17 @@ package datadog.trace.instrumentation.jdbc;
 import datadog.trace.agent.decorator.DatabaseClientDecorator;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
-import io.opentracing.Span;
-import io.opentracing.tag.Tags;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.Tags;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class JDBCDecorator extends DatabaseClientDecorator<JDBCMaps.DBInfo> {
+public class JDBCDecorator extends DatabaseClientDecorator<DBInfo> {
   public static final JDBCDecorator DECORATE = new JDBCDecorator();
+
+  private static final String DB_QUERY = "DB Query";
 
   @Override
   protected String[] instrumentationNames() {
@@ -40,25 +42,27 @@ public class JDBCDecorator extends DatabaseClientDecorator<JDBCMaps.DBInfo> {
   }
 
   @Override
-  protected String dbUser(final JDBCMaps.DBInfo info) {
+  protected String dbUser(final DBInfo info) {
     return info.getUser();
   }
 
   @Override
-  protected String dbInstance(final JDBCMaps.DBInfo info) {
-    String urlInfo = info.getUrl();
-    String[] urlArray = urlInfo.split("/");
-    String dbName = urlArray[urlArray.length - 1];
-    return dbName;
+  protected String dbInstance(final DBInfo info) {
+    if (info.getInstance() != null) {
+      return info.getInstance();
+    } else {
+      return info.getDb();
+    }
   }
 
-  public Span onConnection(final Span span, final Connection connection) {
-    JDBCMaps.DBInfo dbInfo = JDBCMaps.connectionInfo.get(connection);
+  public AgentSpan onConnection(final AgentSpan span, final Connection connection) {
+    DBInfo dbInfo = JDBCMaps.connectionInfo.get(connection);
     /**
-     * Logic to get the DBInfo from a JDBC Connection, if the connection was never seen before, the
-     * connectionInfo map will return null and will attempt to extract DBInfo from the connection.
-     * If the DBInfo can't be extracted, then the connection will be stored with the DEFAULT DBInfo
-     * as the value in the connectionInfo map to avoid retry overhead.
+     * Logic to get the DBInfo from a JDBC Connection, if the connection was not created via
+     * Driver.connect, or it has never seen before, the connectionInfo map will return null and will
+     * attempt to extract DBInfo from the connection. If the DBInfo can't be extracted, then the
+     * connection will be stored with the DEFAULT DBInfo as the value in the connectionInfo map to
+     * avoid retry overhead.
      */
     {
       if (dbInfo == null) {
@@ -66,40 +70,33 @@ public class JDBCDecorator extends DatabaseClientDecorator<JDBCMaps.DBInfo> {
           final DatabaseMetaData metaData = connection.getMetaData();
           final String url = metaData.getURL();
           if (url != null) {
-            // Remove end of url to prevent passwords from leaking:
-            final String sanitizedURL = url.replaceAll("[?;].*", "");
-            final String type = url.split(":", -1)[1];
-            String user = metaData.getUserName();
-            if (user != null && user.trim().equals("")) {
-              user = null;
-            }
-            dbInfo = new JDBCMaps.DBInfo(sanitizedURL, type, user);
+            dbInfo = JDBCConnectionUrlParser.parse(url, connection.getClientInfo());
           } else {
-            dbInfo = JDBCMaps.DBInfo.DEFAULT;
+            dbInfo = DBInfo.DEFAULT;
           }
         } catch (final SQLException se) {
-          dbInfo = JDBCMaps.DBInfo.DEFAULT;
+          dbInfo = DBInfo.DEFAULT;
         }
         JDBCMaps.connectionInfo.put(connection, dbInfo);
       }
     }
 
     if (dbInfo != null) {
-      Tags.DB_TYPE.set(span, dbInfo.getType());
+      span.setTag(Tags.DB_TYPE, dbInfo.getType());
       span.setTag(DDTags.SERVICE_NAME, dbInfo.getType());
     }
     return super.onConnection(span, dbInfo);
   }
 
   @Override
-  public Span onStatement(final Span span, final String statement) {
-    Tags.COMPONENT.set(span, "java-jdbc-statement");
+  public AgentSpan onStatement(final AgentSpan span, final String statement) {
+    span.setTag(Tags.COMPONENT, "java-jdbc-statement");
     return super.onStatement(span, statement);
   }
 
-  public Span onPreparedStatement(final Span span, final PreparedStatement statement) {
+  public AgentSpan onPreparedStatement(final AgentSpan span, final PreparedStatement statement) {
     final String sql = JDBCMaps.preparedStatements.get(statement);
-    Tags.COMPONENT.set(span, "java-jdbc-prepared_statement");
+    span.setTag(Tags.COMPONENT, "java-jdbc-prepared_statement");
     return super.onStatement(span, sql);
   }
 }

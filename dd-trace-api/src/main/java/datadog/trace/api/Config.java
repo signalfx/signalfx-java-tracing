@@ -1,10 +1,17 @@
 // Modified by SignalFx
 package datadog.trace.api;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,8 +29,8 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Config gives priority to system properties and falls back to environment variables. It also
- * includes default values to ensure a valid config.
+ * Config reads values with the following priority: 1) system properties, 2) environment variables,
+ * 3) optional configuration file. It also includes default values to ensure a valid config.
  *
  * <p>
  *
@@ -40,9 +47,10 @@ public class Config {
 
   private static final Pattern ENV_REPLACEMENT = Pattern.compile("[^a-zA-Z0-9_]");
 
+  public static final String CONFIGURATION_FILE = "trace.config";
   public static final String SERVICE_NAME = "service.name";
-  public static final String SERVICE = "service";
   public static final String TRACE_ENABLED = "tracing.enabled";
+  public static final String INTEGRATIONS_ENABLED = "integrations.enabled";
   public static final String WRITER_TYPE = "writer.type";
   public static final String API_TYPE = "api.type";
   public static final String USE_B3_PROPAGATION = "b3.propagation";
@@ -61,13 +69,19 @@ public class Config {
   public static final String JMX_TAGS = "trace.jmx.tags";
   public static final String TRACE_ANALYTICS_ENABLED = "trace.analytics.enabled";
   public static final String TRACE_ANNOTATIONS = "trace.annotations";
+  public static final String TRACE_EXECUTORS_ALL = "trace.executors.all";
+  public static final String TRACE_EXECUTORS = "trace.executors";
   public static final String TRACE_METHODS = "trace.methods";
   public static final String TRACE_CLASSES_EXCLUDE = "trace.classes.exclude";
   public static final String TRACE_REPORT_HOSTNAME = "trace.report-hostname";
   public static final String HEADER_TAGS = "trace.header.tags";
   public static final String HTTP_SERVER_ERROR_STATUSES = "http.server.error.statuses";
   public static final String HTTP_CLIENT_ERROR_STATUSES = "http.client.error.statuses";
+  public static final String HTTP_SERVER_TAG_QUERY_STRING = "http.server.tag.query-string";
+  public static final String HTTP_CLIENT_TAG_QUERY_STRING = "http.client.tag.query-string";
   public static final String HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN = "trace.http.client.split-by-domain";
+  public static final String DB_CLIENT_HOST_SPLIT_BY_INSTANCE = "trace.db.client.split-by-instance";
+  public static final String SPLIT_BY_TAGS = "trace.split-by-tags";
   public static final String PARTIAL_FLUSH_MIN_SPANS = "trace.partial.flush.min.spans";
   public static final String RUNTIME_CONTEXT_FIELD_INJECTION =
       "trace.runtime.context.field.injection";
@@ -80,15 +94,23 @@ public class Config {
       "instrumentation.redis.capture-command-arguments";
 
   public static final String JMX_FETCH_ENABLED = "jmxfetch.enabled";
+  public static final String JMX_FETCH_CONFIG_DIR = "jmxfetch.config.dir";
+  public static final String JMX_FETCH_CONFIG = "jmxfetch.config";
   public static final String JMX_FETCH_METRICS_CONFIGS = "jmxfetch.metrics-configs";
   public static final String JMX_FETCH_CHECK_PERIOD = "jmxfetch.check-period";
   public static final String JMX_FETCH_REFRESH_BEANS_PERIOD = "jmxfetch.refresh-beans-period";
   public static final String JMX_FETCH_STATSD_HOST = "jmxfetch.statsd.host";
   public static final String JMX_FETCH_STATSD_PORT = "jmxfetch.statsd.port";
 
+  public static final String HEALTH_METRICS_ENABLED = "trace.health.metrics.enabled";
+  public static final String HEALTH_METRICS_STATSD_HOST = "trace.health.metrics.statsd.host";
+  public static final String HEALTH_METRICS_STATSD_PORT = "trace.health.metrics.statsd.port";
+
   public static final String LOGS_INJECTION_ENABLED = "logs.injection";
   public static final String DB_STATEMENT_MAX_LENGTH = "db.statement.max.length";
 
+  public static final String SERVICE_TAG = "service";
+  @Deprecated public static final String SERVICE = SERVICE_TAG; // To be removed in 0.34.0
   public static final String RUNTIME_ID_TAG = "runtime-id";
   public static final String LANGUAGE_TAG_KEY = "language";
   public static final String LANGUAGE_TAG_VALUE = "jvm";
@@ -98,13 +120,14 @@ public class Config {
   public static final String TRACING_LIBRARY_KEY = "signalfx.tracing.library";
   public static final String TRACING_LIBRARY_VALUE = "java-tracing";
   public static final String TRACING_VERSION_KEY = "signalfx.tracing.version";
-  public static final String TRACING_VERSION_VALUE = "0.28.0-sfx7";
+  public static final String TRACING_VERSION_VALUE = "0.36.0-sfx0";
   public static final String DEFAULT_GLOBAL_TAGS =
       String.format(
           "%s:%s,%s:%s",
           TRACING_LIBRARY_KEY, TRACING_LIBRARY_VALUE, TRACING_VERSION_KEY, TRACING_VERSION_VALUE);
 
   private static final boolean DEFAULT_TRACE_ENABLED = true;
+  public static final boolean DEFAULT_INTEGRATIONS_ENABLED = true;
   public static final String DD_AGENT_WRITER_TYPE = "DDAgentWriter";
   public static final String DD_AGENT_API_TYPE = "DD";
   public static final String ZIPKIN_V2_API_TYPE = "ZipkinV2";
@@ -124,7 +147,11 @@ public class Config {
       parseIntegerRangeSet("500-599", "default");
   private static final Set<Integer> DEFAULT_HTTP_CLIENT_ERROR_STATUSES =
       parseIntegerRangeSet("500-599", "default");
+  private static final boolean DEFAULT_HTTP_SERVER_TAG_QUERY_STRING = false;
+  private static final boolean DEFAULT_HTTP_CLIENT_TAG_QUERY_STRING = false;
   private static final boolean DEFAULT_HTTP_CLIENT_SPLIT_BY_DOMAIN = false;
+  private static final boolean DEFAULT_DB_CLIENT_HOST_SPLIT_BY_INSTANCE = false;
+  private static final String DEFAULT_SPLIT_BY_TAGS = "";
   private static final int DEFAULT_PARTIAL_FLUSH_MIN_SPANS = 1000;
   private static final String DEFAULT_PROPAGATION_STYLE_EXTRACT = PropagationStyle.B3.name();
   private static final String DEFAULT_PROPAGATION_STYLE_INJECT = PropagationStyle.B3.name();
@@ -135,15 +162,25 @@ public class Config {
 
   public static final int DEFAULT_JMX_FETCH_STATSD_PORT = 8125;
 
+  public static final boolean DEFAULT_METRICS_ENABLED = false;
+  // No default constants for metrics statsd support -- falls back to jmx fetch values
+
   public static final boolean DEFAULT_LOGS_INJECTION_ENABLED = false;
 
   private static final String SPLIT_BY_SPACE_OR_COMMA_REGEX = "[,\\s]+";
 
   private static final boolean DEFAULT_TRACE_REPORT_HOSTNAME = false;
+  private static final String DEFAULT_TRACE_ANNOTATIONS = null;
+  private static final boolean DEFAULT_TRACE_EXECUTORS_ALL = false;
+  private static final String DEFAULT_TRACE_EXECUTORS = "";
+  private static final String DEFAULT_TRACE_METHODS = null;
+  public static final boolean DEFAULT_TRACE_ANALYTICS_ENABLED = false;
+  public static final float DEFAULT_ANALYTICS_SAMPLE_RATE = 1.0f;
 
   public enum PropagationStyle {
     DATADOG,
-    B3
+    B3,
+    HAYSTACK
   }
 
   public static final int DEFAULT_DB_STATEMENT_MAX_LENGTH = 1024;
@@ -158,6 +195,7 @@ public class Config {
 
   @Getter private final String serviceName;
   @Getter private final boolean traceEnabled;
+  @Getter private final boolean integrationsEnabled;
   @Getter private final String writerType;
   @Getter private final String apiType;
   @Getter private final boolean useB3Propagation;
@@ -177,7 +215,11 @@ public class Config {
   @Getter private final Map<String, String> headerTags;
   @Getter private final Set<Integer> httpServerErrorStatuses;
   @Getter private final Set<Integer> httpClientErrorStatuses;
+  @Getter private final boolean httpServerTagQueryString;
+  @Getter private final boolean httpClientTagQueryString;
   @Getter private final boolean httpClientSplitByDomain;
+  @Getter private final boolean dbClientSplitByInstance;
+  @Getter private final Set<String> splitByTags;
   @Getter private final Integer partialFlushMinSpans;
   @Getter private final boolean runtimeContextFieldInjection;
   @Getter private final Set<PropagationStyle> propagationStylesToExtract;
@@ -187,11 +229,18 @@ public class Config {
   @Getter private final boolean redisCaptureCommandArguments;
 
   @Getter private final boolean jmxFetchEnabled;
-  @Getter private final List<String> jmxFetchMetricsConfigs;
+  @Getter private final String jmxFetchConfigDir;
+  @Getter private final List<String> jmxFetchConfigs;
+  @Deprecated @Getter private final List<String> jmxFetchMetricsConfigs;
   @Getter private final Integer jmxFetchCheckPeriod;
   @Getter private final Integer jmxFetchRefreshBeansPeriod;
   @Getter private final String jmxFetchStatsdHost;
   @Getter private final Integer jmxFetchStatsdPort;
+
+  // These values are default-ed to those of jmx fetch values as needed
+  @Getter private final boolean healthMetricsEnabled;
+  @Getter private final String healthMetricsStatsdHost;
+  @Getter private final Integer healthMetricsStatsdPort;
 
   @Getter private final boolean logsInjectionEnabled;
 
@@ -200,13 +249,30 @@ public class Config {
   @Getter private final Integer dbStatementMaxLength;
 
   // Read order: System Properties -> Env Variables, [-> default value]
+  @Getter private final String traceAnnotations;
+
+  @Getter private final String traceMethods;
+
+  @Getter private final boolean traceExecutorsAll;
+  @Getter private final List<String> traceExecutors;
+
+  @Getter private final boolean traceAnalyticsEnabled;
+
+  // Values from an optionally provided properties file
+  private static Properties propertiesFromConfigFile;
+
+  // Read order: System Properties -> Env Variables, [-> properties file], [-> default value]
   // Visible for testing
   Config() {
+    propertiesFromConfigFile = loadConfigurationFile();
+
     runtimeId = UUID.randomUUID().toString();
 
     serviceName = getSettingFromEnvironment(SERVICE_NAME, DEFAULT_SERVICE_NAME);
 
     traceEnabled = getBooleanSettingFromEnvironment(TRACE_ENABLED, DEFAULT_TRACE_ENABLED);
+    integrationsEnabled =
+        getBooleanSettingFromEnvironment(INTEGRATIONS_ENABLED, DEFAULT_INTEGRATIONS_ENABLED);
     writerType = getSettingFromEnvironment(WRITER_TYPE, DEFAULT_AGENT_WRITER_TYPE);
     apiType = getSettingFromEnvironment(API_TYPE, DEFAULT_API_TYPE);
     useB3Propagation = getBooleanSettingFromEnvironment(USE_B3_PROPAGATION, true);
@@ -240,9 +306,26 @@ public class Config {
         getIntegerRangeSettingFromEnvironment(
             HTTP_CLIENT_ERROR_STATUSES, DEFAULT_HTTP_CLIENT_ERROR_STATUSES);
 
+    httpServerTagQueryString =
+        getBooleanSettingFromEnvironment(
+            HTTP_SERVER_TAG_QUERY_STRING, DEFAULT_HTTP_SERVER_TAG_QUERY_STRING);
+
+    httpClientTagQueryString =
+        getBooleanSettingFromEnvironment(
+            HTTP_CLIENT_TAG_QUERY_STRING, DEFAULT_HTTP_CLIENT_TAG_QUERY_STRING);
+
     httpClientSplitByDomain =
         getBooleanSettingFromEnvironment(
             HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, DEFAULT_HTTP_CLIENT_SPLIT_BY_DOMAIN);
+
+    dbClientSplitByInstance =
+        getBooleanSettingFromEnvironment(
+            DB_CLIENT_HOST_SPLIT_BY_INSTANCE, DEFAULT_DB_CLIENT_HOST_SPLIT_BY_INSTANCE);
+
+    splitByTags =
+        Collections.unmodifiableSet(
+            new LinkedHashSet<>(
+                getListSettingFromEnvironment(SPLIT_BY_TAGS, DEFAULT_SPLIT_BY_TAGS)));
 
     partialFlushMinSpans =
         getIntegerSettingFromEnvironment(PARTIAL_FLUSH_MIN_SPANS, DEFAULT_PARTIAL_FLUSH_MIN_SPANS);
@@ -273,6 +356,8 @@ public class Config {
 
     jmxFetchEnabled =
         getBooleanSettingFromEnvironment(JMX_FETCH_ENABLED, DEFAULT_JMX_FETCH_ENABLED);
+    jmxFetchConfigDir = getSettingFromEnvironment(JMX_FETCH_CONFIG_DIR, null);
+    jmxFetchConfigs = getListSettingFromEnvironment(JMX_FETCH_CONFIG, null);
     jmxFetchMetricsConfigs = getListSettingFromEnvironment(JMX_FETCH_METRICS_CONFIGS, null);
     jmxFetchCheckPeriod = getIntegerSettingFromEnvironment(JMX_FETCH_CHECK_PERIOD, null);
     jmxFetchRefreshBeansPeriod =
@@ -280,6 +365,12 @@ public class Config {
     jmxFetchStatsdHost = getSettingFromEnvironment(JMX_FETCH_STATSD_HOST, null);
     jmxFetchStatsdPort =
         getIntegerSettingFromEnvironment(JMX_FETCH_STATSD_PORT, DEFAULT_JMX_FETCH_STATSD_PORT);
+
+    // Writer.Builder createMonitor will use the values of the JMX fetch & agent to fill-in defaults
+    healthMetricsEnabled =
+        getBooleanSettingFromEnvironment(HEALTH_METRICS_ENABLED, DEFAULT_METRICS_ENABLED);
+    healthMetricsStatsdHost = getSettingFromEnvironment(HEALTH_METRICS_STATSD_HOST, null);
+    healthMetricsStatsdPort = getIntegerSettingFromEnvironment(HEALTH_METRICS_STATSD_PORT, null);
 
     logsInjectionEnabled =
         getBooleanSettingFromEnvironment(LOGS_INJECTION_ENABLED, DEFAULT_LOGS_INJECTION_ENABLED);
@@ -289,6 +380,18 @@ public class Config {
 
     dbStatementMaxLength =
         getIntegerSettingFromEnvironment(DB_STATEMENT_MAX_LENGTH, DEFAULT_DB_STATEMENT_MAX_LENGTH);
+
+    traceAnnotations = getSettingFromEnvironment(TRACE_ANNOTATIONS, DEFAULT_TRACE_ANNOTATIONS);
+
+    traceMethods = getSettingFromEnvironment(TRACE_METHODS, DEFAULT_TRACE_METHODS);
+
+    traceExecutorsAll =
+        getBooleanSettingFromEnvironment(TRACE_EXECUTORS_ALL, DEFAULT_TRACE_EXECUTORS_ALL);
+
+    traceExecutors = getListSettingFromEnvironment(TRACE_EXECUTORS, DEFAULT_TRACE_EXECUTORS);
+
+    traceAnalyticsEnabled =
+        getBooleanSettingFromEnvironment(TRACE_ANALYTICS_ENABLED, DEFAULT_TRACE_ANALYTICS_ENABLED);
 
     log.debug("New instance: {}", this);
   }
@@ -300,6 +403,8 @@ public class Config {
     serviceName = properties.getProperty(SERVICE_NAME, parent.serviceName);
 
     traceEnabled = getPropertyBooleanValue(properties, TRACE_ENABLED, parent.traceEnabled);
+    integrationsEnabled =
+        getPropertyBooleanValue(properties, INTEGRATIONS_ENABLED, parent.integrationsEnabled);
     writerType = properties.getProperty(WRITER_TYPE, parent.writerType);
     apiType = properties.getProperty(API_TYPE, parent.apiType);
     useB3Propagation =
@@ -336,9 +441,27 @@ public class Config {
         getPropertyIntegerRangeValue(
             properties, HTTP_CLIENT_ERROR_STATUSES, parent.httpClientErrorStatuses);
 
+    httpServerTagQueryString =
+        getPropertyBooleanValue(
+            properties, HTTP_SERVER_TAG_QUERY_STRING, parent.httpServerTagQueryString);
+
+    httpClientTagQueryString =
+        getPropertyBooleanValue(
+            properties, HTTP_CLIENT_TAG_QUERY_STRING, parent.httpClientTagQueryString);
+
     httpClientSplitByDomain =
         getPropertyBooleanValue(
             properties, HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, parent.httpClientSplitByDomain);
+
+    dbClientSplitByInstance =
+        getPropertyBooleanValue(
+            properties, DB_CLIENT_HOST_SPLIT_BY_INSTANCE, parent.dbClientSplitByInstance);
+
+    splitByTags =
+        Collections.unmodifiableSet(
+            new LinkedHashSet<>(
+                getPropertyListValue(
+                    properties, SPLIT_BY_TAGS, new ArrayList<>(parent.splitByTags))));
 
     partialFlushMinSpans =
         getPropertyIntegerValue(properties, PARTIAL_FLUSH_MIN_SPANS, parent.partialFlushMinSpans);
@@ -370,6 +493,8 @@ public class Config {
 
     jmxFetchEnabled =
         getPropertyBooleanValue(properties, JMX_FETCH_ENABLED, parent.jmxFetchEnabled);
+    jmxFetchConfigDir = properties.getProperty(JMX_FETCH_CONFIG_DIR, parent.jmxFetchConfigDir);
+    jmxFetchConfigs = getPropertyListValue(properties, JMX_FETCH_CONFIG, parent.jmxFetchConfigs);
     jmxFetchMetricsConfigs =
         getPropertyListValue(properties, JMX_FETCH_METRICS_CONFIGS, parent.jmxFetchMetricsConfigs);
     jmxFetchCheckPeriod =
@@ -381,6 +506,14 @@ public class Config {
     jmxFetchStatsdPort =
         getPropertyIntegerValue(properties, JMX_FETCH_STATSD_PORT, parent.jmxFetchStatsdPort);
 
+    healthMetricsEnabled =
+        getPropertyBooleanValue(properties, HEALTH_METRICS_ENABLED, DEFAULT_METRICS_ENABLED);
+    healthMetricsStatsdHost =
+        properties.getProperty(HEALTH_METRICS_STATSD_HOST, parent.healthMetricsStatsdHost);
+    healthMetricsStatsdPort =
+        getPropertyIntegerValue(
+            properties, HEALTH_METRICS_STATSD_PORT, parent.healthMetricsStatsdPort);
+
     logsInjectionEnabled =
         getBooleanSettingFromEnvironment(LOGS_INJECTION_ENABLED, DEFAULT_LOGS_INJECTION_ENABLED);
 
@@ -389,6 +522,17 @@ public class Config {
 
     dbStatementMaxLength =
         getPropertyIntegerValue(properties, DB_STATEMENT_MAX_LENGTH, parent.dbStatementMaxLength);
+
+    traceAnnotations = properties.getProperty(TRACE_ANNOTATIONS, parent.traceAnnotations);
+
+    traceMethods = properties.getProperty(TRACE_METHODS, parent.traceMethods);
+
+    traceExecutorsAll =
+        getPropertyBooleanValue(properties, TRACE_EXECUTORS_ALL, parent.traceExecutorsAll);
+    traceExecutors = getPropertyListValue(properties, TRACE_EXECUTORS, parent.traceExecutors);
+
+    traceAnalyticsEnabled =
+        getPropertyBooleanValue(properties, TRACE_ANALYTICS_ENABLED, parent.traceAnalyticsEnabled);
 
     log.debug("New instance: {}", this);
   }
@@ -399,7 +543,7 @@ public class Config {
     final Map<String, String> result = new HashMap<>(runtimeTags);
 
     if (reportHostName) {
-      String hostName = getHostName();
+      final String hostName = getHostName();
       if (null != hostName && !hostName.isEmpty()) {
         result.put(INTERNAL_HOST_NAME, hostName);
       }
@@ -455,8 +599,22 @@ public class Config {
     // service name set here instead of getRuntimeTags because apm already manages the service tag
     // and may chose to override it.
     // Additionally, infra/JMX metrics require `service` rather than APM's `service.name` tag
-    result.put(SERVICE, serviceName);
+    result.put(SERVICE_TAG, serviceName);
     return Collections.unmodifiableMap(result);
+  }
+
+  /**
+   * Returns the sample rate for the specified instrumentation or {@link
+   * #DEFAULT_ANALYTICS_SAMPLE_RATE} if none specified.
+   */
+  public float getInstrumentationAnalyticsSampleRate(final String... aliases) {
+    for (final String alias : aliases) {
+      final Float rate = getFloatSettingFromEnvironment(alias + ".analytics.sample-rate", null);
+      if (null != rate) {
+        return rate;
+      }
+    }
+    return DEFAULT_ANALYTICS_SAMPLE_RATE;
   }
 
   /**
@@ -475,16 +633,18 @@ public class Config {
     return Collections.unmodifiableMap(result);
   }
 
-  public static String getSettingFromEnvironment(final String name, final String defaultValue) {
-    String value = getSettingFromEnvironment(SIGNALFX_PREFIX, name, null);
-    if (value == null) {
-      // Let the original prefix act as a fallback so we support both for testing/migration
-      // purposes.
-      value = getSettingFromEnvironment(PREFIX, name, null);
-    }
-    return value == null ? defaultValue : value;
+  public boolean isIntegrationEnabled(
+      final SortedSet<String> integrationNames, final boolean defaultEnabled) {
+    return integrationEnabled(integrationNames, defaultEnabled);
   }
 
+  /**
+   * @deprecated This method should only be used internally. Use the instance getter instead {@link
+   *     #isIntegrationEnabled(SortedSet, boolean)}.
+   * @param integrationNames
+   * @param defaultEnabled
+   * @return
+   */
   public static boolean integrationEnabled(
       final SortedSet<String> integrationNames, final boolean defaultEnabled) {
     // If default is enabled, we want to enable individually,
@@ -502,6 +662,47 @@ public class Config {
     return anyEnabled;
   }
 
+  public boolean isJmxFetchIntegrationEnabled(
+      final SortedSet<String> integrationNames, final boolean defaultEnabled) {
+    return jmxFetchIntegrationEnabled(integrationNames, defaultEnabled);
+  }
+
+  /**
+   * @deprecated This method should only be used internally. Use the instance getter instead {@link
+   *     #isJmxFetchIntegrationEnabled(SortedSet, boolean)}.
+   * @param integrationNames
+   * @param defaultEnabled
+   * @return
+   */
+  public static boolean jmxFetchIntegrationEnabled(
+      final SortedSet<String> integrationNames, final boolean defaultEnabled) {
+    // If default is enabled, we want to enable individually,
+    // if default is disabled, we want to disable individually.
+    boolean anyEnabled = defaultEnabled;
+    for (final String name : integrationNames) {
+      final boolean configEnabled =
+          getBooleanSettingFromEnvironment("jmxfetch." + name + ".enabled", defaultEnabled);
+      if (defaultEnabled) {
+        anyEnabled &= configEnabled;
+      } else {
+        anyEnabled |= configEnabled;
+      }
+    }
+    return anyEnabled;
+  }
+
+  public boolean isTraceAnalyticsIntegrationEnabled(
+      final SortedSet<String> integrationNames, final boolean defaultEnabled) {
+    return traceAnalyticsIntegrationEnabled(integrationNames, defaultEnabled);
+  }
+
+  /**
+   * @deprecated This method should only be used internally. Use the instance getter instead {@link
+   *     #isTraceAnalyticsIntegrationEnabled(SortedSet, boolean)}.
+   * @param integrationNames
+   * @param defaultEnabled
+   * @return
+   */
   public static boolean traceAnalyticsIntegrationEnabled(
       final SortedSet<String> integrationNames, final boolean defaultEnabled) {
     // If default is enabled, we want to enable individually,
@@ -520,31 +721,62 @@ public class Config {
   }
 
   /**
-   * Helper method that takes the name, adds a "dd." prefix then checks for System Properties of
-   * that name. If none found, the name is converted to an Environment Variable and used to check
-   * the env. If setting not configured in either location, defaultValue is returned.
+   * Helper method that takes the name, adds a "signalfx." prefix then checks for System Properties
+   * of that name. If none found, the name is converted to an Environment Variable and used to check
+   * the env. If none of the above returns a value, then an optional properties file if checked. If
+   * setting is not configured in either location, the process repeats with the "dd." prefix. If no
+   * subsequent mtach, <code>defaultValue</code> is returned.
    *
    * @param name
    * @param defaultValue
    * @return
+   * @deprecated This method should only be used internally. Use the explicit getter instead.
    */
-  public static String getSettingFromEnvironment(
-      final String prefix, final String name, final String defaultValue) {
-    final String completeName = prefix + name;
-    final String value =
-        System.getProperties()
-            .getProperty(completeName, System.getenv(propertyToEnvironmentName(completeName)));
-    return value == null ? defaultValue : value;
+  public static String getSettingFromEnvironment(final String name, final String defaultValue) {
+    String value = getSettingFromEnvironment(SIGNALFX_PREFIX, name, null);
+    if (value == null) {
+      // Let the original prefix act as a fallback so we support both for testing/migration
+      // purposes.
+      value = getSettingFromEnvironment(PREFIX, name, null);
+    }
+    String returned = value == null ? defaultValue : value;
+    return returned;
   }
 
+  public static String getSettingFromEnvironment(
+      final String prefix, final String name, final String defaultValue) {
+    String propertyName = propertyNameToSystemPropertyName(prefix, name);
+    String value = null;
+
+    // System properties and properties provided from command line have the highest precedence
+    value = System.getProperties().getProperty(propertyName);
+    if (null != value) {
+      return value;
+    }
+
+    // If value not provided from system properties, looking at env variables
+    value = System.getenv(propertyNameToEnvironmentVariableName(prefix, name));
+    if (null != value) {
+      return value;
+    }
+
+    // If value is not defined yet, we look at properties optionally defined in a properties file
+    value = propertiesFromConfigFile.getProperty(propertyName);
+    return value;
+  }
+
+  /** @deprecated This method should only be used internally. Use the explicit getter instead. */
   private static Map<String, String> getMapSettingFromEnvironment(
       final String name, final String defaultValue) {
-    return parseMap(getSettingFromEnvironment(name, defaultValue), name);
+    return parseMap(
+        getSettingFromEnvironment(name, defaultValue), propertyNameToSystemPropertyName(name));
   }
 
   /**
    * Calls {@link #getSettingFromEnvironment(String, String)} and converts the result to a list by
    * splitting on `,`.
+   *
+   * @deprecated This method should only be used internally. Use the explicit getter instead.
    */
   public static List<String> getListSettingFromEnvironment(
       final String name, final String defaultValue) {
@@ -557,6 +789,8 @@ public class Config {
 
   /**
    * Calls {@link #getSettingFromEnvironment(String, String)} and converts the result to a Boolean.
+   *
+   * @deprecated This method should only be used internally. Use the explicit getter instead.
    */
   public static Boolean getBooleanSettingFromEnvironment(
       final String name, final Boolean defaultValue) {
@@ -566,6 +800,8 @@ public class Config {
 
   /**
    * Calls {@link #getSettingFromEnvironment(String, String)} and converts the result to a Float.
+   *
+   * @deprecated This method should only be used internally. Use the explicit getter instead.
    */
   public static Float getFloatSettingFromEnvironment(final String name, final Float defaultValue) {
     final String value = getSettingFromEnvironment(name, null);
@@ -627,8 +863,38 @@ public class Config {
     }
   }
 
-  private static String propertyToEnvironmentName(final String name) {
-    return ENV_REPLACEMENT.matcher(name.toUpperCase()).replaceAll("_");
+  /**
+   * Converts the property name, e.g. 'service.name' into a public environment variable name, e.g.
+   * `SIGNALFX_SERVICE_NAME`.
+   *
+   * @param setting The setting name, e.g. `service.name`
+   * @return The public facing environment variable name
+   */
+  private static String propertyNameToEnvironmentVariableName(final String setting) {
+    return propertyNameToEnvironmentVariableName(SIGNALFX_PREFIX, setting);
+  }
+
+  private static String propertyNameToEnvironmentVariableName(
+      final String prefix, final String setting) {
+    return ENV_REPLACEMENT
+        .matcher(propertyNameToSystemPropertyName(prefix, setting).toUpperCase())
+        .replaceAll("_");
+  }
+
+  /**
+   * Converts the property name, e.g. 'service.name' into a public system property name, e.g.
+   * `signalfx.service.name`.
+   *
+   * @param setting The setting name, e.g. `service.name`
+   * @return The public facing system property name
+   */
+  private static String propertyNameToSystemPropertyName(final String setting) {
+    return propertyNameToSystemPropertyName(SIGNALFX_PREFIX, setting);
+  }
+
+  private static String propertyNameToSystemPropertyName(
+      final String prefix, final String setting) {
+    return prefix + setting;
   }
 
   private static Map<String, String> getPropertyMapValue(
@@ -758,6 +1024,10 @@ public class Config {
     }
 
     final String[] tokens = str.split(",", -1);
+    // Remove whitespace from each item.
+    for (int i = 0; i < tokens.length; i++) {
+      tokens[i] = tokens[i].trim();
+    }
     return Collections.unmodifiableList(Arrays.asList(tokens));
   }
 
@@ -799,13 +1069,92 @@ public class Config {
   }
 
   /**
-   * Returns the detected hostname. This operation is time consuming so if the usage changes and
-   * this method will be called several times then we should implement some sort of caching.
+   * Loads the optional configuration properties file into the global {@link Properties} object.
+   *
+   * @return The {@link Properties} object. the returned instance might be empty of file does not
+   *     exist or if it is in a wrong format.
    */
+  private static Properties loadConfigurationFile() {
+    final Properties properties = new Properties();
+
+    // Reading from system property first and from env after
+    String configurationFilePath =
+        System.getProperty(propertyNameToSystemPropertyName(SIGNALFX_PREFIX, CONFIGURATION_FILE));
+    if (null == configurationFilePath) {
+      configurationFilePath =
+          System.getenv(propertyNameToEnvironmentVariableName(SIGNALFX_PREFIX, CONFIGURATION_FILE));
+    }
+    if (null == configurationFilePath) {
+      configurationFilePath =
+          System.getProperty(propertyNameToSystemPropertyName(PREFIX, CONFIGURATION_FILE));
+    }
+    if (null == configurationFilePath) {
+      configurationFilePath =
+          System.getenv(propertyNameToEnvironmentVariableName(PREFIX, CONFIGURATION_FILE));
+    }
+    if (null == configurationFilePath) {
+      return properties;
+    }
+
+    // Normalizing tilde (~) paths for unix systems
+    configurationFilePath =
+        configurationFilePath.replaceFirst("^~", System.getProperty("user.home"));
+
+    // Configuration properties file is optional
+    final File configurationFile = new File(configurationFilePath);
+    if (!configurationFile.exists()) {
+      log.error("Configuration file '{}' not found.", configurationFilePath);
+      return properties;
+    }
+
+    try {
+      final FileReader fileReader = new FileReader(configurationFile);
+      properties.load(fileReader);
+    } catch (final FileNotFoundException fnf) {
+      log.error("Configuration file '{}' not found.", configurationFilePath);
+    } catch (final IOException ioe) {
+      log.error(
+          "Configuration file '{}' cannot be accessed or correctly parsed.", configurationFilePath);
+    }
+
+    return properties;
+  }
+
+  /** Returns the detected hostname. First tries locally, then using DNS */
   private String getHostName() {
+    String possibleHostname = null;
+
+    // Try environment variable.  This works in almost all environments
+    if (System.getProperty("os.name").startsWith("Windows")) {
+      possibleHostname = System.getenv("COMPUTERNAME");
+    } else {
+      possibleHostname = System.getenv("HOSTNAME");
+    }
+
+    if (possibleHostname != null && !possibleHostname.isEmpty()) {
+      log.debug("Determined hostname from environment variable");
+      return possibleHostname.trim();
+    }
+
+    // Try hostname command
+    try {
+      final Process process = Runtime.getRuntime().exec("hostname");
+      final BufferedReader reader =
+          new BufferedReader(new InputStreamReader(process.getInputStream()));
+      possibleHostname = reader.readLine();
+    } catch (final Exception e) {
+      // Ignore.  Hostname command is not always available
+    }
+
+    if (possibleHostname != null && !possibleHostname.isEmpty()) {
+      log.debug("Determined hostname from hostname command");
+      return possibleHostname.trim();
+    }
+
+    // From DNS
     try {
       return InetAddress.getLocalHost().getHostName();
-    } catch (UnknownHostException e) {
+    } catch (final UnknownHostException e) {
       // If we are not able to detect the hostname we do not throw an exception.
     }
 

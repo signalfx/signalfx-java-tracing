@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ContextualScopeManager implements ScopeManager {
-  static final ThreadLocal<Scope> tlsScope = new ThreadLocal<>();
+  static final ThreadLocal<DDScope> tlsScope = new ThreadLocal<>();
   final Deque<ScopeContext> scopeContexts = new ConcurrentLinkedDeque<>();
   final List<ScopeListener> scopeListeners = new CopyOnWriteArrayList<>();
 
@@ -30,6 +30,11 @@ public class ContextualScopeManager implements ScopeManager {
   }
 
   @Override
+  public Scope activate(final Span span) {
+    return activate(span, false);
+  }
+
+  @Override
   public Scope active() {
     for (final ScopeContext csm : scopeContexts) {
       if (csm.inContext()) {
@@ -37,6 +42,17 @@ public class ContextualScopeManager implements ScopeManager {
       }
     }
     return tlsScope.get();
+  }
+
+  @Override
+  public Span activeSpan() {
+    for (final ScopeContext csm : scopeContexts) {
+      if (csm.inContext()) {
+        return csm.activeSpan();
+      }
+    }
+    final DDScope active = tlsScope.get();
+    return active == null ? null : active.span();
   }
 
   @Deprecated

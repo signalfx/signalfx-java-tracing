@@ -1,44 +1,62 @@
 // Modified by SignalFx
-import datadog.trace.agent.test.AgentTestRunner
+import datadog.trace.agent.test.base.HttpClientTest
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
-import io.opentracing.tag.Tags
-import io.opentracing.util.GlobalTracer
-import org.springframework.web.client.RestTemplate
-import spock.lang.AutoCleanup
+import datadog.trace.instrumentation.api.Tags
+import datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionDecorator
+import spock.lang.Ignore
 import spock.lang.Requires
-import spock.lang.Shared
 import sun.net.www.protocol.https.HttpsURLConnectionImpl
 
-import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
+import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
-import static datadog.trace.agent.test.utils.TraceUtils.withConfigOverride
+import static datadog.trace.instrumentation.api.AgentTracer.activeScope
 import static datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionInstrumentation.HttpUrlState.OPERATION_NAME
 
-class HttpUrlConnectionTest extends AgentTestRunner {
+class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
 
-  static final RESPONSE = "<html><body><h1>Hello test.</h1>"
-  static final STATUS = 202
+  static final RESPONSE = "Hello."
+  static final STATUS = 200
 
-  @AutoCleanup
-  @Shared
-  def server = httpServer {
-    handlers {
-      all {
-        handleDistributedRequest()
-
-        response.status(STATUS).send(RESPONSE)
-      }
+  @Override
+  int doRequest(String method, URI uri, Map<String, String> headers, Closure callback) {
+    HttpURLConnection connection = uri.toURL().openConnection()
+    try {
+      connection.setRequestMethod(method)
+      headers.each { connection.setRequestProperty(it.key, it.value) }
+      connection.setRequestProperty("Connection", "close")
+      connection.useCaches = true
+      def parentSpan = activeScope()
+      def stream = connection.inputStream
+      assert activeScope() == parentSpan
+      stream.readLines()
+      stream.close()
+      callback?.call()
+      return connection.getResponseCode()
+    } finally {
+      connection.disconnect()
     }
   }
 
+  @Override
+  HttpUrlConnectionDecorator decorator() {
+    return HttpUrlConnectionDecorator.DECORATE
+  }
+
+  @Override
+  boolean testRedirects() {
+    false
+  }
+
+  @Ignore
   def "trace request with propagation (useCaches: #useCaches)"() {
     setup:
+    def url = server.address.resolve("/success").toURL()
     withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
       runUnderTrace("someTrace") {
-        HttpURLConnection connection = server.address.toURL().openConnection()
+        HttpURLConnection connection = url.openConnection()
         connection.useCaches = useCaches
-        assert GlobalTracer.get().scopeManager().active() != null
+        assert activeScope() != null
         def stream = connection.inputStream
         def lines = stream.readLines()
         stream.close()
@@ -46,9 +64,9 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         assert lines == [RESPONSE]
 
         // call again to ensure the cycling is ok
-        connection = server.getAddress().toURL().openConnection()
+        connection = url.openConnection()
         connection.useCaches = useCaches
-        assert GlobalTracer.get().scopeManager().active() != null
+        assert activeScope() != null
         assert connection.getResponseCode() == STATUS // call before input stream to test alternate behavior
         connection.inputStream
         stream = connection.inputStream // one more to ensure state is working
@@ -79,13 +97,13 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "http-url-connection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address/"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" STATUS
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
+            "$Tags.COMPONENT" "http-url-connection"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_URL" "$url"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" STATUS
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }
@@ -97,13 +115,13 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "http-url-connection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address/"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" STATUS
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
+            "$Tags.COMPONENT" "http-url-connection"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_URL" "$url"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" STATUS
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }
@@ -115,14 +133,16 @@ class HttpUrlConnectionTest extends AgentTestRunner {
     renameService << [true, false]
   }
 
+  @Ignore
   def "trace request without propagation (useCaches: #useCaches)"() {
     setup:
+    def url = server.address.resolve("/success").toURL()
     withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
       runUnderTrace("someTrace") {
-        HttpURLConnection connection = server.address.toURL().openConnection()
+        HttpURLConnection connection = url.openConnection()
         connection.useCaches = useCaches
         connection.addRequestProperty("is-dd-server", "false")
-        assert GlobalTracer.get().scopeManager().active() != null
+        assert activeScope() != null
         def stream = connection.inputStream
         connection.inputStream // one more to ensure state is working
         def lines = stream.readLines()
@@ -131,10 +151,10 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         assert lines == [RESPONSE]
 
         // call again to ensure the cycling is ok
-        connection = server.getAddress().toURL().openConnection()
+        connection = url.openConnection()
         connection.useCaches = useCaches
         connection.addRequestProperty("is-dd-server", "false")
-        assert GlobalTracer.get().scopeManager().active() != null
+        assert activeScope() != null
         assert connection.getResponseCode() == STATUS // call before input stream to test alternate behavior
         stream = connection.inputStream
         lines = stream.readLines()
@@ -162,13 +182,13 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "http-url-connection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address/"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" STATUS
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
+            "$Tags.COMPONENT" "http-url-connection"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_URL" "$url"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" STATUS
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }
@@ -180,13 +200,13 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "http-url-connection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address/"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" STATUS
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
+            "$Tags.COMPONENT" "http-url-connection"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_URL" "$url"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" STATUS
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }
@@ -198,62 +218,16 @@ class HttpUrlConnectionTest extends AgentTestRunner {
     renameService << [false, true]
   }
 
-  def "test response code"() {
-    setup:
-    withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
-      runUnderTrace("someTrace") {
-        HttpURLConnection connection = server.address.toURL().openConnection()
-        connection.setRequestMethod("HEAD")
-        connection.addRequestProperty("is-dd-server", "false")
-        assert GlobalTracer.get().scopeManager().active() != null
-        assert connection.getResponseCode() == STATUS
-      }
-    }
-
-    expect:
-    assertTraces(1) {
-      trace(0, 2) {
-        span(0) {
-          operationName "someTrace"
-          parent()
-          errored false
-          tags {
-            defaultTags()
-          }
-        }
-        span(1) {
-          serviceName renameService ? "localhost" : "unnamed-java-app"
-          operationName OPERATION_NAME
-          resourceName "/"
-          spanType DDSpanTypes.HTTP_CLIENT
-          childOf span(0)
-          errored false
-          tags {
-            "$Tags.COMPONENT.key" "http-url-connection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address/"
-            "$Tags.HTTP_METHOD.key" "HEAD"
-            "$Tags.HTTP_STATUS.key" STATUS
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
-            defaultTags()
-          }
-        }
-      }
-    }
-
-    where:
-    renameService << [false, true]
-  }
-
+  @Ignore
   def "test broken API usage"() {
     setup:
+    def url = server.address.resolve("/success").toURL()
     HttpURLConnection conn = withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
       runUnderTrace("someTrace") {
-        HttpURLConnection connection = server.address.toURL().openConnection()
+        HttpURLConnection connection = url.openConnection()
         connection.setRequestProperty("Connection", "close")
         connection.addRequestProperty("is-dd-server", "false")
-        assert GlobalTracer.get().scopeManager().active() != null
+        assert activeScope() != null
         assert connection.getResponseCode() == STATUS
         return connection
       }
@@ -278,13 +252,13 @@ class HttpUrlConnectionTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "http-url-connection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address/"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" STATUS
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
+            "$Tags.COMPONENT" "http-url-connection"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_URL" "$url"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" STATUS
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }
@@ -299,11 +273,13 @@ class HttpUrlConnectionTest extends AgentTestRunner {
     renameService = (iteration % 2 == 0) // alternate even/odd
   }
 
+  @Ignore
   def "test post request"() {
     setup:
+    def url = server.address.resolve("/success").toURL()
     withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
       runUnderTrace("someTrace") {
-        HttpURLConnection connection = server.address.toURL().openConnection()
+        HttpURLConnection connection = url.openConnection()
         connection.setRequestMethod("POST")
 
         String urlParameters = "q=ASDF&w=&e=&r=12345&t="
@@ -339,133 +315,18 @@ class HttpUrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName renameService ? "localhost" : "unnamed-java-app"
           operationName OPERATION_NAME
-          resourceName "/"
+          resourceName "$url.path"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored false
           tags {
-            "$Tags.COMPONENT.key" "http-url-connection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address/"
-            "$Tags.HTTP_METHOD.key" "POST"
-            "$Tags.HTTP_STATUS.key" STATUS
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
-            defaultTags()
-          }
-        }
-      }
-    }
-
-    where:
-    renameService << [false, true]
-  }
-
-  def "request that looks like a trace submission is ignored"() {
-    setup:
-    runUnderTrace("someTrace") {
-      HttpURLConnection connection = server.address.toURL().openConnection()
-      connection.addRequestProperty("Datadog-Meta-Lang", "false")
-      connection.addRequestProperty("is-dd-server", "false")
-      def stream = connection.inputStream
-      def lines = stream.readLines()
-      stream.close()
-      assert connection.getResponseCode() == STATUS
-      assert lines == [RESPONSE]
-    }
-
-    expect:
-    assertTraces(1) {
-      trace(0, 1) {
-        span(0) {
-          operationName "someTrace"
-          parent()
-          errored false
-          tags {
-            defaultTags()
-          }
-        }
-      }
-    }
-  }
-
-  def "top level httpurlconnection tracing disabled"() {
-    setup:
-    withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
-      HttpURLConnection connection = server.address.toURL().openConnection()
-      connection.addRequestProperty("is-dd-server", "false")
-      def stream = connection.inputStream
-      def lines = stream.readLines()
-      stream.close()
-      assert connection.getResponseCode() == STATUS
-      assert lines == [RESPONSE]
-    }
-
-    expect:
-    assertTraces(1) {
-      trace(0, 1) {
-        span(0) {
-          serviceName renameService ? "localhost" : "unnamed-java-app"
-          operationName OPERATION_NAME
-          resourceName "/"
-          spanType DDSpanTypes.HTTP_CLIENT
-          parent()
-          errored false
-          tags {
-            "$Tags.COMPONENT.key" "http-url-connection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address/"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.HTTP_STATUS.key" STATUS
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
-            defaultTags()
-          }
-        }
-      }
-    }
-
-    where:
-    renameService << [false, true]
-  }
-
-  def "rest template"() {
-    setup:
-    withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
-      runUnderTrace("someTrace") {
-        RestTemplate restTemplate = new RestTemplate()
-        String res = restTemplate.postForObject(server.address.toString(), "Hello", String)
-        assert res == "$RESPONSE"
-      }
-    }
-
-    expect:
-    assertTraces(2) {
-      server.distributedRequestTrace(it, 0, TEST_WRITER[1][1])
-      trace(1, 2) {
-        span(0) {
-          operationName "someTrace"
-          parent()
-          errored false
-          tags {
-            defaultTags()
-          }
-        }
-        span(1) {
-          serviceName renameService ? "localhost" : "unnamed-java-app"
-          operationName OPERATION_NAME
-          resourceName "/"
-          spanType DDSpanTypes.HTTP_CLIENT
-          childOf span(0)
-          errored false
-          tags {
-            "$Tags.COMPONENT.key" "http-url-connection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$server.address/"
-            "$Tags.HTTP_METHOD.key" "POST"
-            "$Tags.HTTP_STATUS.key" STATUS
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" server.address.port
+            "$Tags.COMPONENT" "http-url-connection"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_URL" "$url"
+            "$Tags.HTTP_METHOD" "POST"
+            "$Tags.HTTP_STATUS" STATUS
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }

@@ -4,7 +4,7 @@ package datadog.trace.instrumentation.vertx;
 import datadog.trace.agent.decorator.HttpServerDecorator;
 import datadog.trace.api.Config;
 import datadog.trace.api.DDSpanTypes;
-import io.opentracing.Span;
+import datadog.trace.instrumentation.api.AgentSpan;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import java.net.URI;
@@ -64,7 +64,7 @@ public class RoutingContextDecorator
   }
 
   @Override
-  public Span afterStart(final Span span) {
+  public AgentSpan afterStart(final AgentSpan span) {
     assert span != null;
     return super.afterStart(span, this.shouldSetKind());
   }

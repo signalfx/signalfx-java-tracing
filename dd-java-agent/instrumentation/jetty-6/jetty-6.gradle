@@ -22,14 +22,6 @@ dependencies {
   compileOnly group: 'javax.servlet', name: 'servlet-api', version: '2.5'
   compileOnly group: 'org.mortbay.jetty', name: 'jetty', version: '6.0.0'
 
-  compile project(':dd-trace-ot')
-  compile project(':dd-java-agent:agent-tooling')
-
-  compile deps.bytebuddy
-  compile deps.opentracing
-  annotationProcessor deps.autoservice
-  implementation deps.autoservice
-
   testCompile(project(':dd-java-agent:testing')) {
     exclude group: 'org.mortbay.jetty', module: 'jetty'
   }

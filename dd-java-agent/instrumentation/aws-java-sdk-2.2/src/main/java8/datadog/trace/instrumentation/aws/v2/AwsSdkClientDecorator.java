@@ -2,9 +2,10 @@ package datadog.trace.instrumentation.aws.v2;
 
 import datadog.trace.agent.decorator.HttpClientDecorator;
 import datadog.trace.api.DDTags;
-import io.opentracing.Span;
+import datadog.trace.instrumentation.api.AgentSpan;
 import java.net.URI;
 import software.amazon.awssdk.awscore.AwsResponse;
+import software.amazon.awssdk.core.SdkRequest;
 import software.amazon.awssdk.core.SdkResponse;
 import software.amazon.awssdk.core.interceptor.ExecutionAttributes;
 import software.amazon.awssdk.core.interceptor.SdkExecutionAttribute;
@@ -16,7 +17,30 @@ public class AwsSdkClientDecorator extends HttpClientDecorator<SdkHttpRequest, S
 
   static final String COMPONENT_NAME = "java-aws-sdk";
 
-  public Span onAttributes(final Span span, final ExecutionAttributes attributes) {
+  public AgentSpan onSdkRequest(final AgentSpan span, final SdkRequest request) {
+    // S3
+    request
+        .getValueForField("Bucket", String.class)
+        .ifPresent(name -> span.setTag("aws.bucket.name", name));
+    // DynamoDB
+    request
+        .getValueForField("TableName", String.class)
+        .ifPresent(name -> span.setTag("aws.table.name", name));
+    // SQS
+    request
+        .getValueForField("QueueName", String.class)
+        .ifPresent(name -> span.setTag("aws.queue.name", name));
+    request
+        .getValueForField("QueueUrl", String.class)
+        .ifPresent(name -> span.setTag("aws.queue.url", name));
+    // Kinesis
+    request
+        .getValueForField("StreamName", String.class)
+        .ifPresent(name -> span.setTag("aws.stream.name", name));
+    return span;
+  }
+
+  public AgentSpan onAttributes(final AgentSpan span, final ExecutionAttributes attributes) {
 
     final String awsServiceName = attributes.getAttribute(SdkExecutionAttribute.SERVICE_NAME);
     final String awsOperation = attributes.getAttribute(SdkExecutionAttribute.OPERATION_NAME);
@@ -32,7 +56,7 @@ public class AwsSdkClientDecorator extends HttpClientDecorator<SdkHttpRequest, S
   }
 
   // Not overriding the super.  Should call both with each type of response.
-  public Span onResponse(final Span span, final SdkResponse response) {
+  public AgentSpan onResponse(final AgentSpan span, final SdkResponse response) {
     if (response instanceof AwsResponse) {
       span.setTag("aws.requestId", ((AwsResponse) response).responseMetadata().requestId());
     }

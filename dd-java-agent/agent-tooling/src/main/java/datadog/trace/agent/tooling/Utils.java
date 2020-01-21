@@ -15,7 +15,7 @@ public class Utils {
   private static Method findLoadedClassMethod = null;
 
   private static final BootstrapClassLoaderProxy unitTestBootstrapProxy =
-      new BootstrapClassLoaderProxy(new URL[0], null);
+      new BootstrapClassLoaderProxy(new URL[0]);
 
   static {
     try {
@@ -82,6 +82,18 @@ public class Utils {
   public static MethodDescription getMethodDefinition(
       final TypeDefinition type, final String methodName) {
     return type.getDeclaredMethods().filter(named(methodName)).getOnly();
+  }
+
+  /** @return The current stack trace with multiple entries on new lines. */
+  public static String getStackTraceAsString() {
+    StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+    StringBuilder stringBuilder = new StringBuilder();
+    String lineSeparator = System.getProperty("line.separator");
+    for (StackTraceElement element : stackTrace) {
+      stringBuilder.append(element.toString());
+      stringBuilder.append(lineSeparator);
+    }
+    return stringBuilder.toString();
   }
 
   private Utils() {}

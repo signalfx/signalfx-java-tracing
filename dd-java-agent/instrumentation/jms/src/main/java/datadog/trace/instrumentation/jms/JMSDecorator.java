@@ -1,11 +1,11 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jms;
 
 import datadog.trace.agent.decorator.ClientDecorator;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.tag.Tags;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.Tags;
 import java.lang.reflect.Method;
 import javax.jms.Destination;
 import javax.jms.Message;
@@ -59,30 +59,28 @@ public abstract class JMSDecorator extends ClientDecorator {
   @Override
   protected abstract String spanKind();
 
-  public void onConsume(final Span span, final Message message) {
-    String topic = toResourceName(message, null);
+  public void onConsume(final AgentSpan span, final Message message) {
+    final String topic = toResourceName(message, null);
     span.setTag(DDTags.RESOURCE_NAME, "Consumed from " + topic);
-    Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
+    span.setTag(Tags.MESSAGE_BUS_DESTINATION, topic);
   }
 
-  public void onReceive(final Span span, final Method method) {
+  public void onReceive(final AgentSpan span, final Method method) {
     span.setTag(DDTags.RESOURCE_NAME, "JMS " + method.getName());
   }
 
-  public void onReceive(final Scope scope, final Message message) {
-    final Span span = scope.span();
-    String topic = toResourceName(message, null);
-
+  public void onReceive(final AgentSpan span, final Message message) {
+    final String topic = toResourceName(message, null);
     span.setTag(DDTags.RESOURCE_NAME, "Received from " + topic);
-    Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
+    span.setTag(Tags.MESSAGE_BUS_DESTINATION, topic);
   }
 
-  public void onProduce(final Scope scope, final Message message, final Destination destination) {
-    final Span span = scope.span();
+  public void onProduce(
+      final AgentSpan span, final Message message, final Destination destination) {
     String topic = toResourceName(message, destination);
 
     span.setTag(DDTags.RESOURCE_NAME, "Produced for " + topic);
-    Tags.MESSAGE_BUS_DESTINATION.set(span, topic);
+    span.setTag(Tags.MESSAGE_BUS_DESTINATION, topic);
   }
 
   private static final String TIBCO_TMP_PREFIX = "$TMP$";

@@ -4,11 +4,11 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import datadog.opentracing.SpanFactory
 import datadog.trace.common.writer.ZipkinV2Api
-import spock.lang.Specification
+import datadog.trace.util.test.DDSpecification
 
 import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
 
-class ZipkinV2ApiTest extends Specification {
+class ZipkinV2ApiTest extends DDSpecification {
   static mapper = new ObjectMapper()
 
   def "sending an empty list of traces returns no errors"() {
@@ -25,14 +25,18 @@ class ZipkinV2ApiTest extends Specification {
 
     expect:
     client.traceEndpoint == "http://localhost:${agent.address.port}/v1/trace"
-    client.sendTraces([])
+    def response = client.sendTraces([])
+    response.success()
+    response.status() == 200
+
 
     cleanup:
     agent.close()
   }
 
-  def "non-200 response results in false returned"() {
+  def "non-200 response"() {
     setup:
+    println "starting ZipkinV2ApiTest.non-200 response"
     def agent = httpServer {
       handlers {
         post("v1/trace") {
@@ -44,7 +48,8 @@ class ZipkinV2ApiTest extends Specification {
 
     expect:
     client.traceEndpoint == "http://localhost:${agent.address.port}/v1/trace"
-    !client.sendTraces([])
+    def response = client.sendTraces([])
+    !response.success()
 
     cleanup:
     agent.close()
@@ -86,7 +91,7 @@ class ZipkinV2ApiTest extends Specification {
       "annotations": [["timestamp" : 1000, "value": "{\"event\":\"some event\"}"]],
       "name"     : "fakeOperation",
       "kind": null,
-      "localEndpoint": ["serviceName": "my-service"],
+      "localEndpoint": ["serviceName": "fakeService"],
       "timestamp"    : 1,
     ])]
     [[SpanFactory.newSpanOf(100L).setTag("resource.name", "my-resource")]] | [new TreeMap<>([

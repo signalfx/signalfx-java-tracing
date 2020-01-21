@@ -2,8 +2,8 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.instrumentation.api.Tags
 import io.netty.channel.AbstractChannel
-import io.opentracing.tag.Tags
 import io.vertx.core.Vertx
 import io.vertx.core.VertxOptions
 import io.vertx.core.http.HttpClient
@@ -78,16 +78,16 @@ class VertxHttpClientTest extends AgentTestRunner {
           errored expectedError
           tags {
             defaultTags()
-            "$Tags.HTTP_STATUS.key" expectedStatus
-            "$Tags.HTTP_URL.key" "${server.address}/$route"
-            "$Tags.PEER_HOSTNAME.key" server.address.host
-            "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
-            "$Tags.PEER_PORT.key" server.address.port
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.COMPONENT.key" "netty-client"
+            "$Tags.HTTP_STATUS" expectedStatus
+            "$Tags.HTTP_URL" "${server.address}/$route"
+            "$Tags.PEER_HOSTNAME" server.address.host
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" server.address.port
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "netty-client"
             if (expectedError) {
-              "$Tags.ERROR.key" true
+              "$Tags.ERROR" true
             }
           }
         }
@@ -141,7 +141,7 @@ class VertxHttpClientTest extends AgentTestRunner {
           childOf span(0)
           errored true
           tags {
-            "$Tags.COMPONENT.key" "netty"
+            "$Tags.COMPONENT" "netty"
             errorTags AbstractChannel.AnnotatedConnectException, "Connection refused: localhost/127.0.0.1:$invalidPort"
             defaultTags()
           }

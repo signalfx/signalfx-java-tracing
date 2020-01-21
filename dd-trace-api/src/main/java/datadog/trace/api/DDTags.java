@@ -9,6 +9,9 @@ public class DDTags {
   public static final String THREAD_ID = "thread.id";
   public static final String DB_STATEMENT = "db.statement";
 
+  public static final String HTTP_QUERY = "http.query.string";
+  public static final String HTTP_FRAGMENT = "http.fragment.string";
+
   public static final String USER_NAME = "user.principal";
   public static final String ENTITY_NAME = "entity.name";
 
@@ -23,4 +26,11 @@ public class DDTags {
   public static final String MANUAL_KEEP = "manual.keep";
   /** Manually force tracer to be drop the trace */
   public static final String MANUAL_DROP = "manual.drop";
+
+  // Used by ZipkinV2Api to prevent OT/instrumentation api dep
+  public static final String SPAN_KIND = "span.kind";
+  public static final String SPAN_KIND_SERVER = "server";
+  public static final String SPAN_KIND_CLIENT = "client";
+  public static final String SPAN_KIND_PRODUCER = "producer";
+  public static final String SPAN_KIND_CONSUMER = "consumer";
 }

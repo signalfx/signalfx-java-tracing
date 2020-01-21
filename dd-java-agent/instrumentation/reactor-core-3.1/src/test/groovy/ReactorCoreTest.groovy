@@ -1,9 +1,8 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Trace
+import datadog.trace.instrumentation.api.AgentSpan
+import datadog.trace.instrumentation.api.Tags
 import datadog.trace.instrumentation.reactor.core.ReactorCoreAdviceUtils
-import io.opentracing.Scope
-import io.opentracing.tag.Tags
-import io.opentracing.util.GlobalTracer
 import org.reactivestreams.Subscriber
 import org.reactivestreams.Subscription
 import reactor.core.publisher.Flux
@@ -11,6 +10,8 @@ import reactor.core.publisher.Mono
 import spock.lang.Shared
 
 import java.time.Duration
+
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan
 
 class ReactorCoreTest extends AgentTestRunner {
 
@@ -36,7 +37,7 @@ class ReactorCoreTest extends AgentTestRunner {
           operationName "trace-parent"
           parent()
           tags {
-            "$Tags.COMPONENT.key" "trace"
+            "$Tags.COMPONENT" "trace"
             defaultTags()
           }
         }
@@ -46,7 +47,7 @@ class ReactorCoreTest extends AgentTestRunner {
             operationName "addOne"
             childOf(span(publisherParentSpanIndex))
             tags {
-              "$Tags.COMPONENT.key" "trace"
+              "$Tags.COMPONENT" "trace"
               defaultTags()
             }
           }
@@ -92,7 +93,7 @@ class ReactorCoreTest extends AgentTestRunner {
           parent()
           errored true
           tags {
-            "$Tags.COMPONENT.key" "trace"
+            "$Tags.COMPONENT" "trace"
             errorTags(RuntimeException, EXCEPTION_MESSAGE)
             defaultTags()
           }
@@ -133,7 +134,7 @@ class ReactorCoreTest extends AgentTestRunner {
           parent()
           errored true
           tags {
-            "$Tags.COMPONENT.key" "trace"
+            "$Tags.COMPONENT" "trace"
             errorTags(RuntimeException, EXCEPTION_MESSAGE)
             defaultTags()
           }
@@ -144,7 +145,7 @@ class ReactorCoreTest extends AgentTestRunner {
             operationName "addOne"
             childOf(span(publisherParentSpanIndex))
             tags {
-              "$Tags.COMPONENT.key" "trace"
+              "$Tags.COMPONENT" "trace"
               defaultTags()
             }
           }
@@ -180,7 +181,7 @@ class ReactorCoreTest extends AgentTestRunner {
           operationName "trace-parent"
           parent()
           tags {
-            "$Tags.COMPONENT.key" "trace"
+            "$Tags.COMPONENT" "trace"
             defaultTags()
           }
         }
@@ -201,15 +202,15 @@ class ReactorCoreTest extends AgentTestRunner {
     "basic flux" | Flux.fromIterable([5, 6])
   }
 
-  @Trace(operationName = "trace-parent")
+  @Trace(operationName = "trace-parent", resourceName = "trace-parent")
   def runUnderTrace(def publisher) {
     // This is important sequence of events:
     // We have a 'trace-parent' that covers whole span and then we have publisher-parent that overs only
     // operation to create publisher (and set its context).
     // The expectation is that then publisher is executed under 'publisher-parent', not under 'trace-parent'
-    final Scope scope = GlobalTracer.get().buildSpan("publisher-parent").startActive(true)
-    publisher = ReactorCoreAdviceUtils.setPublisherSpan(publisher, scope.span())
-    scope.close()
+    final AgentSpan span = startSpan("publisher-parent")
+    publisher = ReactorCoreAdviceUtils.setPublisherSpan(publisher, span)
+    span.finish()
 
     // Read all data from publisher
     if (publisher instanceof Mono) {
@@ -221,26 +222,29 @@ class ReactorCoreTest extends AgentTestRunner {
     throw new RuntimeException("Unknown publisher: " + publisher)
   }
 
-  @Trace(operationName = "trace-parent")
+  @Trace(operationName = "trace-parent", resourceName = "trace-parent")
   def cancelUnderTrace(def publisher) {
-    final Scope scope = GlobalTracer.get().buildSpan("publisher-parent").startActive(true)
-    publisher = ReactorCoreAdviceUtils.setPublisherSpan(publisher, scope.span())
-    scope.close()
+    final AgentSpan span = startSpan("publisher-parent")
+    publisher = ReactorCoreAdviceUtils.setPublisherSpan(publisher, span)
+    span.finish()
 
     publisher.subscribe(new Subscriber<Integer>() {
       void onSubscribe(Subscription subscription) {
         subscription.cancel()
       }
 
-      void onNext(Integer t) {}
+      void onNext(Integer t) {
+      }
 
-      void onError(Throwable error) {}
+      void onError(Throwable error) {
+      }
 
-      void onComplete() {}
+      void onComplete() {
+      }
     })
   }
 
-  @Trace(operationName = "addOne")
+  @Trace(operationName = "addOne", resourceName = "addOne")
   def static addOneFunc(int i) {
     return i + 1
   }

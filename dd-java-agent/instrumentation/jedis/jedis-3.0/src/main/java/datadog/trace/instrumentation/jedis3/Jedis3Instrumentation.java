@@ -1,6 +1,8 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.jedis3;
 
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.jedis3.Jedis3ClientDecorator.DECORATE;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
@@ -10,8 +12,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import io.opentracing.Scope;
-import io.opentracing.util.GlobalTracer;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -60,25 +62,29 @@ public final class Jedis3Instrumentation extends Instrumenter.Default {
   public static class JedisAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static Scope startSpan(
+    public static AgentScope onEnter(
         @Advice.Argument(1) final ProtocolCommand command,
         @Advice.Argument(2) final byte[][] args) {
       String commandName = "query";
       if (command instanceof Command) {
         commandName = ((Command) command).name();
       }
-      final Scope scope = GlobalTracer.get().buildSpan("redis." + commandName).startActive(true);
-      DECORATE.afterStart(scope.span());
-      DECORATE.onStatement(scope.span(), commandName, args);
+      final AgentSpan span = startSpan("redis." + commandName);
+      DECORATE.afterStart(span);
+      DECORATE.onStatement(span, commandName, args);
+      final AgentScope scope = activateSpan(span, true);
       return scope;
     }
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void stopSpan(
-        @Advice.Enter final Scope scope, @Advice.Thrown final Throwable throwable) {
-      DECORATE.onError(scope.span(), throwable);
-      DECORATE.beforeFinish(scope.span());
-      scope.close();
+        @Advice.Enter final AgentScope scope, @Advice.Thrown final Throwable throwable) {
+      if (scope != null) {
+        final AgentSpan span = scope.span();
+        DECORATE.onError(span, throwable);
+        DECORATE.beforeFinish(span);
+        scope.close();
+      }
     }
   }
 }

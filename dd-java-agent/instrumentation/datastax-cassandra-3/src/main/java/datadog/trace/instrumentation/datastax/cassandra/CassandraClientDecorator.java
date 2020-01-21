@@ -5,11 +5,8 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import datadog.trace.agent.decorator.DatabaseClientDecorator;
 import datadog.trace.api.DDSpanTypes;
-import io.opentracing.Span;
-import io.opentracing.tag.Tags;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.nio.ByteBuffer;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.Tags;
 
 public class CassandraClientDecorator extends DatabaseClientDecorator<Session> {
   public static final CassandraClientDecorator DECORATE = new CassandraClientDecorator();
@@ -49,19 +46,11 @@ public class CassandraClientDecorator extends DatabaseClientDecorator<Session> {
     return session.getLoggedKeyspace();
   }
 
-  public Span onResponse(final Span span, final ResultSet result) {
+  public AgentSpan onResponse(final AgentSpan span, final ResultSet result) {
     if (result != null) {
       final Host host = result.getExecutionInfo().getQueriedHost();
-      Tags.PEER_PORT.set(span, host.getSocketAddress().getPort());
-      Tags.PEER_HOSTNAME.set(span, host.getAddress().getHostName());
-
-      final InetAddress inetAddress = host.getSocketAddress().getAddress();
-      if (inetAddress instanceof Inet4Address) {
-        final byte[] address = inetAddress.getAddress();
-        Tags.PEER_HOST_IPV4.set(span, ByteBuffer.wrap(address).getInt());
-      } else {
-        Tags.PEER_HOST_IPV6.set(span, inetAddress.getHostAddress());
-      }
+      span.setTag(Tags.PEER_PORT, host.getSocketAddress().getPort());
+      onPeerConnection(span, host.getSocketAddress().getAddress());
     }
     return span;
   }

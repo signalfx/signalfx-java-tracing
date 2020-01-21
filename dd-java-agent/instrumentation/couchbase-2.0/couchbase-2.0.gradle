@@ -15,18 +15,22 @@ testSets {
 }
 
 muzzle {
+  // Version 2.7.5 and 2.7.8 were not released properly and muzzle cannot test against it causing failure.
+  // So we have to skip them resulting in this verbose setup.
   pass {
     group = 'com.couchbase.client'
     module = 'java-client'
-    // Looks like 2.7.5 was just released and didn't sync up with mirrors properly causing build failures
-    // TODO: remove this on a few days.
     versions = "[2.0.0,2.7.5)"
-//    assertInverse = true
   }
-  fail {
+  pass {
     group = 'com.couchbase.client'
     module = 'java-client'
-    versions = "(,2.0.0)"
+    versions = "[2.7.6,2.7.8)"
+  }
+  pass {
+    group = 'com.couchbase.client'
+    module = 'java-client'
+    versions = "[2.7.9,3.0.0)"
   }
   fail {
     group = 'com.couchbase.client'
@@ -35,17 +39,19 @@ muzzle {
   }
 }
 
+configurations {
+  testArtifacts
+}
+
+// Create test artifacts so couchbase-2.6 can reuse tests
+artifacts {
+  testArtifacts testJar
+}
+
 dependencies {
+  compile project(':dd-java-agent:instrumentation:rxjava-1')
+
   compileOnly group: 'com.couchbase.client', name: 'java-client', version: '2.0.0'
-
-  compile project(':dd-java-agent:agent-tooling')
-
-  compile deps.bytebuddy
-  compile deps.opentracing
-  annotationProcessor deps.autoservice
-  implementation deps.autoservice
-
-  testCompile project(':dd-java-agent:testing')
 
   testCompile group: 'com.couchbase.mock', name: 'CouchbaseMock', version: '1.5.19'
 
@@ -54,8 +60,6 @@ dependencies {
   testCompile group: 'com.couchbase.client', name: 'java-client', version: '2.5.0'
 
   latestDepTestCompile group: 'org.springframework.data', name: 'spring-data-couchbase', version: '3.+'
-  // Looks like 2.7.5 was just released and didn't sync up with mirrors properly causing build failures
-  // TODO: remove this on a few days.
-  latestDepTestCompile group: 'com.couchbase.client', name: 'java-client', version: '2.7.4'
-  latestDepTestCompile group: 'com.couchbase.client', name: 'encryption', version: '1.0.0'
+  latestDepTestCompile group: 'com.couchbase.client', name: 'java-client', version: '2.+'
+  latestDepTestCompile group: 'com.couchbase.client', name: 'encryption', version: '+'
 }

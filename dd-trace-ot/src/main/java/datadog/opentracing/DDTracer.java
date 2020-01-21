@@ -15,6 +15,7 @@ import datadog.trace.api.sampling.PrioritySampling;
 import datadog.trace.common.sampling.AllSampler;
 import datadog.trace.common.sampling.RateByServiceSampler;
 import datadog.trace.common.sampling.Sampler;
+import datadog.trace.common.writer.Api;
 import datadog.trace.common.writer.DDAgentWriter;
 import datadog.trace.common.writer.DDApi;
 import datadog.trace.common.writer.Writer;
@@ -25,7 +26,9 @@ import io.opentracing.ScopeManager;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.Format;
-import io.opentracing.propagation.TextMap;
+import io.opentracing.propagation.TextMapExtract;
+import io.opentracing.propagation.TextMapInject;
+import io.opentracing.tag.Tag;
 import java.io.Closeable;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -242,8 +245,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
     if (this.writer instanceof DDAgentWriter
         && ((DDAgentWriter) this.writer).getApi() instanceof DDApi) {
       final DDApi api = (DDApi) ((DDAgentWriter) this.writer).getApi();
-      if (sampler instanceof DDApi.ResponseListener) {
-        api.addResponseListener((DDApi.ResponseListener) this.sampler);
+      if (sampler instanceof Api.ResponseListener) {
+        api.addResponseListener((Api.ResponseListener) this.sampler);
       }
     }
 
@@ -327,8 +330,12 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
 
   @Override
   public Span activeSpan() {
-    final Scope active = scopeManager.active();
-    return active == null ? null : active.span();
+    return scopeManager.activeSpan();
+  }
+
+  @Override
+  public Scope activateSpan(final Span span) {
+    return scopeManager.activate(span);
   }
 
   @Override
@@ -338,8 +345,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
 
   @Override
   public <T> void inject(final SpanContext spanContext, final Format<T> format, final T carrier) {
-    if (carrier instanceof TextMap) {
-      injector.inject((DDSpanContext) spanContext, (TextMap) carrier);
+    if (carrier instanceof TextMapInject) {
+      injector.inject((DDSpanContext) spanContext, (TextMapInject) carrier);
     } else {
       log.debug("Unsupported format for propagation - {}", format.getClass().getName());
     }
@@ -347,8 +354,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
 
   @Override
   public <T> SpanContext extract(final Format<T> format, final T carrier) {
-    if (carrier instanceof TextMap) {
-      return extractor.extract((TextMap) carrier);
+    if (carrier instanceof TextMapExtract) {
+      return extractor.extract((TextMapExtract) carrier);
     } else {
       log.debug("Unsupported format for propagation - {}", format.getClass().getName());
       return null;
@@ -444,7 +451,7 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
 
   @Deprecated
   private static Map<String, String> customRuntimeTags(
-      final String runtimeId, Map<String, String> applicationRootSpanTags) {
+      final String runtimeId, final Map<String, String> applicationRootSpanTags) {
     final Map<String, String> runtimeTags = new HashMap<>(applicationRootSpanTags);
     runtimeTags.put(Config.RUNTIME_ID_TAG, runtimeId);
     return Collections.unmodifiableMap(runtimeTags);
@@ -522,6 +529,11 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
     @Override
     public DDSpanBuilder withTag(final String tag, final boolean bool) {
       return withTag(tag, (Object) bool);
+    }
+
+    @Override
+    public <T> SpanBuilder withTag(final Tag<T> tag, final T value) {
+      return withTag(tag.getKey(), value);
     }
 
     @Override
@@ -623,9 +635,9 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
       SpanContext parentContext = parent;
       if (parentContext == null && !ignoreScope) {
         // use the Scope as parent unless overridden or ignored.
-        final Scope scope = scopeManager.active();
-        if (scope != null) {
-          parentContext = scope.span().context();
+        final Span activeSpan = scopeManager.activeSpan();
+        if (activeSpan != null) {
+          parentContext = activeSpan.context();
         }
       }
 

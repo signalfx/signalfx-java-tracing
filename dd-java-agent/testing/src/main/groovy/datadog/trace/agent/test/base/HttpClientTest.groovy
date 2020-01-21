@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.test.base
 
 import datadog.opentracing.DDSpan
@@ -6,17 +7,24 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
-import io.opentracing.tag.Tags
+import datadog.trace.api.DDTags
+import datadog.trace.instrumentation.api.Tags
 import spock.lang.AutoCleanup
 import spock.lang.Shared
+import spock.lang.Unroll
 
 import java.util.concurrent.ExecutionException
 
 import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
+import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
+import static datadog.trace.agent.test.utils.PortUtils.UNUSABLE_PORT
+import static datadog.trace.agent.test.utils.TraceUtils.basicSpan
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
-import static datadog.trace.agent.test.utils.TraceUtils.withConfigOverride
+import static org.junit.Assume.assumeTrue
 
-abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRunner {
+@Unroll
+abstract class HttpClientTest<DECORATOR extends HttpClientDecorator> extends AgentTestRunner {
+  protected static final BODY_METHODS = ["POST", "PUT"]
 
   @AutoCleanup
   @Shared
@@ -48,7 +56,7 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
   }
 
   @Shared
-  T decorator = decorator()
+  DECORATOR clientDecorator = decorator()
 
   /**
    * Make the request and return the status code response
@@ -57,28 +65,38 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
    */
   abstract int doRequest(String method, URI uri, Map<String, String> headers = [:], Closure callback = null)
 
-  abstract T decorator()
+  abstract DECORATOR decorator()
 
   Integer statusOnRedirectError() {
     return null
   }
 
-  def "basic #method request"() {
+  def "basic #method request #url - tagQueryString=#tagQueryString"() {
     when:
-    def status = doRequest(method, server.address.resolve(url))
+    def status = withConfigOverride(Config.HTTP_CLIENT_TAG_QUERY_STRING, "$tagQueryString") {
+      doRequest(method, url)
+    }
 
     then:
     status == 200
     assertTraces(2) {
-      server.distributedRequestTrace(it, 0, trace(1).get(0))
-      trace(1, 1) {
-        clientSpan(it, 0, null, false)
+      server.distributedRequestTrace(it, 0, trace(1).last())
+      trace(1, size(1)) {
+        clientSpan(it, 0, null, method, false, tagQueryString, url)
       }
     }
 
     where:
+    path                                | tagQueryString
+    "/success"                          | false
+    "/success"                          | true
+    "/success?with=params"              | false
+    "/success?with=params"              | true
+    "/success#with+fragment"            | true
+    "/success?with=params#and=fragment" | true
+
     method = "GET"
-    url << ["/success", "/success?with=params"]
+    url = server.address.resolve(path)
   }
 
   def "basic #method request with parent"() {
@@ -90,16 +108,18 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
     then:
     status == 200
     assertTraces(2) {
-      server.distributedRequestTrace(it, 0, trace(1).get(1))
-      trace(1, 2) {
-        parentSpan(it, 0)
-        clientSpan(it, 1, span(0), false)
+      server.distributedRequestTrace(it, 0, trace(1).last())
+      trace(1, size(2)) {
+        basicSpan(it, 0, "parent")
+        clientSpan(it, 1, span(0), method, false)
       }
     }
 
     where:
-    method = "GET"
+    method << BODY_METHODS
   }
+
+  //FIXME: add tests for POST with large/chunked data
 
   def "basic #method request with split-by-domain"() {
     when:
@@ -110,14 +130,14 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
     then:
     status == 200
     assertTraces(2) {
-      server.distributedRequestTrace(it, 0, trace(1).get(0))
-      trace(1, 1) {
-        clientSpan(it, 0, null, true)
+      server.distributedRequestTrace(it, 0, trace(1).last())
+      trace(1, size(1)) {
+        clientSpan(it, 0, null, method, true)
       }
     }
 
     where:
-    method = "GET"
+    method = "HEAD"
   }
 
   def "trace request without propagation"() {
@@ -132,9 +152,9 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
     status == 200
     // only one trace (client).
     assertTraces(1) {
-      trace(0, 2) {
-        parentSpan(it, 0)
-        clientSpan(it, 1, span(0), renameService)
+      trace(0, size(2)) {
+        basicSpan(it, 0, "parent")
+        clientSpan(it, 1, span(0), method, renameService)
       }
     }
 
@@ -155,13 +175,10 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
     status == 200
     // only one trace (client).
     assertTraces(1) {
-      trace(0, 3) {
-        parentSpan(it, 0)
-        span(1) {
-          operationName "child"
-          childOf span(0)
-        }
-        clientSpan(it, 2, span(0), false)
+      trace(0, size(3)) {
+        basicSpan(it, 0, "parent")
+        basicSpan(it, 1, "child", span(0))
+        clientSpan(it, 2, span(0), method, false)
       }
     }
 
@@ -172,7 +189,7 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
   def "trace request with callback and no parent"() {
     when:
     def status = doRequest(method, server.address.resolve("/success"), ["is-dd-server": "false"]) {
-      runUnderTrace("child") {
+      runUnderTrace("callback") {
         // Ensure consistent ordering of traces for assertion.
         TEST_WRITER.waitForTraces(1)
       }
@@ -182,14 +199,11 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
     status == 200
     // only one trace (client).
     assertTraces(2) {
-      trace(0, 1) {
-        clientSpan(it, 0, null, false)
+      trace(0, size(1)) {
+        clientSpan(it, 0, null, method, false)
       }
       trace(1, 1) {
-        span(0) {
-          operationName "child"
-          parent()
-        }
+        basicSpan(it, 0, "callback")
       }
     }
 
@@ -198,7 +212,8 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
   }
 
   def "basic #method request with 1 redirect"() {
-    setup:
+    given:
+    assumeTrue(testRedirects())
     def uri = server.address.resolve("/redirect")
 
     when:
@@ -207,10 +222,10 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
     then:
     status == 200
     assertTraces(3) {
-      server.distributedRequestTrace(it, 0, trace(2).get(0))
-      server.distributedRequestTrace(it, 1, trace(2).get(0))
-      trace(2, 1) {
-        clientSpan(it, 0, null, false, uri)
+      server.distributedRequestTrace(it, 0, trace(2).last())
+      server.distributedRequestTrace(it, 1, trace(2).last())
+      trace(2, size(1)) {
+        clientSpan(it, 0, null, method, false, false, uri)
       }
     }
 
@@ -219,7 +234,8 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
   }
 
   def "basic #method request with 2 redirects"() {
-    setup:
+    given:
+    assumeTrue(testRedirects())
     def uri = server.address.resolve("/another-redirect")
 
     when:
@@ -228,11 +244,11 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
     then:
     status == 200
     assertTraces(4) {
-      server.distributedRequestTrace(it, 0, trace(3).get(0))
-      server.distributedRequestTrace(it, 1, trace(3).get(0))
-      server.distributedRequestTrace(it, 2, trace(3).get(0))
-      trace(3, 1) {
-        clientSpan(it, 0, null, false, uri)
+      server.distributedRequestTrace(it, 0, trace(3).last())
+      server.distributedRequestTrace(it, 1, trace(3).last())
+      server.distributedRequestTrace(it, 2, trace(3).last())
+      trace(3, size(1)) {
+        clientSpan(it, 0, null, method, false, false, uri)
       }
     }
 
@@ -241,7 +257,8 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
   }
 
   def "basic #method request with circular redirects"() {
-    setup:
+    given:
+    assumeTrue(testRedirects())
     def uri = server.address.resolve("/circular-redirect")
 
     when:
@@ -253,10 +270,10 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
 
     and:
     assertTraces(3) {
-      server.distributedRequestTrace(it, 0, trace(2).get(0))
-      server.distributedRequestTrace(it, 1, trace(2).get(0))
-      trace(2, 1) {
-        clientSpan(it, 0, null, false, uri, statusOnRedirectError(), thrownException)
+      server.distributedRequestTrace(it, 0, trace(2).last())
+      server.distributedRequestTrace(it, 1, trace(2).last())
+      trace(2, size(1)) {
+        clientSpan(it, 0, null, method, false, false, uri, statusOnRedirectError(), thrownException)
       }
     }
 
@@ -264,24 +281,53 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
     method = "GET"
   }
 
-  void parentSpan(TraceAssert trace, int index, Throwable exception = null) {
-    trace.span(index) {
-      parent()
-      serviceName "unnamed-java-app"
-      operationName "parent"
-      resourceName "parent"
-      errored exception != null
-      tags {
-        defaultTags()
-        if (exception) {
-          errorTags(exception.class)
-        }
+  def "connection error (unopened port)"() {
+    given:
+    assumeTrue(testConnectionFailure())
+    def uri = new URI("http://localhost:$UNUSABLE_PORT/")
+
+    when:
+    runUnderTrace("parent") {
+      doRequest(method, uri)
+    }
+
+    then:
+    def ex = thrown(Exception)
+    def thrownException = ex instanceof ExecutionException ? ex.cause : ex
+
+    and:
+    assertTraces(1) {
+      trace(0, 2) {
+        basicSpan(it, 0, "parent", null, thrownException)
+        clientSpan(it, 1, span(0), method, false, false, uri, null, thrownException)
       }
     }
+
+    where:
+    method = "GET"
+  }
+
+  def "Traced requests are propagated via B3"() {
+    given:
+    def url = server.address.resolve("/success")
+    when:
+    def status = doRequest("GET", url)
+
+    then:
+    status == 200
+    assertTraces(2) {
+      server.distributedRequestTrace(it, 0, trace(1).last())
+      trace(1, size(1)) {
+        clientSpan(it, 0, null, "GET", false, false, url)
+      }
+    }
+
+    assert server.lastRequest.headers.get("x-b3-traceid") == new BigInteger(TEST_WRITER[1].last().traceId).toString(16).toLowerCase()
+    assert server.lastRequest.headers.get("x-b3-spanid") == new BigInteger(TEST_WRITER[1].last().spanId).toString(16).toLowerCase()
   }
 
   // parent span must be cast otherwise it breaks debugging classloading (junit loads it early)
-  void clientSpan(TraceAssert trace, int index, Object parentSpan, boolean renameService, URI uri = server.address.resolve("/success"), Integer status = 200, Throwable exception = null) {
+  void clientSpan(TraceAssert trace, int index, Object parentSpan, String method = "GET", boolean renameService = false, boolean tagQueryString = false, URI uri = server.address.resolve("/success"), Integer status = 200, Throwable exception = null) {
     trace.span(index) {
       if (parentSpan == null) {
         parent()
@@ -289,7 +335,7 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
         childOf((DDSpan) parentSpan)
       }
       serviceName renameService ? "localhost" : "unnamed-java-app"
-      operationName "http.request"
+      operationName expectedOperationName()
       resourceName "$uri.path"
       spanType DDSpanTypes.HTTP_CLIENT
       errored exception != null
@@ -298,16 +344,37 @@ abstract class HttpClientTest<T extends HttpClientDecorator> extends AgentTestRu
         if (exception) {
           errorTags(exception.class, exception.message)
         }
-        "$Tags.COMPONENT.key" decorator.component()
+        "$Tags.COMPONENT" clientDecorator.component()
         if (status) {
-          "$Tags.HTTP_STATUS.key" status
+          "$Tags.HTTP_STATUS" status
         }
-        "$Tags.HTTP_URL.key" "$uri"
-        "$Tags.PEER_HOSTNAME.key" "localhost"
-        "$Tags.PEER_PORT.key" server.address.port
-        "$Tags.HTTP_METHOD.key" "GET"
-        "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+        "$Tags.HTTP_URL" "${uri.resolve(uri.path)}"
+        if (tagQueryString) {
+          "$DDTags.HTTP_QUERY" uri.query
+          "$DDTags.HTTP_FRAGMENT" { it == null || it == uri.fragment } // Optional
+        }
+        "$Tags.PEER_HOSTNAME" "localhost"
+        "$Tags.PEER_PORT" uri.port
+        "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
+        "$Tags.HTTP_METHOD" method
+        "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
       }
     }
+  }
+
+  String expectedOperationName() {
+    return "http.request"
+  }
+
+  int size(int size) {
+    size
+  }
+
+  boolean testRedirects() {
+    true
+  }
+
+  boolean testConnectionFailure() {
+    true
   }
 }

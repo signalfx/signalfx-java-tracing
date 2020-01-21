@@ -1,67 +1,66 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jersey;
 
-import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.activeSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.instrumentation.jersey.JerseyRequestExtractAdapter.GETTER;
 
-import datadog.trace.context.TraceScope;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.SpanContext;
-import io.opentracing.Tracer;
-import io.opentracing.propagation.Format;
-import io.opentracing.tag.Tags;
-import io.opentracing.util.GlobalTracer;
-import java.util.Collections;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.AgentSpan.Context;
+import datadog.trace.instrumentation.api.Tags;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.glassfish.jersey.server.ContainerResponse;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;
 
 public class TracingRequestEventListener implements RequestEventListener {
-  private Scope scope;
+  private AgentScope scope;
 
   public TracingRequestEventListener(ContainerRequest request) {
-    Tracer tracer = GlobalTracer.get();
+    AgentSpan parentSpan = activeSpan();
 
-    Scope parentScope = tracer.scopeManager().active();
-    SpanContext parentContext;
-    if (parentScope != null) {
+    boolean setKind = false;
+    Context parentContext;
+    if (parentSpan != null) {
       // Instrumented servers will have established context
-      parentContext = parentScope.span().context();
+      parentContext = parentSpan.context();
     } else {
-      parentContext =
-          tracer.extract(Format.Builtin.HTTP_HEADERS, new JerseyRequestExtractAdapter(request));
+      parentContext = propagate().extract(request, GETTER);
+      setKind = true;
     }
 
-    scope =
-        tracer
-            .buildSpan("jersey.request")
-            .asChildOf(parentContext)
-            .withTag(Tags.COMPONENT.getKey(), "jersey")
-            .withTag(Tags.HTTP_METHOD.getKey(), request.getMethod())
-            .withTag(Tags.HTTP_URL.getKey(), request.getRequestUri().toString())
-            .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER)
-            .startActive(false);
+    final AgentSpan span =
+        startSpan("jersey.request", parentContext)
+            .setTag(Tags.COMPONENT, "jersey")
+            .setTag(Tags.HTTP_METHOD, request.getMethod())
+            .setTag(Tags.HTTP_URL, request.getRequestUri().toString());
 
-    if (scope instanceof TraceScope) {
-      ((TraceScope) scope).setAsyncPropagation(true);
+    if (setKind) {
+      span.setTag(Tags.SPAN_KIND, Tags.SPAN_KIND_SERVER);
     }
+
+    scope = activateSpan(span, false);
+    scope.setAsyncPropagation(true);
   }
 
   @Override
   public void onEvent(RequestEvent event) {
-    final Span span = scope.span();
+    final AgentSpan span = scope.span();
 
     switch (event.getType()) {
       case ON_EXCEPTION:
-        Tags.ERROR.set(span, Boolean.TRUE);
-        span.log(Collections.singletonMap(ERROR_OBJECT, event.getException()));
+        span.setTag(Tags.ERROR, true);
+        span.addThrowable(event.getException());
         break;
       case FINISHED:
         ContainerResponse response = event.getContainerResponse();
         // Unmapped exceptions are rethrown to the container
         // and responses, if any, are created there.
         if (response != null) {
-          Tags.HTTP_STATUS.set(span, response.getStatus());
+          span.setTag(Tags.HTTP_STATUS, response.getStatus());
         }
 
         scope.close();

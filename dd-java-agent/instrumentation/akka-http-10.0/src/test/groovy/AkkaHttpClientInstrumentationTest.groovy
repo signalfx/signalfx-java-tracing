@@ -1,150 +1,59 @@
 import akka.actor.ActorSystem
 import akka.http.javadsl.Http
+import akka.http.javadsl.model.HttpMethods
 import akka.http.javadsl.model.HttpRequest
-import akka.http.javadsl.model.HttpResponse
+import akka.http.javadsl.model.headers.RawHeader
 import akka.stream.ActorMaterializer
-import akka.stream.StreamTcpException
-import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.api.Config
+import datadog.trace.agent.test.base.HttpClientTest
 import datadog.trace.api.DDSpanTypes
-import io.opentracing.tag.Tags
-import spock.lang.AutoCleanup
+import datadog.trace.instrumentation.akkahttp.AkkaHttpClientDecorator
+import datadog.trace.instrumentation.api.Tags
 import spock.lang.Shared
 
-import java.util.concurrent.CompletionStage
-import java.util.concurrent.ExecutionException
-
-import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
-import static datadog.trace.agent.test.utils.PortUtils.UNUSABLE_PORT
-import static datadog.trace.agent.test.utils.TraceUtils.withConfigOverride
-
-class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
-
-  private static final String MESSAGE = "an\nmultiline\nhttp\nresponse"
-
-  @AutoCleanup
-  @Shared
-  def server = httpServer {
-    handlers {
-      prefix("success") {
-        handleDistributedRequest()
-
-        response.status(200).send(MESSAGE)
-      }
-
-      prefix("error") {
-        handleDistributedRequest()
-
-        throw new RuntimeException("error")
-      }
-    }
-  }
+class AkkaHttpClientInstrumentationTest extends HttpClientTest<AkkaHttpClientDecorator> {
 
   @Shared
   ActorSystem system = ActorSystem.create()
   @Shared
   ActorMaterializer materializer = ActorMaterializer.create(system)
 
-//  Cherry-picked Scala 2.13 fix removed this pool instrumentation, which was deemed to be no value added.
-//  Leaving commented to make future reconciliation clearer with upcoming http client test refactoring.
-//
-//  def pool = Http.get(system).superPool(materializer)
-//
-//  def "#route request trace"() {
-//    setup:
-//    def url = server.address.resolve("/" + route).toURL()
-//
-//    HttpRequest request = HttpRequest.create(url.toString())
-//
-//    when:
-//    HttpResponse response = withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
-//      Http.get(system)
-//        .singleRequest(request, materializer)
-//        .toCompletableFuture().get()
-//    }
-//    String message = readMessage(response)
-//
-//    then:
-//    response.status().intValue() == expectedStatus
-//    if (expectedMessage != null) {
-//      message == expectedMessage
-//    }
-//
-//    assertTraces(2) {
-//      server.distributedRequestTrace(it, 0, TEST_WRITER[1][0])
-//      trace(1, 1) {
-//        span(0) {
-//          parent()
-//          serviceName renameService ? "localhost" : "unnamed-java-app"
-//          operationName "akka-http.request"
-//          resourceName "/$route"
-//          spanType DDSpanTypes.HTTP_CLIENT
-//          errored expectedError
-//          tags {
-//            defaultTags()
-//            "$Tags.HTTP_STATUS.key" expectedStatus
-//            "$Tags.HTTP_URL.key" "${server.address}/$route"
-//            "$Tags.HTTP_METHOD.key" "GET"
-//            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-//            "$Tags.PEER_HOSTNAME.key" server.address.host
-//            "$Tags.PEER_PORT.key" server.address.port
-//            "$Tags.COMPONENT.key" "akka-http-client"
-//            if (expectedError) {
-//              "$Tags.ERROR.key" true
-//            }
-//          }
-//        }
-//      }
-//    }
-//
-//    where:
-//    route     | expectedStatus | expectedError | expectedMessage | renameService
-//    "success" | 200            | false         | MESSAGE         | true
-//    "error"   | 500            | true          | null            | false
-//  }
+  @Override
+  int doRequest(String method, URI uri, Map<String, String> headers, Closure callback) {
+    def request = HttpRequest.create(uri.toString())
+      .withMethod(HttpMethods.lookup(method).get())
+      .addHeaders(headers.collect { RawHeader.create(it.key, it.value) })
 
-  def "error request trace"() {
-    setup:
-    def url = new URL("http://localhost:$UNUSABLE_PORT/test")
-
-    HttpRequest request = HttpRequest.create(url.toString())
-    CompletionStage<HttpResponse> responseFuture =
-      withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
-        Http.get(system)
-          .singleRequest(request, materializer)
-      }
-
-    when:
-    responseFuture.toCompletableFuture().get()
-
-    then:
-    thrown ExecutionException
-    assertTraces(1) {
-      trace(0, 1) {
-        span(0) {
-          parent()
-          serviceName renameService ? "localhost" : "unnamed-java-app"
-          operationName "akka-http.request"
-          resourceName "/test"
-          spanType DDSpanTypes.HTTP_CLIENT
-          errored true
-          tags {
-            defaultTags()
-            "$Tags.HTTP_URL.key" url.toString()
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.PEER_HOSTNAME.key" server.address.host
-            "$Tags.PEER_PORT.key" UNUSABLE_PORT
-            "$Tags.COMPONENT.key" "akka-http-client"
-            "$Tags.ERROR.key" true
-            errorTags(StreamTcpException, { it.contains("Tcp command") })
-          }
-        }
-      }
+    def response
+    try {
+      response = Http.get(system)
+        .singleRequest(request, materializer)
+      //.whenComplete { result, error ->
+      // FIXME: Callback should be here instead.
+      //  callback?.call()
+      //}
+        .toCompletableFuture()
+        .get()
+    } finally {
+      // FIXME: remove this when callback above works.
+      blockUntilChildSpansFinished(1)
     }
+    callback?.call()
+    return response.status().intValue()
+  }
 
-    where:
-    renameService << [false, true]
+  @Override
+  AkkaHttpClientDecorator decorator() {
+    return AkkaHttpClientDecorator.DECORATE
+  }
+
+  @Override
+  String expectedOperationName() {
+    return "akka-http.request"
+  }
+
+  @Override
+  boolean testRedirects() {
+    false
   }
 
   def "singleRequest exception trace"() {
@@ -165,9 +74,9 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
           errored true
           tags {
             defaultTags()
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.COMPONENT.key" "akka-http-client"
-            "$Tags.ERROR.key" true
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "akka-http-client"
+            "$Tags.ERROR" true
             errorTags(NullPointerException)
           }
         }
@@ -177,107 +86,4 @@ class AkkaHttpClientInstrumentationTest extends AgentTestRunner {
     where:
     renameService << [false, true]
   }
-
-//  def "#route pool request trace"() {
-//    setup:
-//    def url = server.address.resolve("/" + route).toURL()
-//
-//    when:
-//    HttpResponse response = withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
-//      Source
-//        .<Pair<HttpRequest, Integer>> single(new Pair(HttpRequest.create(url.toString()), 1))
-//        .via(pool)
-//        .runWith(Sink.<Pair<Try<HttpResponse>, Integer>> head(), materializer)
-//        .toCompletableFuture().get().first().get()
-//    }
-//    String message = readMessage(response)
-//
-//    then:
-//    response.status().intValue() == expectedStatus
-//    if (expectedMessage != null) {
-//      message == expectedMessage
-//    }
-//
-//    assertTraces(2) {
-//      server.distributedRequestTrace(it, 0, TEST_WRITER[1][0])
-//      trace(1, 1) {
-//        span(0) {
-//          parent()
-//          serviceName renameService ? "localhost" : "unnamed-java-app"
-//          operationName "akka-http.request"
-//          resourceName "/$route"
-//          spanType DDSpanTypes.HTTP_CLIENT
-//          errored expectedError
-//          tags {
-//            defaultTags()
-//            "$Tags.HTTP_STATUS.key" expectedStatus
-//            "$Tags.HTTP_URL.key" "${server.address}/$route"
-//            "$Tags.HTTP_METHOD.key" "GET"
-//            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-//            "$Tags.PEER_HOSTNAME.key" server.address.host
-//            "$Tags.PEER_PORT.key" server.address.port
-//            "$Tags.COMPONENT.key" "akka-http-client"
-//            if (expectedError) {
-//              "$Tags.ERROR.key" true
-//            }
-//          }
-//        }
-//      }
-//    }
-//
-//    where:
-//    route     | expectedStatus | expectedError | expectedMessage | renameService
-//    "success" | 200            | false         | MESSAGE         | true
-//    "error"   | 500            | true          | null            | false
-//  }
-
-//  def "error request pool trace"() {
-//    setup:
-//    // Use port number that really should be closed
-//    def url = new URL("http://localhost:$UNUSABLE_PORT/test")
-//
-//    def response = withConfigOverride(Config.HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "$renameService") {
-//      Source
-//        .<Pair<HttpRequest, Integer>> single(new Pair(HttpRequest.create(url.toString()), 1))
-//        .via(pool)
-//        .runWith(Sink.<Pair<Try<HttpResponse>, Integer>> head(), materializer)
-//        .toCompletableFuture().get().first()
-//    }
-//
-//    when:
-//    response.get()
-//
-//    then:
-//    thrown StreamTcpException
-//    assertTraces(1) {
-//      trace(0, 1) {
-//        span(0) {
-//          parent()
-//          serviceName renameService ? "localhost" : "unnamed-java-app"
-//          operationName "akka-http.request"
-//          resourceName "/test"
-//          spanType DDSpanTypes.HTTP_CLIENT
-//          errored true
-//          tags {
-//            defaultTags()
-//            "$Tags.HTTP_URL.key" url.toString()
-//            "$Tags.HTTP_METHOD.key" "GET"
-//            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-//            "$Tags.PEER_HOSTNAME.key" server.address.host
-//            "$Tags.PEER_PORT.key" UNUSABLE_PORT
-//            "$Tags.COMPONENT.key" "akka-http-client"
-//            "$Tags.ERROR.key" true
-//            errorTags(StreamTcpException, { it.contains("Tcp command") })
-//          }
-//        }
-//      }
-//    }
-//
-//    where:
-//    renameService << [false, true]
-//  }
-//
-//  String readMessage(HttpResponse response) {
-//    response.entity().toStrict(TIMEOUT, materializer).toCompletableFuture().get().getData().utf8String()
-//  }
 }

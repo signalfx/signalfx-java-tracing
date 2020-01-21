@@ -4,28 +4,39 @@ package datadog.opentracing.decorators
 import datadog.opentracing.DDSpanContext
 import datadog.opentracing.DDTracer
 import datadog.opentracing.SpanFactory
+import datadog.trace.agent.test.utils.ConfigUtils
+import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
 import datadog.trace.common.sampling.AllSampler
 import datadog.trace.common.writer.LoggingWriter
+import datadog.trace.util.test.DDSpecification
 import io.opentracing.tag.StringTag
 import io.opentracing.tag.Tags
 import spock.lang.Ignore
-import spock.lang.Specification
 
 import static datadog.trace.api.Config.DEFAULT_SERVICE_NAME
 import static datadog.trace.api.DDTags.EVENT_SAMPLE_RATE
 import static java.util.Collections.emptyMap
 
-class SpanDecoratorTest extends Specification {
+class SpanDecoratorTest extends DDSpecification {
+  static {
+    ConfigUtils.updateConfig {
+      System.setProperty("dd.$Config.SPLIT_BY_TAGS", "sn.tag1,sn.tag2")
+    }
+  }
+
+  def cleanupSpec() {
+    ConfigUtils.updateConfig {
+      System.clearProperty("dd.$Config.SPLIT_BY_TAGS")
+    }
+  }
   def tracer = new DDTracer(new LoggingWriter())
   def span = SpanFactory.newSpanOf(tracer)
 
   def "adding span personalisation using Decorators"() {
     setup:
     def decorator = new AbstractDecorator() {
-
-      @Override
       boolean shouldSetTag(DDSpanContext context, String tag, Object value) {
         return super.shouldSetTag(context, tag, value)
       }
@@ -67,10 +78,14 @@ class SpanDecoratorTest extends Specification {
     tag                   | name            | expected
     //DDTags.SERVICE_NAME   | "some-service"  | "new-service"
     //DDTags.SERVICE_NAME   | "other-service" | "other-service"
-    "service"             | "some-service"  | "new-service"
-    "service"             | "other-service" | "other-service"
+    "service"             | "some-service"  | "wrong-service"
+    "service"             | "other-service" | "wrong-service"
     Tags.PEER_SERVICE.key | "some-service"  | "new-service"
     Tags.PEER_SERVICE.key | "other-service" | "other-service"
+    "sn.tag1"             | "some-service"  | "wrong-service"
+    "sn.tag1"             | "other-service" | "wrong-service"
+    "sn.tag2"             | "some-service"  | "wrong-service"
+    "sn.tag2"             | "other-service" | "wrong-service"
 
     mapping = ["some-service": "new-service"]
   }
@@ -314,7 +329,13 @@ class SpanDecoratorTest extends Specification {
 
   def "decorators apply to builder too"() {
     when:
-    def span = tracer.buildSpan("decorator.test").withTag("servlet.context", "/my-servlet").start()
+    def span = tracer.buildSpan("decorator.test").withTag("sn.tag1", "some val").start()
+
+    then:
+    span.serviceName == "unnamed-java-app"
+
+    when:
+    span = tracer.buildSpan("decorator.test").withTag("servlet.context", "/my-servlet").start()
 
     then:
     span.serviceName == "my-servlet"

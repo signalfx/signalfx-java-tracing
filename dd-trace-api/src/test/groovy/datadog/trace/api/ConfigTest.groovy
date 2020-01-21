@@ -1,10 +1,10 @@
 // Modified by SignalFx
 package datadog.trace.api
 
+import datadog.trace.util.test.DDSpecification
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.EnvironmentVariables
 import org.junit.contrib.java.lang.system.RestoreSystemProperties
-import spock.lang.Specification
 
 import static datadog.trace.api.Config.DEFAULT_REDIS_CAPTURE_COMMAND_ARGUMENTS
 import static datadog.trace.api.Config.ENDPOINT_URL
@@ -14,6 +14,8 @@ import static datadog.trace.api.Config.AGENT_PORT_LEGACY
 import static datadog.trace.api.Config.AGENT_UNIX_DOMAIN_SOCKET
 import static datadog.trace.api.Config.DB_STATEMENT_MAX_LENGTH
 import static datadog.trace.api.Config.DEFAULT_DB_STATEMENT_MAX_LENGTH
+import static datadog.trace.api.Config.CONFIGURATION_FILE
+import static datadog.trace.api.Config.DB_CLIENT_HOST_SPLIT_BY_INSTANCE
 import static datadog.trace.api.Config.DEFAULT_JMX_FETCH_STATSD_PORT
 import static datadog.trace.api.Config.DEFAULT_KAFKA_ATTEMPT_PROPAGATION
 import static datadog.trace.api.Config.GLOBAL_TAGS
@@ -41,18 +43,22 @@ import static datadog.trace.api.Config.PROPAGATION_STYLE_EXTRACT
 import static datadog.trace.api.Config.PROPAGATION_STYLE_INJECT
 import static datadog.trace.api.Config.RUNTIME_CONTEXT_FIELD_INJECTION
 import static datadog.trace.api.Config.SERVICE
+import static datadog.trace.api.Config.SIGNALFX_PREFIX
 import static datadog.trace.api.Config.SERVICE_MAPPING
 import static datadog.trace.api.Config.SERVICE_NAME
-import static datadog.trace.api.Config.SIGNALFX_PREFIX
 import static datadog.trace.api.Config.SPAN_TAGS
+import static datadog.trace.api.Config.SPLIT_BY_TAGS
 import static datadog.trace.api.Config.TRACE_AGENT_PORT
-import static datadog.trace.api.Config.TRACE_REPORT_HOSTNAME
 import static datadog.trace.api.Config.TRACE_ENABLED
+import static datadog.trace.api.Config.TRACE_REPORT_HOSTNAME
 import static datadog.trace.api.Config.TRACE_RESOLVER_ENABLED
 import static datadog.trace.api.Config.USE_B3_PROPAGATION
 import static datadog.trace.api.Config.WRITER_TYPE
+import static datadog.trace.api.Config.HEALTH_METRICS_ENABLED
+import static datadog.trace.api.Config.HEALTH_METRICS_STATSD_HOST
+import static datadog.trace.api.Config.HEALTH_METRICS_STATSD_PORT
 
-class ConfigTest extends Specification {
+class ConfigTest extends DDSpecification {
   @Rule
   public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties()
   @Rule
@@ -100,6 +106,8 @@ class ConfigTest extends Specification {
     config.httpServerErrorStatuses == (500..599).toSet()
     config.httpClientErrorStatuses == (500..599).toSet()
     config.httpClientSplitByDomain == false
+    config.dbClientSplitByInstance == false
+    config.splitByTags == [].toSet()
     config.partialFlushMinSpans == 1000
     config.reportHostName == false
     config.runtimeContextFieldInjection == true
@@ -111,6 +119,9 @@ class ConfigTest extends Specification {
     config.jmxFetchRefreshBeansPeriod == null
     config.jmxFetchStatsdHost == null
     config.jmxFetchStatsdPort == DEFAULT_JMX_FETCH_STATSD_PORT
+    config.healthMetricsEnabled == false
+    config.healthMetricsStatsdHost == null
+    config.healthMetricsStatsdPort == null
     config.toString().contains("unnamed-java-app")
     config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
     config.kafkaAttemptPropagation == DEFAULT_KAFKA_ATTEMPT_PROPAGATION
@@ -144,12 +155,14 @@ class ConfigTest extends Specification {
     prop.setProperty(HTTP_SERVER_ERROR_STATUSES, "123-456,457,124-125,122")
     prop.setProperty(HTTP_CLIENT_ERROR_STATUSES, "111")
     prop.setProperty(HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "true")
+    prop.setProperty(DB_CLIENT_HOST_SPLIT_BY_INSTANCE, "true")
+    prop.setProperty(SPLIT_BY_TAGS, "some.tag1,some.tag2,some.tag1")
     prop.setProperty(PARTIAL_FLUSH_MIN_SPANS, "15")
     prop.setProperty(TRACE_REPORT_HOSTNAME, "true")
     prop.setProperty(RUNTIME_CONTEXT_FIELD_INJECTION, "false")
     prop.setProperty(PROPAGATION_STYLE_EXTRACT, "Datadog, B3")
     prop.setProperty(PROPAGATION_STYLE_INJECT, "B3, Datadog")
-    prop.setProperty(JMX_FETCH_ENABLED, "true")
+    prop.setProperty(JMX_FETCH_ENABLED, "false")
     prop.setProperty(JMX_FETCH_METRICS_CONFIGS, "/foo.yaml,/bar.yaml")
     prop.setProperty(JMX_FETCH_CHECK_PERIOD, "100")
     prop.setProperty(JMX_FETCH_REFRESH_BEANS_PERIOD, "200")
@@ -158,6 +171,9 @@ class ConfigTest extends Specification {
     prop.setProperty(DB_STATEMENT_MAX_LENGTH, "100")
     prop.setProperty(KAFKA_ATTEMPT_PROPAGATION, "false")
     prop.setProperty(REDIS_CAPTURE_COMMAND_ARGUMENTS, "false")
+    prop.setProperty(HEALTH_METRICS_ENABLED, "false")
+    prop.setProperty(HEALTH_METRICS_STATSD_HOST, "metrics statsd host")
+    prop.setProperty(HEALTH_METRICS_STATSD_PORT, "654")
 
     when:
     Config config = Config.get(prop)
@@ -178,12 +194,14 @@ class ConfigTest extends Specification {
     config.httpServerErrorStatuses == (122..457).toSet()
     config.httpClientErrorStatuses == (111..111).toSet()
     config.httpClientSplitByDomain == true
+    config.dbClientSplitByInstance == true
+    config.splitByTags == ["some.tag1", "some.tag2"].toSet()
     config.partialFlushMinSpans == 15
     config.reportHostName == true
     config.runtimeContextFieldInjection == false
     config.propagationStylesToExtract.toList() == [Config.PropagationStyle.DATADOG, Config.PropagationStyle.B3]
     config.propagationStylesToInject.toList() == [Config.PropagationStyle.B3, Config.PropagationStyle.DATADOG]
-    config.jmxFetchEnabled == true
+    config.jmxFetchEnabled == false
     config.jmxFetchMetricsConfigs == ["/foo.yaml", "/bar.yaml"]
     config.jmxFetchCheckPeriod == 100
     config.jmxFetchRefreshBeansPeriod == 200
@@ -192,6 +210,9 @@ class ConfigTest extends Specification {
     config.dbStatementMaxLength == 100
     config.kafkaAttemptPropagation == false
     config.redisCaptureCommandArguments == false
+    config.healthMetricsEnabled == false
+    config.healthMetricsStatsdHost == "metrics statsd host"
+    config.healthMetricsStatsdPort == 654
   }
 
   def "specify overrides via system properties"() {
@@ -216,6 +237,9 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + HTTP_SERVER_ERROR_STATUSES, "123-456,457,124-125,122")
     System.setProperty(PREFIX + HTTP_CLIENT_ERROR_STATUSES, "111")
     System.setProperty(PREFIX + HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "true") // SFX
+    System.setProperty(PREFIX + HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "true")
+    System.setProperty(PREFIX + DB_CLIENT_HOST_SPLIT_BY_INSTANCE, "true")
+    System.setProperty(PREFIX + SPLIT_BY_TAGS, "some.tag3, some.tag2, some.tag1")
     System.setProperty(PREFIX + PARTIAL_FLUSH_MIN_SPANS, "25")
     System.setProperty(PREFIX + TRACE_REPORT_HOSTNAME, "true")
     System.setProperty(PREFIX + RUNTIME_CONTEXT_FIELD_INJECTION, "false") // SFX
@@ -230,6 +254,15 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + DB_STATEMENT_MAX_LENGTH, "100") // SFX
     System.setProperty(PREFIX + KAFKA_ATTEMPT_PROPAGATION, "false") // SFX
     System.setProperty(PREFIX + REDIS_CAPTURE_COMMAND_ARGUMENTS, "false") // SFX
+    System.setProperty(PREFIX + JMX_FETCH_ENABLED, "false")
+    System.setProperty(PREFIX + JMX_FETCH_METRICS_CONFIGS, "/foo.yaml,/bar.yaml")
+    System.setProperty(PREFIX + JMX_FETCH_CHECK_PERIOD, "100")
+    System.setProperty(PREFIX + JMX_FETCH_REFRESH_BEANS_PERIOD, "200")
+    System.setProperty(PREFIX + JMX_FETCH_STATSD_HOST, "statsd host")
+    System.setProperty(PREFIX + JMX_FETCH_STATSD_PORT, "321")
+    System.setProperty(PREFIX + HEALTH_METRICS_ENABLED, "true")
+    System.setProperty(PREFIX + HEALTH_METRICS_STATSD_HOST, "metrics statsd host")
+    System.setProperty(PREFIX + HEALTH_METRICS_STATSD_PORT, "654")
 
     when:
     Config config = new Config()
@@ -253,17 +286,22 @@ class ConfigTest extends Specification {
     config.httpServerErrorStatuses == (122..457).toSet()
     config.httpClientErrorStatuses == (111..111).toSet()
     config.httpClientSplitByDomain == true
+    config.dbClientSplitByInstance == true
+    config.splitByTags == ["some.tag3", "some.tag2", "some.tag1"].toSet()
     config.partialFlushMinSpans == 25
     config.reportHostName == true
     config.runtimeContextFieldInjection == false
     config.propagationStylesToExtract.toList() == [Config.PropagationStyle.DATADOG, Config.PropagationStyle.B3]
     config.propagationStylesToInject.toList() == [Config.PropagationStyle.B3, Config.PropagationStyle.DATADOG]
-    config.jmxFetchEnabled == true
+    config.jmxFetchEnabled == false
     config.jmxFetchMetricsConfigs == ["/foo.yaml", "/bar.yaml"]
     config.jmxFetchCheckPeriod == 100
     config.jmxFetchRefreshBeansPeriod == 200
     config.jmxFetchStatsdHost == "statsd host"
     config.jmxFetchStatsdPort == 321
+    config.healthMetricsEnabled == true
+    config.healthMetricsStatsdHost == "metrics statsd host"
+    config.healthMetricsStatsdPort == 654
     config.dbStatementMaxLength == 100
     config.kafkaAttemptPropagation == false
     config.redisCaptureCommandArguments == false
@@ -360,6 +398,7 @@ class ConfigTest extends Specification {
     System.setProperty(PREFIX + HTTP_SERVER_ERROR_STATUSES, "1111")
     System.setProperty(PREFIX + HTTP_CLIENT_ERROR_STATUSES, "1:1")
     System.setProperty(PREFIX + HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "invalid")
+    System.setProperty(PREFIX + DB_CLIENT_HOST_SPLIT_BY_INSTANCE, "invalid")
     System.setProperty(PREFIX + PROPAGATION_STYLE_EXTRACT, "some garbage")
     System.setProperty(PREFIX + PROPAGATION_STYLE_INJECT, " ")
     System.setProperty(PREFIX + DB_STATEMENT_MAX_LENGTH, "abs")
@@ -388,6 +427,8 @@ class ConfigTest extends Specification {
     config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
     config.kafkaAttemptPropagation == DEFAULT_KAFKA_ATTEMPT_PROPAGATION
     config.redisCaptureCommandArguments == DEFAULT_REDIS_CAPTURE_COMMAND_ARGUMENTS
+    config.dbClientSplitByInstance == false
+    config.splitByTags == [].toSet()
   }
 
   def "sys props and env vars overrides for trace_agent_port and agent_port_legacy as expected"() {
@@ -451,6 +492,7 @@ class ConfigTest extends Specification {
     properties.setProperty(HTTP_SERVER_ERROR_STATUSES, "123-456,457,124-125,122")
     properties.setProperty(HTTP_CLIENT_ERROR_STATUSES, "111")
     properties.setProperty(HTTP_CLIENT_HOST_SPLIT_BY_DOMAIN, "true")
+    properties.setProperty(DB_CLIENT_HOST_SPLIT_BY_INSTANCE, "true")
     properties.setProperty(PARTIAL_FLUSH_MIN_SPANS, "15")
     properties.setProperty(PROPAGATION_STYLE_EXTRACT, "B3 Datadog")
     properties.setProperty(PROPAGATION_STYLE_INJECT, "Datadog B3")
@@ -482,6 +524,8 @@ class ConfigTest extends Specification {
     config.httpServerErrorStatuses == (122..457).toSet()
     config.httpClientErrorStatuses == (111..111).toSet()
     config.httpClientSplitByDomain == true
+    config.dbClientSplitByInstance == true
+    config.splitByTags == [].toSet()
     config.partialFlushMinSpans == 15
     config.propagationStylesToExtract.toList() == [Config.PropagationStyle.B3, Config.PropagationStyle.DATADOG]
     config.propagationStylesToInject.toList() == [Config.PropagationStyle.DATADOG, Config.PropagationStyle.B3]
@@ -542,7 +586,41 @@ class ConfigTest extends Specification {
     System.setProperty("dd.integration.disabled-prop.enabled", "false")
 
     expect:
-    Config.integrationEnabled(integrationNames, defaultEnabled) == expected
+    Config.get().isIntegrationEnabled(integrationNames, defaultEnabled) == expected
+
+    where:
+    names                          | defaultEnabled | expected
+    []                             | true           | true
+    []                             | false          | false
+    ["invalid"]                    | true           | true
+    ["invalid"]                    | false          | false
+    ["test-prop"]                  | false          | true
+    ["test-env"]                   | false          | true
+    ["disabled-prop"]              | true           | false
+    ["disabled-env"]               | true           | false
+    ["other", "test-prop"]         | false          | true
+    ["other", "test-env"]          | false          | true
+    ["order"]                      | false          | true
+    ["test-prop", "disabled-prop"] | false          | true
+    ["disabled-env", "test-env"]   | false          | true
+    ["test-prop", "disabled-prop"] | true           | false
+    ["disabled-env", "test-env"]   | true           | false
+
+    integrationNames = new TreeSet<>(names)
+  }
+
+  def "verify integration jmxfetch config"() {
+    setup:
+    environmentVariables.set("DD_JMXFETCH_ORDER_ENABLED", "false")
+    environmentVariables.set("DD_JMXFETCH_TEST_ENV_ENABLED", "true")
+    environmentVariables.set("DD_JMXFETCH_DISABLED_ENV_ENABLED", "false")
+
+    System.setProperty("dd.jmxfetch.order.enabled", "true")
+    System.setProperty("dd.jmxfetch.test-prop.enabled", "true")
+    System.setProperty("dd.jmxfetch.disabled-prop.enabled", "false")
+
+    expect:
+    Config.get().isJmxFetchIntegrationEnabled(integrationNames, defaultEnabled) == expected
 
     where:
     names                          | defaultEnabled | expected
@@ -576,7 +654,7 @@ class ConfigTest extends Specification {
     System.setProperty("dd.disabled-prop.analytics.enabled", "false")
 
     expect:
-    Config.traceAnalyticsIntegrationEnabled(integrationNames, defaultEnabled) == expected
+    Config.get().isTraceAnalyticsIntegrationEnabled(integrationNames, defaultEnabled) == expected
 
     where:
     names                          | defaultEnabled | expected
@@ -766,6 +844,67 @@ class ConfigTest extends Specification {
     def config = Config.get(properties)
 
     then:
-    config.localRootSpanTags.get('_dd.hostname') == InetAddress.localHost.hostName
+    config.localRootSpanTags.containsKey('_dd.hostname')
+  }
+
+  def "verify fallback to properties file"() {
+    setup:
+    System.setProperty(PREFIX + CONFIGURATION_FILE, "src/test/resources/dd-java-tracer.properties")
+
+    when:
+    def config = new Config()
+
+    then:
+    config.serviceName == "set-in-properties"
+
+    cleanup:
+    System.clearProperty(PREFIX + CONFIGURATION_FILE)
+  }
+
+  def "verify fallback to properties file has lower priority than system property"() {
+    setup:
+    System.setProperty(PREFIX + CONFIGURATION_FILE, "src/test/resources/dd-java-tracer.properties")
+    System.setProperty(PREFIX + SERVICE_NAME, "set-in-system")
+
+    when:
+    def config = new Config()
+
+    then:
+    config.serviceName == "set-in-system"
+
+    cleanup:
+    System.clearProperty(PREFIX + CONFIGURATION_FILE)
+    System.clearProperty(PREFIX + SERVICE_NAME)
+  }
+
+  def "verify fallback to properties file has lower priority than env var"() {
+    setup:
+    System.setProperty(PREFIX + CONFIGURATION_FILE, "src/test/resources/dd-java-tracer.properties")
+    environmentVariables.set("DD_SERVICE_NAME", "set-in-env")
+
+    when:
+    def config = new Config()
+
+    then:
+    config.serviceName == "set-in-env"
+
+    cleanup:
+    System.clearProperty(PREFIX + CONFIGURATION_FILE)
+    System.clearProperty(PREFIX + SERVICE_NAME)
+    environmentVariables.clear("DD_SERVICE_NAME")
+  }
+
+  def "verify fallback to properties file that does not exist does not crash app"() {
+    setup:
+    System.setProperty(PREFIX + CONFIGURATION_FILE, "src/test/resources/do-not-exist.properties")
+
+    when:
+    def config = new Config()
+
+    then:
+    config.serviceName == 'unnamed-java-app'
+
+    cleanup:
+    System.clearProperty(PREFIX + CONFIGURATION_FILE)
   }
 }

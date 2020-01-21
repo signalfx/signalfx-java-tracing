@@ -1,9 +1,11 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
+import datadog.trace.instrumentation.api.Tags
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import spock.lang.Shared
-import spring.Customer
-import spring.CustomerRepository
-import spring.PersistenceConfig
+import spring.jpa.Customer
+import spring.jpa.CustomerRepository
+import spring.jpa.PersistenceConfig
 
 
 /**
@@ -26,15 +28,21 @@ class SpringJpaTest extends AgentTestRunner {
     !repo.findAll().iterator().hasNext()
 
     assertTraces(1) {
-      trace(0, 2) {
+      trace(0, 1) {
         span(0) {
           serviceName "hsqldb"
+          resourceName "hsqldb.query"
           spanType "sql"
-        }
-        span(1) {
-          serviceName "hsqldb"
-          spanType "sql"
-          childOf(span(0))
+          tags {
+            "$Tags.DB_INSTANCE" "test"
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.DB_USER" "sa"
+            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
+            "$Tags.DB_STATEMENT" "select customer0_.id as id1_0_, customer0_.firstName as firstNam2_0_, customer0_.lastName as lastName3_0_ from Customer customer0_"
+            "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
+            defaultTags()
+          }
         }
       }
     }
@@ -49,22 +57,39 @@ class SpringJpaTest extends AgentTestRunner {
     // Behavior changed in new version:
     def extraTrace = TEST_WRITER.size() == 2
     assertTraces(extraTrace ? 2 : 1) {
-      trace(0, 2) {
-        span(0) {
-          serviceName "hsqldb"
-          spanType "sql"
-        }
-        span(1) {
-          serviceName "hsqldb"
-          spanType "sql"
-          childOf(span(0))
-        }
-      }
       if (extraTrace) {
-        trace(1, 1) {
+        trace(0, 1) {
           span(0) {
             serviceName "hsqldb"
+            resourceName "hsqldb.query"
             spanType "sql"
+            tags {
+              "$Tags.DB_INSTANCE" "test"
+              "$Tags.DB_TYPE" "hsqldb"
+              "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+              "$Tags.DB_USER" "sa"
+              "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
+              "$Tags.DB_STATEMENT" "call next value for hibernate_sequence"
+              "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
+              defaultTags()
+            }
+          }
+        }
+      }
+      trace(extraTrace ? 1 : 0, 1) {
+        span(0) {
+          serviceName "hsqldb"
+          resourceName "hsqldb.query"
+          spanType "sql"
+          tags {
+            "$Tags.DB_INSTANCE" "test"
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.DB_USER" "sa"
+            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
+            "$Tags.DB_STATEMENT"  ~/insert into Customer \(.*\) values \(.*, \?, \?\)/
+            "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
+            defaultTags()
           }
         }
       }
@@ -78,21 +103,38 @@ class SpringJpaTest extends AgentTestRunner {
     then:
     customer.id == savedId
     assertTraces(2) {
-      trace(0, 2) {
+      trace(0, 1) {
         span(0) {
           serviceName "hsqldb"
+          resourceName "hsqldb.query"
           spanType "sql"
-        }
-        span(1) {
-          serviceName "hsqldb"
-          spanType "sql"
-          childOf(span(0))
+          tags {
+            "$Tags.DB_INSTANCE" "test"
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.DB_USER" "sa"
+            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
+            "$Tags.DB_STATEMENT" "select customer0_.id as id1_0_0_, customer0_.firstName as firstNam2_0_0_, customer0_.lastName as lastName3_0_0_ from Customer customer0_ where customer0_.id=?"
+            "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
+            defaultTags()
+          }
         }
       }
       trace(1, 1) {
         span(0) {
           serviceName "hsqldb"
+          resourceName "hsqldb.query"
           spanType "sql"
+          tags {
+            "$Tags.DB_INSTANCE" "test"
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.DB_USER" "sa"
+            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
+            "$Tags.DB_STATEMENT" "update Customer set firstName=?, lastName=? where id=?"
+            "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
+            defaultTags()
+          }
         }
       }
     }
@@ -105,15 +147,21 @@ class SpringJpaTest extends AgentTestRunner {
     customer.id == savedId
     customer.firstName == "Bill"
     assertTraces(1) {
-      trace(0, 2) {
+      trace(0, 1) {
         span(0) {
           serviceName "hsqldb"
+          resourceName "hsqldb.query"
           spanType "sql"
-        }
-        span(1) {
-          serviceName "hsqldb"
-          spanType "sql"
-          childOf(span(0))
+          tags {
+            "$Tags.DB_INSTANCE" "test"
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.DB_USER" "sa"
+            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
+            "$Tags.DB_STATEMENT" "select customer0_.id as id1_0_, customer0_.firstName as firstNam2_0_, customer0_.lastName as lastName3_0_ from Customer customer0_ where customer0_.lastName=?"
+            "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
+            defaultTags()
+          }
         }
       }
     }
@@ -124,21 +172,38 @@ class SpringJpaTest extends AgentTestRunner {
 
     then:
     assertTraces(2) {
-      trace(0, 2) {
+      trace(0, 1) {
         span(0) {
           serviceName "hsqldb"
+          resourceName "hsqldb.query"
           spanType "sql"
-        }
-        span(1) {
-          serviceName "hsqldb"
-          spanType "sql"
-          childOf(span(0))
+          tags {
+            "$Tags.DB_INSTANCE" "test"
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.DB_USER" "sa"
+            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
+            "$Tags.DB_STATEMENT" "select customer0_.id as id1_0_0_, customer0_.firstName as firstNam2_0_0_, customer0_.lastName as lastName3_0_0_ from Customer customer0_ where customer0_.id=?"
+            "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
+            defaultTags()
+          }
         }
       }
       trace(1, 1) {
         span(0) {
           serviceName "hsqldb"
+          resourceName "hsqldb.query"
           spanType "sql"
+          tags {
+            "$Tags.DB_INSTANCE" "test"
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.DB_USER" "sa"
+            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
+            "$Tags.DB_STATEMENT" "delete from Customer where id=?"
+            "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
+            defaultTags()
+          }
         }
       }
     }

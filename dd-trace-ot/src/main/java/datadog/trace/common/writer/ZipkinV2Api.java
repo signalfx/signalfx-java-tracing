@@ -1,6 +1,5 @@
+// Modified by SignalFx
 package datadog.trace.common.writer;
-
-import static io.opentracing.tag.Tags.SPAN_KIND;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,7 +11,6 @@ import datadog.opentracing.DDSpan;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import datadog.trace.common.util.Ids;
-import io.opentracing.tag.Tags;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -30,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 /** Zipkin V2 JSON HTTP encoder/sender. Follows a similar pattern to DDApi. */
 @Slf4j
 public class ZipkinV2Api implements Api {
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final String traceEndpoint;
 
   // Used to throttle logging when spans can't be sent
@@ -46,7 +44,7 @@ public class ZipkinV2Api implements Api {
   }
 
   @Override
-  public boolean sendTraces(final List<List<DDSpan>> traces) {
+  public Response sendTraces(final List<List<DDSpan>> traces) {
     final List<byte[]> serializedTraces = new ArrayList<>(traces.size());
     int sizeInBytes = 0;
     for (final List<DDSpan> trace : traces) {
@@ -64,15 +62,15 @@ public class ZipkinV2Api implements Api {
 
   @Override
   public byte[] serializeTrace(final List<DDSpan> trace) throws JsonProcessingException {
-    ArrayNode spanArr = objectMapper.createArrayNode();
+    ArrayNode spanArr = OBJECT_MAPPER.createArrayNode();
     for (DDSpan span : trace) {
       spanArr.add(encodeSpan(span));
     }
-    return objectMapper.writeValueAsBytes(spanArr);
+    return OBJECT_MAPPER.writeValueAsBytes(spanArr);
   }
 
   @Override
-  public boolean sendSerializedTraces(
+  public Response sendSerializedTraces(
       final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces) {
     try {
       final HttpURLConnection httpCon = getHttpURLConnection(traceEndpoint);
@@ -111,28 +109,50 @@ public class ZipkinV2Api implements Api {
           sb.append(line);
         }
       }
+      String responseContent = sb.toString();
 
       if (responseCode != 200) {
-        log.warn("Bad response code sending traces to {}: {}", traceEndpoint, sb.toString());
-      } else {
-        log.debug("Successfully sent {} traces", traces.size());
+        if (log.isDebugEnabled()) {
+          log.debug(
+              "Error while sending {} of {} traces to {}. Status: {}, Response: {}",
+              traces.size(),
+              representativeCount,
+              traceEndpoint,
+              responseCode,
+              responseContent);
+        } else if (nextAllowedLogTime < System.currentTimeMillis()) {
+          nextAllowedLogTime = System.currentTimeMillis() + MILLISECONDS_BETWEEN_ERROR_LOG;
+          log.warn(
+              "Error while sending {} of {} traces. Status: {}, Response: {} (going silent for {} minutes)",
+              traces.size(),
+              representativeCount,
+              responseCode,
+              responseContent,
+              TimeUnit.MILLISECONDS.toMinutes(MILLISECONDS_BETWEEN_ERROR_LOG));
+        }
+        return Response.failed(responseCode);
       }
+
+      log.debug("Successfully sent {} of {} traces.", traces.size(), representativeCount);
+
+      return Response.success(responseCode, responseContent);
     } catch (final IOException e) {
       if (log.isDebugEnabled()) {
-        log.debug("Error while sending " + traces.size() + " traces.", e);
+        log.debug(
+            "Error while sending " + traces.size() + " of " + representativeCount + " traces.", e);
       } else if (nextAllowedLogTime < System.currentTimeMillis()) {
         nextAllowedLogTime = System.currentTimeMillis() + MILLISECONDS_BETWEEN_ERROR_LOG;
         log.warn(
-            "Error while sending {} traces to {}. {}: {} (going silent for {} minutes)",
+            "Error while sending {} of {} traces to {}. {}: {} (going silent for {} minutes)",
             traces.size(),
+            representativeCount,
             traceEndpoint,
             e.getClass().getName(),
             e.getMessage(),
             TimeUnit.MILLISECONDS.toMinutes(MILLISECONDS_BETWEEN_ERROR_LOG));
       }
-      return false;
+      return Response.failed(e);
     }
-    return true;
   }
 
   /**
@@ -141,7 +161,7 @@ public class ZipkinV2Api implements Api {
    * <p>Just flatten out the lists of spans to a single output list.
    */
   private ArrayNode encodeTraces(final List<List<DDSpan>> traces) {
-    ArrayNode spanArr = objectMapper.createArrayNode();
+    ArrayNode spanArr = OBJECT_MAPPER.createArrayNode();
     for (List<DDSpan> trace : traces) {
       for (DDSpan span : trace) {
         spanArr.add(encodeSpan(span));
@@ -151,7 +171,7 @@ public class ZipkinV2Api implements Api {
   }
 
   private ObjectNode encodeSpan(final DDSpan span) {
-    ObjectNode spanNode = objectMapper.createObjectNode();
+    ObjectNode spanNode = OBJECT_MAPPER.createObjectNode();
     spanNode.put("id", Ids.idToHex(span.getSpanId()));
     spanNode.put("name", span.getOperationName());
     spanNode.put("traceId", Ids.idToHex(span.getTraceId()));
@@ -168,7 +188,7 @@ public class ZipkinV2Api implements Api {
 
     ObjectNode tagNode = spanNode.putObject("tags");
     for (Map.Entry<String, Object> tag : span.getTags().entrySet()) {
-      if (Tags.SPAN_KIND.getKey().equals(tag.getKey())) {
+      if (DDTags.SPAN_KIND.equals(tag.getKey())) {
         continue;
       }
       // Zipkin tags are always string values
@@ -179,11 +199,11 @@ public class ZipkinV2Api implements Api {
 
     ArrayNode annotations = spanNode.putArray("annotations");
     for (AbstractMap.SimpleEntry<Long, Map<String, ?>> item : span.getLogs()) {
-      final ObjectNode annotation = objectMapper.createObjectNode();
+      final ObjectNode annotation = OBJECT_MAPPER.createObjectNode();
       annotation.put("timestamp", item.getKey());
-      JsonNode value = objectMapper.valueToTree(item.getValue());
+      JsonNode value = OBJECT_MAPPER.valueToTree(item.getValue());
       try {
-        String encodedValue = objectMapper.writeValueAsString(value);
+        String encodedValue = OBJECT_MAPPER.writeValueAsString(value);
         annotation.put("value", encodedValue);
       } catch (JsonProcessingException e) {
         log.warn("Failed creating annotation");
@@ -197,8 +217,8 @@ public class ZipkinV2Api implements Api {
 
   private String deriveKind(DDSpan span) {
     Map<String, Object> tags = span.getTags();
-    if (tags.containsKey(SPAN_KIND.getKey())) {
-      Object kindObj = tags.get(SPAN_KIND.getKey());
+    if (tags.containsKey(DDTags.SPAN_KIND)) {
+      Object kindObj = tags.get(DDTags.SPAN_KIND);
       if (kindObj instanceof String) {
         return (String) kindObj;
       }
@@ -208,9 +228,9 @@ public class ZipkinV2Api implements Api {
     if (!Strings.isNullOrEmpty(span.getSpanType())) {
       switch (span.getSpanType()) {
         case DDSpanTypes.HTTP_CLIENT:
-          return Tags.SPAN_KIND_CLIENT;
+          return DDTags.SPAN_KIND_CLIENT;
         case DDSpanTypes.HTTP_SERVER:
-          return Tags.SPAN_KIND_SERVER;
+          return DDTags.SPAN_KIND_SERVER;
       }
     }
     return null;
@@ -231,7 +251,7 @@ public class ZipkinV2Api implements Api {
 
     final String spanKind = spanNode.get("kind").textValue();
     if (!Strings.isNullOrEmpty(spanKind)
-        && spanKind.toLowerCase().equals(Tags.SPAN_KIND_SERVER.toLowerCase())) {
+        && spanKind.toLowerCase().equals(DDTags.SPAN_KIND_SERVER.toLowerCase())) {
       spanNode.put("name", resourceName);
     }
 

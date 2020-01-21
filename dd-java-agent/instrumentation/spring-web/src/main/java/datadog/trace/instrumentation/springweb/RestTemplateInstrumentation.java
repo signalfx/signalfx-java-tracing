@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.springweb;
 
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
@@ -8,7 +9,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import io.opentracing.util.GlobalTracer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,7 +60,7 @@ public class RestTemplateInstrumentation extends Instrumenter.Default {
           return;
         }
       }
-      final TracingInterceptor interceptor = new TracingInterceptor(GlobalTracer.get());
+      final TracingInterceptor interceptor = new TracingInterceptor();
       interceptors.add(interceptor);
       restTemplate.setInterceptors(interceptors);
     }

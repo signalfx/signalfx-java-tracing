@@ -53,6 +53,7 @@ public class ClassLoaderMatcher {
       classesToSkip.add("sun.reflect.DelegatingClassLoader");
       classesToSkip.add("jdk.internal.reflect.DelegatingClassLoader");
       classesToSkip.add("clojure.lang.DynamicClassLoader");
+      classesToSkip.add("org.apache.cxf.common.util.ASMHelper$TypeHelperClassLoader");
       classesToSkip.add(DatadogClassLoader.class.getName());
       CLASSLOADER_CLASSES_TO_SKIP = Collections.unmodifiableSet(classesToSkip);
     }
@@ -94,7 +95,7 @@ public class ClassLoaderMatcher {
 
     /**
      * TODO: this turns out to be useless with OSGi: {@code
-     * }org.eclipse.osgi.internal.loader.BundleLoader#isRequestFromVM} returns {@code true} when
+     * org.eclipse.osgi.internal.loader.BundleLoader#isRequestFromVM} returns {@code true} when
      * class loading is issued from this check and {@code false} for 'real' class loads. We should
      * come up with some sort of hack to avoid this problem.
      */
@@ -149,9 +150,14 @@ public class ClassLoaderMatcher {
     @Override
     public boolean matches(final ClassLoader target) {
       if (target != null) {
+        Boolean result = cache.get(target);
+        if (result != null) {
+          return result;
+        }
         synchronized (target) {
-          if (cache.containsKey(target)) {
-            return cache.get(target);
+          result = cache.get(target);
+          if (result != null) {
+            return result;
           }
           for (final String name : names) {
             if (target.getResource(Utils.getResourceName(name)) == null) {
@@ -183,9 +189,14 @@ public class ClassLoaderMatcher {
     @Override
     public boolean matches(final ClassLoader target) {
       if (target != null) {
+        Boolean result = cache.get(target);
+        if (result != null) {
+          return result;
+        }
         synchronized (target) {
-          if (cache.containsKey(target)) {
-            return cache.get(target);
+          result = cache.get(target);
+          if (result != null) {
+            return result;
           }
           try {
             final Class<?> aClass = Class.forName(className, false, target);
@@ -224,9 +235,14 @@ public class ClassLoaderMatcher {
     @Override
     public boolean matches(final ClassLoader target) {
       if (target != null) {
+        Boolean result = cache.get(target);
+        if (result != null) {
+          return result;
+        }
         synchronized (target) {
-          if (cache.containsKey(target)) {
-            return cache.get(target);
+          result = cache.get(target);
+          if (result != null) {
+            return result;
           }
           try {
             final Class<?> aClass = Class.forName(className, false, target);

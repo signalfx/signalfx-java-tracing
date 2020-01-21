@@ -1,13 +1,14 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.bootstrap.DatadogClassLoader
+import datadog.trace.instrumentation.api.Tags
 import datadog.trace.instrumentation.http_url_connection.UrlInstrumentation
-import io.opentracing.tag.Tags
-import io.opentracing.util.GlobalTracer
 
+import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
 import static datadog.trace.agent.test.utils.PortUtils.UNUSABLE_PORT
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
-import static datadog.trace.agent.test.utils.TraceUtils.withConfigOverride
+import static datadog.trace.instrumentation.api.AgentTracer.activeScope
 import static datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionInstrumentation.HttpUrlState.OPERATION_NAME
 
 class UrlConnectionTest extends AgentTestRunner {
@@ -19,7 +20,7 @@ class UrlConnectionTest extends AgentTestRunner {
         URLConnection connection = url.openConnection()
         connection.setConnectTimeout(10000)
         connection.setReadTimeout(10000)
-        assert GlobalTracer.get().scopeManager().active() != null
+        assert activeScope() != null
         connection.inputStream
       }
     }
@@ -47,12 +48,12 @@ class UrlConnectionTest extends AgentTestRunner {
           childOf span(0)
           errored true
           tags {
-            "$Tags.COMPONENT.key" "http-url-connection"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.HTTP_URL.key" "$url/"
-            "$Tags.HTTP_METHOD.key" "GET"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
-            "$Tags.PEER_PORT.key" UNUSABLE_PORT
+            "$Tags.COMPONENT" "http-url-connection"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_URL" "$url/"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" UNUSABLE_PORT
             errorTags ConnectException, String
             defaultTags()
           }
@@ -97,16 +98,16 @@ class UrlConnectionTest extends AgentTestRunner {
         span(1) {
           serviceName "unnamed-java-app"
           operationName "file.request"
-          resourceName "$url.path"
+          resourceName "file:$url.path"
           spanType DDSpanTypes.HTTP_CLIENT
           childOf span(0)
           errored true
           tags {
-            "$Tags.COMPONENT.key" UrlInstrumentation.COMPONENT
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" UrlInstrumentation.COMPONENT
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             // FIXME: These tags really make no sense for non-http connections, why do we set them?
-            "$Tags.HTTP_URL.key" "$url"
-            "$Tags.PEER_PORT.key" 80
+            "$Tags.HTTP_URL" "$url"
+            "$Tags.PEER_PORT" 80
             errorTags IllegalArgumentException, String
             defaultTags()
           }
@@ -116,5 +117,34 @@ class UrlConnectionTest extends AgentTestRunner {
 
     where:
     renameService << [false, true]
+  }
+
+  def "DatadogClassloader ClassNotFoundException doesn't create span"() {
+    given:
+    ClassLoader datadogLoader = new DatadogClassLoader(null, null, null)
+    ClassLoader childLoader = new URLClassLoader(new URL[0], datadogLoader)
+
+    when:
+    runUnderTrace("someTrace") {
+      childLoader.loadClass("datadog.doesnotexist")
+    }
+
+    then:
+    thrown ClassNotFoundException
+
+    expect:
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          operationName "someTrace"
+          parent()
+          errored true
+          tags {
+            errorTags ClassNotFoundException, String
+            defaultTags()
+          }
+        }
+      }
+    }
   }
 }

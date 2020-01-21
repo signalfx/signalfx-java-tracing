@@ -1,15 +1,16 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.jetty6;
 
+import static datadog.trace.agent.decorator.HttpServerDecorator.DD_SPAN_ATTRIBUTE;
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.instrumentation.jetty6.HttpServletRequestExtractAdapter.GETTER;
 import static datadog.trace.instrumentation.jetty6.JettyDecorator.DECORATE;
 
 import datadog.trace.api.DDTags;
-import datadog.trace.context.TraceScope;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.SpanContext;
-import io.opentracing.propagation.Format;
-import io.opentracing.util.GlobalTracer;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import net.bytebuddy.asm.Advice;
@@ -17,24 +18,20 @@ import net.bytebuddy.asm.Advice;
 public class JettyHandlerAdvice {
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
-  public static Scope startSpan(
+  public static AgentScope onEnter(
       @Advice.This final Object source, @Advice.Argument(1) final HttpServletRequest req) {
 
-    if (GlobalTracer.get().activeSpan() != null) {
-      // Tracing might already be applied.  If so ignore this.
+    if (req.getAttribute(DD_SPAN_ATTRIBUTE) != null) {
+      // Request already being traced elsewhere.
       return null;
     }
 
-    final SpanContext extractedContext =
-        GlobalTracer.get().extract(Format.Builtin.HTTP_HEADERS, new ServletHeaderAdapter(req));
-    final Scope scope =
-        GlobalTracer.get()
-            .buildSpan("jetty.request")
-            .asChildOf(extractedContext)
-            .withTag("span.origin.type", source.getClass().getName())
-            .startActive(false);
+    final AgentSpan.Context extractedContext = propagate().extract(req, GETTER);
 
-    final Span span = scope.span();
+    final AgentSpan span =
+        startSpan("jetty.request", extractedContext)
+            .setTag("span.origin.type", source.getClass().getName());
+
     final String resourceName = source.getClass().getName();
     span.setTag(DDTags.RESOURCE_NAME, resourceName);
 
@@ -43,9 +40,9 @@ public class JettyHandlerAdvice {
     // http url must be set after resource name for URLAsResourceName decorator
     DECORATE.onRequest(span, req);
 
-    if (scope instanceof TraceScope) {
-      ((TraceScope) scope).setAsyncPropagation(true);
-    }
+    final AgentScope scope = activateSpan(span, false);
+    scope.setAsyncPropagation(true);
+    req.setAttribute(DD_SPAN_ATTRIBUTE, span);
     return scope;
   }
 
@@ -53,29 +50,27 @@ public class JettyHandlerAdvice {
   public static void stopSpan(
       @Advice.Argument(1) final HttpServletRequest req,
       @Advice.Argument(2) final HttpServletResponse resp,
-      @Advice.Enter final Scope scope,
+      @Advice.Enter final AgentScope scope,
       @Advice.Thrown final Throwable throwable) {
 
-    if (scope != null) {
-      final Span span = scope.span();
-
-      if (req.getUserPrincipal() != null) {
-        span.setTag(DDTags.USER_NAME, req.getUserPrincipal().getName());
-      }
-
-      DECORATE.onResponse(span, resp);
-
-      if (throwable != null) {
-        DECORATE.onError(span, throwable);
-      }
-
-      if (scope instanceof TraceScope) {
-        ((TraceScope) scope).setAsyncPropagation(false);
-      }
-
-      DECORATE.beforeFinish(span);
-      scope.close();
-      span.finish(); // Finish the span manually since finishSpanOnClose was false
+    if (scope == null) {
+      return;
     }
+
+    final AgentSpan span = scope.span();
+
+    if (req.getUserPrincipal() != null) {
+      span.setTag(DDTags.USER_NAME, req.getUserPrincipal().getName());
+    }
+
+    DECORATE.onResponse(span, resp);
+
+    if (throwable != null) {
+      DECORATE.onError(span, throwable);
+    }
+
+    DECORATE.beforeFinish(span);
+    scope.close();
+    span.finish(); // Finish the span manually since finishSpanOnClose was false
   }
 }

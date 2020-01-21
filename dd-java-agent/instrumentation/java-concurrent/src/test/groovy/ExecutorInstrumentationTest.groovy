@@ -1,23 +1,19 @@
 // Modified by SignalFx
-
-import org.junit.Assume
-
-import static java.util.concurrent.CompletableFuture.ThreadPerTaskExecutor
-
 import datadog.opentracing.DDSpan
-import datadog.opentracing.scopemanager.ContinuableScope
 import datadog.trace.agent.test.AgentTestRunner
+import datadog.trace.agent.test.utils.ConfigUtils
 import datadog.trace.api.Trace
 import datadog.trace.bootstrap.instrumentation.java.concurrent.CallableWrapper
 import datadog.trace.bootstrap.instrumentation.java.concurrent.RunnableWrapper
-import io.opentracing.util.GlobalTracer
 import spock.lang.Shared
 
 import java.lang.reflect.InvocationTargetException
 import java.util.concurrent.AbstractExecutorService
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Callable
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executor
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.ForkJoinTask
 import java.util.concurrent.Future
@@ -28,10 +24,15 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 
+import static datadog.trace.instrumentation.api.AgentTracer.activeScope
+import static org.junit.Assume.assumeTrue
+
 class ExecutorInstrumentationTest extends AgentTestRunner {
 
   static {
-    System.setProperty("dd.trace.executors", "ExecutorInstrumentationTest\$CustomThreadPoolExecutor")
+    ConfigUtils.updateConfig {
+      System.setProperty("dd.trace.executors", "ExecutorInstrumentationTest\$CustomThreadPoolExecutor")
+    }
   }
 
   @Shared
@@ -61,6 +62,7 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
 
   def "#poolImpl '#name' propagates"() {
     setup:
+    assumeTrue(poolImpl != null) // skip for Java 7 CompletableFuture
     def pool = poolImpl
     def m = method
 
@@ -68,7 +70,7 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
       @Override
       @Trace(operationName = "parent")
       void run() {
-        ((ContinuableScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(true)
+        activeScope().setAsyncPropagation(true)
         // this child will have a span
         m(pool, new JavaAsyncChild())
         // this child won't
@@ -87,7 +89,7 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
     trace.get(1).parentId == trace.get(0).spanId
 
     cleanup:
-    if (pool?.metaClass.respondsTo(pool, "shutdown")) {
+    if (pool?.hasProperty("shutdown")) {
       pool?.shutdown()
     }
 
@@ -134,8 +136,8 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
     "invokeAny"              | invokeAny           | new CustomThreadPoolExecutor()
     "invokeAny with timeout" | invokeAnyTimeout    | new CustomThreadPoolExecutor()
 
-    // Used internally by CompletableFuture when ForkJoinPool.commonPool() doesn't support parallelism
-    "execute Runnable"       | executeRunnable     | (System.getProperty("java.version").startsWith("1.7") ? Assume.assumeTrue(false) : new ThreadPerTaskExecutor())
+    // Internal executor used by CompletableFuture
+    "execute Runnable"       | executeRunnable     | java7SafeCompletableFutureThreadPerTaskExecutor()
   }
 
   def "#poolImpl '#name' disabled wrapping"() {
@@ -149,7 +151,7 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
       @Override
       @Trace(operationName = "parent")
       void run() {
-        ((ContinuableScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(true)
+        activeScope().setAsyncPropagation(true)
         m(pool, w(child))
       }
     }.run()
@@ -193,7 +195,7 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
       @Override
       @Trace(operationName = "parent")
       void run() {
-        ((ContinuableScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(true)
+        activeScope().setAsyncPropagation(true)
         try {
           for (int i = 0; i < 20; ++i) {
             // Our current instrumentation instrumentation does not behave very well
@@ -243,6 +245,14 @@ class ExecutorInstrumentationTest extends AgentTestRunner {
     // ForkJoinPool has additional set of method overloads for ForkJoinTask to deal with
     "submit Runnable"   | submitRunnable   | new ForkJoinPool()
     "submit Callable"   | submitCallable   | new ForkJoinPool()
+  }
+
+  private static Executor java7SafeCompletableFutureThreadPerTaskExecutor() {
+    try {
+      return new CompletableFuture.ThreadPerTaskExecutor()
+    } catch (NoClassDefFoundError e) {
+      return null
+    }
   }
 
   static class CustomThreadPoolExecutor extends AbstractExecutorService {

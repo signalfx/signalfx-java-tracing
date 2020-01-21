@@ -1,16 +1,17 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.springweb;
 
-import static io.opentracing.log.Fields.ERROR_OBJECT;
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.instrumentation.springweb.InjectAdapter.SETTER;
 
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.Tracer;
-import io.opentracing.propagation.Format;
-import io.opentracing.tag.Tags;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.Tags;
 import java.io.IOException;
-import java.util.Collections;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -25,43 +26,35 @@ import org.springframework.http.client.ClientHttpResponse;
  */
 public class TracingInterceptor implements ClientHttpRequestInterceptor {
 
-  private final Tracer tracer;
-
-  public TracingInterceptor(final Tracer tracer) {
-    this.tracer = tracer;
-  }
-
   @Override
   public ClientHttpResponse intercept(
       HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-    final Scope scope =
-        tracer
-            .buildSpan("http.request")
-            .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-            .withTag(Tags.COMPONENT.getKey(), "rest-template")
-            .withTag(Tags.HTTP_METHOD.getKey(), request.getMethod().toString())
-            .withTag(Tags.HTTP_URL.getKey(), request.getURI().toString())
-            .withTag(Tags.PEER_PORT.getKey(), request.getURI().getPort())
-            .withTag(Tags.PEER_HOSTNAME.getKey(), request.getURI().getHost())
-            .withTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT)
-            .startActive(true);
+    final AgentSpan span =
+        startSpan("http.request")
+            .setTag(Tags.SPAN_KIND, Tags.SPAN_KIND_CLIENT)
+            .setTag(Tags.COMPONENT, "rest-template")
+            .setTag(Tags.HTTP_METHOD, request.getMethod().toString())
+            .setTag(Tags.HTTP_URL, request.getURI().toString())
+            .setTag(Tags.PEER_PORT, request.getURI().getPort())
+            .setTag(Tags.PEER_HOSTNAME, request.getURI().getHost())
+            .setTag(DDTags.SPAN_TYPE, DDSpanTypes.HTTP_CLIENT);
 
-    final Span span = scope.span();
-    tracer.inject(
-        span.context(), Format.Builtin.HTTP_HEADERS, new InjectAdapter(request.getHeaders()));
+    propagate().inject(span, request.getHeaders(), SETTER);
+
+    final AgentScope scope = activateSpan(span, true);
 
     ClientHttpResponse response = null;
     try {
       response = execution.execute(request, body);
       return response;
     } catch (final Throwable ex) {
-      Tags.ERROR.set(span, true);
-      span.log(Collections.singletonMap(ERROR_OBJECT, ex));
+      span.setTag(Tags.ERROR, true);
+      span.addThrowable(ex);
       throw ex;
     } finally {
       if (response != null) {
         try {
-          Tags.HTTP_STATUS.set(span, response.getRawStatusCode());
+          span.setTag(Tags.HTTP_STATUS, response.getRawStatusCode());
         } catch (final Throwable scExc) {
         }
       }

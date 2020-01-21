@@ -1,9 +1,9 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.netty40;
 
 import datadog.trace.api.Config;
-import io.opentracing.Span;
-import io.opentracing.tag.IntTag;
-import io.opentracing.tag.Tags;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.api.Tags;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -13,19 +13,23 @@ public class NettyUtils {
       "instrumentation.netty.server.nonstandard.http.status.";
   public static final String NETTY_REWRITTEN_CLIENT_STATUS_PREFIX =
       "instrumentation.netty.client.nonstandard.http.status.";
-  public static final IntTag ORIG_HTTP_STATUS = new IntTag(Tags.HTTP_STATUS.getKey() + ".orig");
+  public static final String ORIG_HTTP_STATUS = Tags.HTTP_STATUS + ".orig";
 
   private NettyUtils() {}
 
-  public static void setServerSpanHttpStatus(Span span, int status) {
+  public static boolean setServerSpanHttpStatus(AgentSpan span, int status) {
     String name = NETTY_REWRITTEN_SERVER_STATUS_PREFIX + status;
     Boolean rewrite = Config.getBooleanSettingFromEnvironment(name, false);
-    (rewrite ? ORIG_HTTP_STATUS : Tags.HTTP_STATUS).set(span, status);
+    String tag = rewrite ? ORIG_HTTP_STATUS : Tags.HTTP_STATUS;
+    span.setTag(tag, status);
+    return rewrite;
   }
 
-  public static void setClientSpanHttpStatus(Span span, int status) {
+  public static boolean setClientSpanHttpStatus(AgentSpan span, int status) {
     String name = NETTY_REWRITTEN_CLIENT_STATUS_PREFIX + status;
     Boolean rewrite = Config.getBooleanSettingFromEnvironment(name, false);
-    (rewrite ? ORIG_HTTP_STATUS : Tags.HTTP_STATUS).set(span, status);
+    String tag = rewrite ? ORIG_HTTP_STATUS : Tags.HTTP_STATUS;
+    span.setTag(tag, status);
+    return rewrite;
   }
 }

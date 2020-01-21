@@ -1,5 +1,6 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.instrumentation.api.Tags
 import example.GreeterGrpc
 import example.Helloworld
 import io.grpc.BindableService
@@ -8,7 +9,6 @@ import io.grpc.Server
 import io.grpc.inprocess.InProcessChannelBuilder
 import io.grpc.inprocess.InProcessServerBuilder
 import io.grpc.stub.StreamObserver
-import io.opentracing.tag.Tags
 
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
@@ -91,8 +91,9 @@ class GrpcStreamingTest extends AgentTestRunner {
           childOf trace(1).get(0)
           errored false
           tags {
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            "$Tags.COMPONENT.key" "grpc-server"
+            "status.code" "OK"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.COMPONENT" "grpc-server"
             defaultTags(true)
           }
         }
@@ -105,8 +106,8 @@ class GrpcStreamingTest extends AgentTestRunner {
             childOf span(0)
             errored false
             tags {
-              "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-              "$Tags.COMPONENT.key" "grpc-server"
+              "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+              "$Tags.COMPONENT" "grpc-server"
               "message.type" "example.Helloworld\$Response"
               defaultTags()
             }
@@ -123,8 +124,8 @@ class GrpcStreamingTest extends AgentTestRunner {
           errored false
           tags {
             "status.code" "OK"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-            "$Tags.COMPONENT.key" "grpc-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.COMPONENT" "grpc-client"
             defaultTags()
           }
         }
@@ -137,8 +138,8 @@ class GrpcStreamingTest extends AgentTestRunner {
             childOf span(0)
             errored false
             tags {
-              "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
-              "$Tags.COMPONENT.key" "grpc-client"
+              "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+              "$Tags.COMPONENT" "grpc-client"
               "message.type" "example.Helloworld\$Response"
               defaultTags()
             }

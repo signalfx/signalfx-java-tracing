@@ -1,19 +1,19 @@
 // Modified by SignalFx
 package datadog.trace.agent.decorator;
 
-import io.opentracing.Span;
+import datadog.trace.instrumentation.api.AgentSpan;
 import io.opentracing.tag.Tags;
 
 public abstract class ServerDecorator extends BaseDecorator {
 
   @Override
-  public Span afterStart(final Span span) {
+  public AgentSpan afterStart(final AgentSpan span) {
     assert span != null;
-    Tags.SPAN_KIND.set(span, Tags.SPAN_KIND_SERVER);
+    span.setTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_SERVER);
     return super.afterStart(span);
   }
 
-  public Span afterStart(final Span span, final boolean setKind) {
+  public AgentSpan afterStart(final AgentSpan span, final boolean setKind) {
     assert span != null;
     if (setKind) {
       return this.afterStart(span);

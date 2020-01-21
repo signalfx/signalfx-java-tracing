@@ -1,24 +1,15 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.springweb;
 
-import io.opentracing.propagation.TextMap;
-import java.util.Iterator;
-import java.util.Map;
+import datadog.trace.instrumentation.api.AgentPropagation;
 import org.springframework.http.HttpHeaders;
 
-public class InjectAdapter implements TextMap {
-  private HttpHeaders httpHeaders;
+public class InjectAdapter implements AgentPropagation.Setter<HttpHeaders> {
 
-  public InjectAdapter(HttpHeaders httpHeaders) {
-    this.httpHeaders = httpHeaders;
-  }
+  public static final InjectAdapter SETTER = new InjectAdapter();
 
   @Override
-  public Iterator<Map.Entry<String, String>> iterator() {
-    throw new UnsupportedOperationException("This class should be used only with tracer#inject()");
-  }
-
-  @Override
-  public void put(String key, String value) {
-    httpHeaders.set(key, value);
+  public void set(final HttpHeaders carrier, final String key, final String value) {
+    carrier.set(key, value);
   }
 }

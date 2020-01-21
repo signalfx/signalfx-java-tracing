@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jersey;
 
 import static java.util.Collections.singletonMap;
@@ -31,7 +32,6 @@ public final class JerseyInstrumentation extends Instrumenter.Default {
   public String[] helperClassNames() {
     return new String[] {
       packageName + ".JerseyRequestExtractAdapter",
-      packageName + ".JerseyRequestExtractAdapter$MultivaluedMapIterator",
       packageName + ".TracingRequestEventListener",
       packageName + ".TracingRequestEventListener$1",
       packageName + ".TracingApplicationEventListener"

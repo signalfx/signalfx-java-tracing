@@ -1,5 +1,6 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
+import datadog.trace.agent.tooling.Constants
 
 class JBossClassloadingTest extends AgentTestRunner {
   def "delegation property set on module load"() {
@@ -7,6 +8,6 @@ class JBossClassloadingTest extends AgentTestRunner {
     org.jboss.modules.Module.getName()
 
     expect:
-    System.getProperty("jboss.modules.system.pkgs") == "io.opentracing,datadog.slf4j,datadog.trace.bootstrap,datadog.trace.api,datadog.trace.context,com.signalfx.tracing.api,com.signalfx.tracing.context"
+    assert Arrays.asList(System.getProperty("jboss.modules.system.pkgs").split(",")).containsAll(Constants.BOOTSTRAP_PACKAGE_PREFIXES)
   }
 }

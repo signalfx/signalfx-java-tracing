@@ -7,14 +7,15 @@ import datadog.trace.api.Config
 import datadog.trace.api.DDTags
 import datadog.trace.api.sampling.PrioritySampling
 import datadog.trace.common.writer.ListWriter
-import spock.lang.Specification
+import datadog.trace.util.test.DDSpecification
+import io.opentracing.Scope
+import io.opentracing.noop.NoopSpan
 
 import static datadog.opentracing.DDSpanContext.ORIGIN_KEY
 import static java.util.concurrent.TimeUnit.MILLISECONDS
-import static org.mockito.Mockito.mock
-import static org.mockito.Mockito.when
 
-class DDSpanBuilderTest extends Specification {
+class DDSpanBuilderTest extends DDSpecification {
+
   def writer = new ListWriter()
   def config = Config.get()
   def tracer = new DDTracer(writer)
@@ -152,11 +153,12 @@ class DDSpanBuilderTest extends Specification {
     final String spanId = "1"
     final long expectedParentId = spanId
 
-    final DDSpanContext mockedContext = mock(DDSpanContext)
-    when(mockedContext.getTraceId()).thenReturn(spanId)
-    when(mockedContext.getSpanId()).thenReturn(spanId)
-    when(mockedContext.getServiceName()).thenReturn("foo")
-    when(mockedContext.getTrace()).thenReturn(new PendingTrace(tracer, "1", [:]))
+    final DDSpanContext mockedContext = Mock()
+    1 * mockedContext.getTraceId() >> spanId
+    1 * mockedContext.getSpanId() >> spanId
+    _ * mockedContext.getServiceName() >> "foo"
+    1 * mockedContext.getBaggageItems() >> [:]
+    1 * mockedContext.getTrace() >> new PendingTrace(tracer, "1", [:])
 
     final String expectedName = "fakeName"
 
@@ -172,6 +174,33 @@ class DDSpanBuilderTest extends Specification {
     expect:
     actualContext.getParentId() == expectedParentId
     actualContext.getTraceId() == spanId
+  }
+
+  def "should link to parent span implicitly"() {
+    setup:
+    final Scope parent = noopParent ?
+      tracer.scopeManager().activate(NoopSpan.INSTANCE, false) :
+      tracer.buildSpan("parent")
+        .startActive(false)
+
+    final String expectedParentId = noopParent ? "0" : parent.span().context().getSpanId()
+
+    final String expectedName = "fakeName"
+
+    final DDSpan span = tracer
+      .buildSpan(expectedName)
+      .start()
+
+    final DDSpanContext actualContext = span.context()
+
+    expect:
+    actualContext.getParentId() == expectedParentId
+
+    cleanup:
+    parent.close()
+
+    where:
+    noopParent << [false, true]
   }
 
   def "should inherit the DD parent attributes"() {

@@ -1,7 +1,8 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
+import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
-import io.opentracing.tag.Tags
+import datadog.trace.instrumentation.api.Tags
 import redis.clients.jedis.Jedis
 import redis.embedded.RedisServer
 import spock.lang.Shared
@@ -23,11 +24,16 @@ class JedisClientTest extends AgentTestRunner {
   def setupSpec() {
     println "Using redis: $redisServer.args"
     redisServer.start()
+
+    // This setting should have no effect since decorator returns null for the instance.
+    System.setProperty(Config.PREFIX + Config.DB_CLIENT_HOST_SPLIT_BY_INSTANCE, "true")
   }
 
   def cleanupSpec() {
     redisServer.stop()
 //    jedis.close()  // not available in the early version we're using.
+
+    System.clearProperty(Config.PREFIX + Config.DB_CLIENT_HOST_SPLIT_BY_INSTANCE)
   }
 
   def setup() {
@@ -48,10 +54,10 @@ class JedisClientTest extends AgentTestRunner {
           resourceName "redis.SET"
           spanType DDSpanTypes.REDIS
           tags {
-            "$Tags.DB_STATEMENT.key" "SET: foo bar"
-            "$Tags.COMPONENT.key" "redis"
-            "$Tags.DB_TYPE.key" "redis"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_STATEMENT" "SET: foo bar"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.DB_TYPE" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }
@@ -75,10 +81,10 @@ class JedisClientTest extends AgentTestRunner {
           resourceName "redis.SET"
           spanType DDSpanTypes.REDIS
           tags {
-            "$Tags.DB_STATEMENT.key" "SET: foo bar"
-            "$Tags.COMPONENT.key" "redis"
-            "$Tags.DB_TYPE.key" "redis"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_STATEMENT" "SET: foo bar"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.DB_TYPE" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }
@@ -90,10 +96,10 @@ class JedisClientTest extends AgentTestRunner {
           resourceName "redis.GET"
           spanType DDSpanTypes.REDIS
           tags {
-            "$Tags.DB_STATEMENT.key" "GET: foo"
-            "$Tags.COMPONENT.key" "redis"
-            "$Tags.DB_TYPE.key" "redis"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_STATEMENT" "GET: foo"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.DB_TYPE" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }
@@ -117,10 +123,10 @@ class JedisClientTest extends AgentTestRunner {
           resourceName "redis.SET"
           spanType DDSpanTypes.REDIS
           tags {
-            "$Tags.DB_STATEMENT.key" "SET: foo bar"
-            "$Tags.COMPONENT.key" "redis"
-            "$Tags.DB_TYPE.key" "redis"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_STATEMENT" "SET: foo bar"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.DB_TYPE" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }
@@ -132,10 +138,10 @@ class JedisClientTest extends AgentTestRunner {
           resourceName "redis.RANDOMKEY"
           spanType DDSpanTypes.REDIS
           tags {
-            "$Tags.DB_STATEMENT.key" "RANDOMKEY"
-            "$Tags.COMPONENT.key" "redis"
-            "$Tags.DB_TYPE.key" "redis"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_STATEMENT" "RANDOMKEY"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.DB_TYPE" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }
@@ -158,10 +164,10 @@ class JedisClientTest extends AgentTestRunner {
           resourceName "redis.AUTH"
           spanType DDSpanTypes.REDIS
           tags {
-            "$Tags.DB_STATEMENT.key" "AUTH"
-            "$Tags.COMPONENT.key" "redis"
-            "$Tags.DB_TYPE.key" "redis"
-            "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_STATEMENT" "AUTH"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.DB_TYPE" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             defaultTags()
           }
         }

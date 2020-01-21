@@ -2,6 +2,7 @@
 package datadog.trace.instrumentation.netty40;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.instrumentation.api.AgentTracer.activeScope;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
@@ -29,8 +30,6 @@ import io.netty.handler.codec.http.HttpResponseDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.util.Attribute;
-import io.opentracing.Scope;
-import io.opentracing.util.GlobalTracer;
 import java.util.HashMap;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
@@ -57,6 +56,7 @@ public class NettyChannelPipelineInstrumentation extends Instrumenter.Default {
   public String[] helperClassNames() {
     return new String[] {
       packageName + ".AttributeKeys",
+      packageName + ".AttributeKeys$1",
       packageName + ".NettyUtils",
       "datadog.trace.agent.decorator.BaseDecorator",
       // client helpers
@@ -150,9 +150,9 @@ public class NettyChannelPipelineInstrumentation extends Instrumenter.Default {
   public static class ChannelPipelineConnectAdvice {
     @Advice.OnMethodEnter
     public static void addParentSpan(@Advice.This final ChannelPipeline pipeline) {
-      final Scope scope = GlobalTracer.get().scopeManager().active();
-      if (scope instanceof TraceScope) {
-        final TraceScope.Continuation continuation = ((TraceScope) scope).capture();
+      final TraceScope scope = activeScope();
+      if (scope != null) {
+        final TraceScope.Continuation continuation = scope.capture();
         if (null != continuation) {
           final Attribute<TraceScope.Continuation> attribute =
               pipeline.channel().attr(AttributeKeys.PARENT_CONNECT_CONTINUATION_ATTRIBUTE_KEY);

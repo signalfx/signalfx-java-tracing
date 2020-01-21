@@ -1,9 +1,10 @@
+// Modified by SignalFx
 import com.google.common.io.Files
 import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.ListWriterAssert
 import datadog.trace.api.DDSpanTypes
-import io.opentracing.tag.Tags
+import datadog.trace.instrumentation.api.Tags
 import org.hornetq.api.core.TransportConfiguration
 import org.hornetq.api.core.client.HornetQClient
 import org.hornetq.api.jms.HornetQJMSClient
@@ -164,8 +165,8 @@ class JMS2Test extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "${Tags.COMPONENT.key}" "jms"
-            "${Tags.SPAN_KIND.key}" "consumer"
+            "${Tags.COMPONENT}" "jms"
+            "${Tags.SPAN_KIND}" "consumer"
             "span.origin.type" HornetQMessageConsumer.name
           }
         }
@@ -202,8 +203,8 @@ class JMS2Test extends AgentTestRunner {
 
           tags {
             defaultTags()
-            "${Tags.COMPONENT.key}" "jms"
-            "${Tags.SPAN_KIND.key}" "consumer"
+            "${Tags.COMPONENT}" "jms"
+            "${Tags.SPAN_KIND}" "consumer"
             "span.origin.type" HornetQMessageConsumer.name
           }
         }
@@ -231,9 +232,9 @@ class JMS2Test extends AgentTestRunner {
 
         tags {
           defaultTags()
-          "${Tags.COMPONENT.key}" "jms"
-          "${Tags.SPAN_KIND.key}" "producer"
-          "${Tags.MESSAGE_BUS_DESTINATION.key}" "$jmsResourceName"
+          "${Tags.COMPONENT}" "jms"
+          "${Tags.SPAN_KIND}" "producer"
+          "${Tags.MESSAGE_BUS_DESTINATION}" "$jmsResourceName"
           "span.origin.type" HornetQMessageProducer.name
         }
       }
@@ -257,9 +258,9 @@ class JMS2Test extends AgentTestRunner {
 
         tags {
           defaultTags(true)
-          "${Tags.COMPONENT.key}" "jms"
-          "${Tags.SPAN_KIND.key}" "consumer"
-          "${Tags.MESSAGE_BUS_DESTINATION.key}" "$jmsResourceName"
+          "${Tags.COMPONENT}" "jms"
+          "${Tags.SPAN_KIND}" "consumer"
+          "${Tags.MESSAGE_BUS_DESTINATION}" "$jmsResourceName"
           "span.origin.type" origin.name
         }
       }

@@ -3,8 +3,9 @@ package datadog.trace.instrumentation.spymemcached
 import com.google.common.util.concurrent.MoreExecutors
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.TraceAssert
+import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
-import io.opentracing.tag.Tags
+import datadog.trace.instrumentation.api.Tags
 import net.spy.memcached.CASResponse
 import net.spy.memcached.ConnectionFactory
 import net.spy.memcached.ConnectionFactoryBuilder
@@ -71,12 +72,17 @@ class SpymemcachedTest extends AgentTestRunner {
         memcachedContainer.getMappedPort(defaultMemcachedPort)
       )
     }
+
+    // This setting should have no effect since decorator returns null for the instance.
+    System.setProperty(Config.PREFIX + Config.DB_CLIENT_HOST_SPLIT_BY_INSTANCE, "true")
   }
 
   def cleanupSpec() {
     if (memcachedContainer) {
       memcachedContainer.stop()
     }
+
+    System.clearProperty(Config.PREFIX + Config.DB_CLIENT_HOST_SPLIT_BY_INSTANCE)
   }
 
   ReentrantLock queueLock
@@ -632,9 +638,9 @@ class SpymemcachedTest extends AgentTestRunner {
 
       tags {
         defaultTags()
-        "${Tags.COMPONENT.key}" COMPONENT_NAME
-        "${Tags.SPAN_KIND.key}" Tags.SPAN_KIND_CLIENT
-        "${Tags.DB_TYPE.key}" CompletionListener.DB_TYPE
+        "${Tags.COMPONENT}" COMPONENT_NAME
+        "${Tags.SPAN_KIND}" Tags.SPAN_KIND_CLIENT
+        "${Tags.DB_TYPE}" CompletionListener.DB_TYPE
 
         if (error == "canceled") {
           "${CompletionListener.DB_COMMAND_CANCELLED}" true

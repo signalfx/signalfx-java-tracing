@@ -9,21 +9,23 @@ import datadog.trace.common.sampling.RateByServiceSampler
 import datadog.trace.common.writer.DDAgentWriter
 import datadog.trace.common.writer.ListWriter
 import datadog.trace.common.writer.LoggingWriter
+import datadog.trace.util.test.DDSpecification
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.EnvironmentVariables
 import org.junit.contrib.java.lang.system.RestoreSystemProperties
 import spock.lang.Ignore
-import spock.lang.Specification
 
 import static datadog.trace.api.Config.DEFAULT_SERVICE_NAME
 import static datadog.trace.api.Config.HEADER_TAGS
+import static datadog.trace.api.Config.HEALTH_METRICS_ENABLED
 import static datadog.trace.api.Config.PREFIX
 import static datadog.trace.api.Config.PRIORITY_SAMPLING
 import static datadog.trace.api.Config.SERVICE_MAPPING
 import static datadog.trace.api.Config.SPAN_TAGS
 import static datadog.trace.api.Config.WRITER_TYPE
 
-class DDTracerTest extends Specification {
+class DDTracerTest extends DDSpecification {
+
   @Rule
   public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties()
   @Rule
@@ -47,11 +49,24 @@ class DDTracerTest extends Specification {
     tracer.serviceName == "unnamed-java-app"
     tracer.sampler instanceof AllSampler
     tracer.writer.toString() == "DDAgentWriter { api=ZipkinV2Api { traceEndpoint=http://localhost:9080/v1/trace } }"
+    tracer.writer.monitor instanceof DDAgentWriter.NoopMonitor
 
     tracer.spanContextDecorators.size() == 15
 
     tracer.injector instanceof HttpCodec.CompoundInjector
     tracer.extractor instanceof HttpCodec.CompoundExtractor
+  }
+
+  def "verify enabling health monitor"() {
+    setup:
+    System.setProperty(PREFIX + HEALTH_METRICS_ENABLED, "true")
+
+    when:
+    def tracer = new DDTracer(new Config())
+
+    then:
+    tracer.writer.toString() == "DDAgentWriter { api=ZipkinV2Api { traceEndpoint=http://localhost:9080/v1/trace }, monitor=StatsD { host=localhost:8125 } }"
+    tracer.writer.monitor instanceof DDAgentWriter.StatsDMonitor
   }
 
 

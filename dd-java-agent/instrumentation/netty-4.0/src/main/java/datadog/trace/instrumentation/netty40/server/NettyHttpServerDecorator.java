@@ -1,8 +1,12 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.netty40.server;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.HOST;
 
 import datadog.trace.agent.decorator.HttpServerDecorator;
+import datadog.trace.api.Config;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.netty40.NettyUtils;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
@@ -72,5 +76,20 @@ public class NettyHttpServerDecorator
   @Override
   protected Integer status(final HttpResponse httpResponse) {
     return httpResponse.getStatus().code();
+  }
+
+  @Override
+  public AgentSpan onResponse(final AgentSpan span, final HttpResponse response) {
+    assert span != null;
+    if (response != null) {
+      final Integer status = status(response);
+      if (status != null) {
+        final boolean rewritten = NettyUtils.setServerSpanHttpStatus(span, status);
+        if (!rewritten && Config.get().getHttpServerErrorStatuses().contains(status)) {
+          span.setError(true);
+        }
+      }
+    }
+    return span;
   }
 }

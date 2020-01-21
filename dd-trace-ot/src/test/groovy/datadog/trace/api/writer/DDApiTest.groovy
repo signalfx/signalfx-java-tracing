@@ -5,15 +5,15 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
 import datadog.opentracing.SpanFactory
 import datadog.trace.common.writer.DDApi
-import datadog.trace.common.writer.DDApi.ResponseListener
-import spock.lang.Specification
+import datadog.trace.common.writer.Api.ResponseListener
+import datadog.trace.util.test.DDSpecification
 
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
 
-class DDApiTest extends Specification {
+class DDApiTest extends DDSpecification {
   static mapper = DDApi.OBJECT_MAPPER
 
   def "sending an empty list of traces returns no errors"() {
@@ -35,13 +35,15 @@ class DDApiTest extends Specification {
 
     expect:
     client.tracesUrl.toString() == "http://localhost:${agent.address.port}/v0.4/traces"
-    client.sendTraces([])
+    def response = client.sendTraces([])
+    response.success()
+    response.status() == 200
 
     cleanup:
     agent.close()
   }
 
-  def "non-200 response results in false returned"() {
+  def "non-200 response"() {
     setup:
     def agent = httpServer {
       handlers {
@@ -54,7 +56,10 @@ class DDApiTest extends Specification {
 
     expect:
     client.tracesUrl.toString() == "http://localhost:${agent.address.port}/v0.3/traces"
-    !client.sendTraces([])
+
+    def response = client.sendTraces([])
+    !response.success()
+    response.status() == 404
 
     cleanup:
     agent.close()
@@ -73,7 +78,7 @@ class DDApiTest extends Specification {
 
     expect:
     client.tracesUrl.toString() == "http://localhost:${agent.address.port}/v0.4/traces"
-    client.sendTraces(traces)
+    client.sendTraces(traces).success()
     agent.lastRequest.contentType == "application/msgpack"
     agent.lastRequest.headers.get("Datadog-Meta-Lang") == "java"
     agent.lastRequest.headers.get("Datadog-Meta-Lang-Version") == System.getProperty("java.version", "unknown")
@@ -96,7 +101,7 @@ class DDApiTest extends Specification {
       "name"     : "fakeOperation",
       "parent_id": 0,
       "resource" : "fakeResource",
-      "service"  : "my-service",
+      "service"  : "fakeService",
       "span_id"  : 1,
       "start"    : 1000,
       "trace_id" : 1,
@@ -162,7 +167,7 @@ class DDApiTest extends Specification {
 
     expect:
     client.tracesUrl.toString() == "http://localhost:${v3Agent.address.port}/v0.3/traces"
-    client.sendTraces([])
+    client.sendTraces([]).success()
 
     cleanup:
     v3Agent.close()
@@ -215,7 +220,7 @@ class DDApiTest extends Specification {
     def client = new DDApi("localhost", agent.address.port, null)
 
     when:
-    def success = client.sendTraces(traces)
+    def success = client.sendTraces(traces).success()
     then:
     success
     receivedContentLength.get() == expectedLength

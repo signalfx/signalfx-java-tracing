@@ -1,6 +1,7 @@
 package datadog.trace.agent.tooling;
 
 import static datadog.trace.agent.tooling.ClassLoaderMatcher.BOOTSTRAP_CLASSLOADER;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.skipClassLoader;
 import static net.bytebuddy.agent.builder.AgentBuilder.PoolStrategy;
 
 import com.google.common.cache.Cache;
@@ -20,16 +21,21 @@ import net.bytebuddy.pool.TypePool;
  *
  * <p>We also use our bootstrap proxy when matching against the bootstrap loader.
  *
- * <p>The CacheProvider is also a custom implementation that uses guava's cache to evict.
+ * <p>The CacheProvider is a custom implementation that uses guava's cache to expire and limit size.
  *
- * <p>By eviciting from the cache we are able to reduce the memory overhead of the agent for apps
+ * <p>By evicting from the cache we are able to reduce the memory overhead of the agent for apps
  * that have many classes.
  *
  * <p>See eviction policy below.
  */
 public class DDCachingPoolStrategy implements PoolStrategy {
-  private static final WeakMap<ClassLoader, TypePool.CacheProvider> typePoolCache =
+  private final WeakMap<ClassLoader, TypePool.CacheProvider> typePoolCache =
       WeakMap.Provider.newWeakMap();
+  private final Cleaner cleaner;
+
+  public DDCachingPoolStrategy(final Cleaner cleaner) {
+    this.cleaner = cleaner;
+  }
 
   @Override
   public TypePool typePool(final ClassFileLocator classFileLocator, final ClassLoader classLoader) {
@@ -40,7 +46,14 @@ public class DDCachingPoolStrategy implements PoolStrategy {
       synchronized (key) {
         cache = typePoolCache.get(key);
         if (null == cache) {
-          cache = EvictingCacheProvider.withObjectType();
+          if (skipClassLoader().matches(classLoader)) {
+            // Don't bother creating a cache for a classloader that won't match.
+            // (avoiding a lot of DelegatingClassLoader instances)
+            // This is primarily an optimization.
+            cache = TypePool.CacheProvider.NoOp.INSTANCE;
+          } else {
+            cache = EvictingCacheProvider.withObjectType(cleaner, 1, TimeUnit.MINUTES);
+          }
           typePoolCache.put(key, cache);
         }
       }
@@ -55,17 +68,27 @@ public class DDCachingPoolStrategy implements PoolStrategy {
     private final Cache<String, TypePool.Resolution> cache;
 
     /** Creates a new simple cache. */
-    private EvictingCacheProvider() {
+    private EvictingCacheProvider(
+        final Cleaner cleaner, final long expireDuration, final TimeUnit unit) {
       cache =
           CacheBuilder.newBuilder()
-              .initialCapacity(100)
-              .maximumSize(1000)
-              .expireAfterAccess(1, TimeUnit.MINUTES)
+              .initialCapacity(100) // Per classloader, so we want a small default.
+              .maximumSize(5000)
+              .softValues()
+              .expireAfterAccess(expireDuration, unit)
               .build();
+
+      /*
+       * The cache only does cleanup on occasional reads and writes.
+       * We want to ensure this happens more regularly, so we schedule a thread to do run cleanup manually.
+       */
+      cleaner.scheduleCleaning(cache, CacheCleaner.CLEANER, expireDuration, unit);
     }
 
-    private static TypePool.CacheProvider withObjectType() {
-      final TypePool.CacheProvider cacheProvider = new EvictingCacheProvider();
+    private static EvictingCacheProvider withObjectType(
+        final Cleaner cleaner, final long expireDuration, final TimeUnit unit) {
+      final EvictingCacheProvider cacheProvider =
+          new EvictingCacheProvider(cleaner, expireDuration, unit);
       cacheProvider.register(
           Object.class.getName(), new TypePool.Resolution.Simple(TypeDescription.OBJECT));
       return cacheProvider;
@@ -88,6 +111,19 @@ public class DDCachingPoolStrategy implements PoolStrategy {
     @Override
     public void clear() {
       cache.invalidateAll();
+    }
+
+    public long size() {
+      return cache.size();
+    }
+
+    private static class CacheCleaner implements Cleaner.Adapter<Cache> {
+      private static final CacheCleaner CLEANER = new CacheCleaner();
+
+      @Override
+      public void clean(final Cache target) {
+        target.cleanUp();
+      }
     }
 
     private static class ResolutionProvider implements Callable<TypePool.Resolution> {

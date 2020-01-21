@@ -45,7 +45,7 @@ class SparkJavaBasedTest extends AgentTestRunner {
         span(0) {
           serviceName "unnamed-java-app"
           operationName "jetty.request"
-          resourceName "GET /param/:param"
+          resourceName "/param/:param"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           parent()

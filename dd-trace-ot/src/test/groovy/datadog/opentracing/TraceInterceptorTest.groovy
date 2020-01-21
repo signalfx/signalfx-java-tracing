@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing
 
 import datadog.trace.api.Config
@@ -5,11 +6,12 @@ import datadog.trace.api.GlobalTracer
 import datadog.trace.api.interceptor.MutableSpan
 import datadog.trace.api.interceptor.TraceInterceptor
 import datadog.trace.common.writer.ListWriter
-import spock.lang.Specification
+import datadog.trace.util.test.DDSpecification
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-class TraceInterceptorTest extends Specification {
+class TraceInterceptorTest extends DDSpecification {
+
   def writer = new ListWriter()
   def tracer = new DDTracer(writer)
 

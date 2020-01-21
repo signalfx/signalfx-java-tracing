@@ -1,56 +1,42 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.netty41.client;
 
+import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.instrumentation.api.AgentTracer.noopSpan;
 import static datadog.trace.instrumentation.netty41.client.NettyHttpClientDecorator.DECORATE;
 
-import datadog.trace.context.TraceScope;
+import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.instrumentation.api.AgentSpan;
 import datadog.trace.instrumentation.netty41.AttributeKeys;
-import datadog.trace.instrumentation.netty41.NettyUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.HttpResponse;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.util.GlobalTracer;
+import io.netty.util.Attribute;
 
 public class HttpClientResponseTracingHandler extends ChannelInboundHandlerAdapter {
 
   @Override
   public void channelRead(final ChannelHandlerContext ctx, final Object msg) {
-    final Span span = ctx.channel().attr(AttributeKeys.CLIENT_ATTRIBUTE_KEY).get();
-    if (span == null) {
-      ctx.fireChannelRead(msg);
-      return;
+    final Attribute<AgentSpan> parentAttr =
+        ctx.channel().attr(AttributeKeys.CLIENT_PARENT_ATTRIBUTE_KEY);
+    parentAttr.setIfAbsent(noopSpan());
+    final AgentSpan parent = parentAttr.get();
+    final AgentSpan span = ctx.channel().attr(AttributeKeys.CLIENT_ATTRIBUTE_KEY).get();
+
+    final boolean finishSpan = msg instanceof HttpResponse;
+
+    if (span != null && finishSpan) {
+      try (final AgentScope scope = activateSpan(span, false)) {
+        DECORATE.onResponse(span, (HttpResponse) msg);
+        DECORATE.beforeFinish(span);
+        span.finish();
+      }
     }
 
-    try (final Scope scope = GlobalTracer.get().scopeManager().activate(span, false)) {
-      final boolean finishSpan = msg instanceof HttpResponse;
-
-      if (scope instanceof TraceScope) {
-        ((TraceScope) scope).setAsyncPropagation(true);
-      }
-      try {
-        ctx.fireChannelRead(msg);
-      } catch (final Throwable throwable) {
-        if (finishSpan) {
-          DECORATE.onError(span, throwable);
-          try {
-            int status = ((HttpResponse) msg).status().code();
-            NettyUtils.setClientSpanHttpStatus(span, status);
-          } catch (final Throwable ex) {
-            // Unable to access status code from response.  No action needed.
-          }
-          DECORATE.beforeFinish(span);
-          span.finish(); // Finish the span manually since finishSpanOnClose was false
-          throw throwable;
-        }
-      }
-
-      if (finishSpan) {
-        NettyUtils.setClientSpanHttpStatus(span, ((HttpResponse) msg).status().code());
-        DECORATE.beforeFinish(span);
-        span.finish(); // Finish the span manually since finishSpanOnClose was false
-      }
+    // We want the callback in the scope of the parent, not the client span
+    try (final AgentScope scope = activateSpan(parent, false)) {
+      scope.setAsyncPropagation(true);
+      ctx.fireChannelRead(msg);
     }
   }
 }

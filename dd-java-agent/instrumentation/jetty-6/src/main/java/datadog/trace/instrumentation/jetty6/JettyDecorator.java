@@ -2,7 +2,7 @@
 package datadog.trace.instrumentation.jetty6;
 
 import datadog.trace.agent.decorator.HttpServerDecorator;
-import io.opentracing.Span;
+import datadog.trace.instrumentation.api.AgentSpan;
 import java.net.URI;
 import java.net.URISyntaxException;
 import javax.servlet.http.HttpServletRequest;
@@ -54,7 +54,7 @@ public class JettyDecorator
   }
 
   @Override
-  public Span onRequest(final Span span, final HttpServletRequest request) {
+  public AgentSpan onRequest(final AgentSpan span, final HttpServletRequest request) {
     assert span != null;
     if (request != null) {
       span.setTag("servlet.context", request.getContextPath());

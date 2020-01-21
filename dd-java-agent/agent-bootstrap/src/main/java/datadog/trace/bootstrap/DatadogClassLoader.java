@@ -1,9 +1,17 @@
 package datadog.trace.bootstrap;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import lombok.extern.slf4j.Slf4j;
 
-/** Classloader used to run the core datadog agent. */
+/**
+ * Classloader used to run the core datadog agent.
+ *
+ * <p>It is built around the concept of a jar inside another jar. This classloader loads the files
+ * of the internal jar to load classes and resources.
+ */
+@Slf4j
 public class DatadogClassLoader extends URLClassLoader {
   static {
     ClassLoader.registerAsParallelCapable();
@@ -14,22 +22,46 @@ public class DatadogClassLoader extends URLClassLoader {
   // As a workaround, we keep a reference to the bootstrap jar
   // to use only for resource lookups.
   private final BootstrapClassLoaderProxy bootstrapProxy;
-
   /**
    * Construct a new DatadogClassLoader
    *
    * @param bootstrapJarLocation Used for resource lookups.
-   * @param agentJarLocation Classpath of this classloader.
+   * @param internalJarFileName File name of the internal jar
    * @param parent Classloader parent. Should null (bootstrap), or the platform classloader for java
    *     9+.
    */
-  public DatadogClassLoader(URL bootstrapJarLocation, URL agentJarLocation, ClassLoader parent) {
-    super(new URL[] {agentJarLocation}, parent);
-    bootstrapProxy = new BootstrapClassLoaderProxy(new URL[] {bootstrapJarLocation}, null);
+  public DatadogClassLoader(
+      final URL bootstrapJarLocation, final String internalJarFileName, final ClassLoader parent) {
+    super(new URL[] {}, parent);
+
+    // some tests pass null
+    bootstrapProxy =
+        bootstrapJarLocation == null
+            ? new BootstrapClassLoaderProxy(new URL[0])
+            : new BootstrapClassLoaderProxy(new URL[] {bootstrapJarLocation});
+
+    try {
+      // The fields of the URL are mostly dummy.  InternalJarURLHandler is the only important
+      // field.  If extending this class from Classloader instead of URLClassloader required less
+      // boilerplate it could be used and the need for dummy fields would be reduced
+
+      final URL internalJarURL =
+          new URL(
+              "x-internal-jar",
+              null,
+              0,
+              "/",
+              new InternalJarURLHandler(internalJarFileName, bootstrapJarLocation));
+
+      addURL(internalJarURL);
+    } catch (final MalformedURLException e) {
+      // This can't happen with current URL constructor
+      log.error("URL malformed.  Unsupported JDK?", e);
+    }
   }
 
   @Override
-  public URL getResource(String resourceName) {
+  public URL getResource(final String resourceName) {
     final URL bootstrapResource = bootstrapProxy.getResource(resourceName);
     if (null == bootstrapResource) {
       return super.getResource(resourceName);
@@ -61,17 +93,17 @@ public class DatadogClassLoader extends URLClassLoader {
       ClassLoader.registerAsParallelCapable();
     }
 
-    public BootstrapClassLoaderProxy(URL[] urls, ClassLoader parent) {
-      super(urls, parent);
+    public BootstrapClassLoaderProxy(final URL[] urls) {
+      super(urls, null);
     }
 
     @Override
-    public void addURL(URL url) {
+    public void addURL(final URL url) {
       super.addURL(url);
     }
 
     @Override
-    protected Class<?> findClass(String name) throws ClassNotFoundException {
+    protected Class<?> findClass(final String name) throws ClassNotFoundException {
       throw new ClassNotFoundException(name);
     }
   }

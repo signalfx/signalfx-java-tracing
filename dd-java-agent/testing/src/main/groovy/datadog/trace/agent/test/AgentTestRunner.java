@@ -15,10 +15,12 @@ import datadog.trace.api.Config;
 import datadog.trace.api.GlobalTracer;
 import datadog.trace.common.writer.ListWriter;
 import datadog.trace.common.writer.Writer;
+import datadog.trace.util.test.DDSpecification;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.SimpleType;
+import io.opentracing.Span;
 import io.opentracing.Tracer;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
@@ -27,7 +29,9 @@ import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.agent.builder.AgentBuilder;
@@ -40,7 +44,6 @@ import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.slf4j.LoggerFactory;
 import org.spockframework.runtime.model.SpecMetadata;
-import spock.lang.Specification;
 
 /**
  * A spock test runner which automatically applies instrumentation and exposes a global trace
@@ -60,7 +63,8 @@ import spock.lang.Specification;
 @RunWith(SpockRunner.class)
 @SpecMetadata(filename = "AgentTestRunner.java", line = 0)
 @Slf4j
-public abstract class AgentTestRunner extends Specification {
+public abstract class AgentTestRunner extends DDSpecification {
+  private static final long TIMEOUT_MILLIS = 10 * 1000;
   /**
    * For test runs, agent's global tracer will report to this list writer.
    *
@@ -203,16 +207,20 @@ public abstract class AgentTestRunner extends Specification {
     ListWriterAssert.assertTraces(TEST_WRITER, size, spec);
   }
 
-  public void blockUntilChildSpansFinished(final int numberOfSpans) throws InterruptedException {
-    final DDSpan span = (DDSpan) io.opentracing.util.GlobalTracer.get().activeSpan();
-    if (span == null) {
-      // If there is no active span avoid getting an NPE
-      return;
-    }
-    final PendingTrace pendingTrace = span.context().getTrace();
+  @SneakyThrows
+  public static void blockUntilChildSpansFinished(final int numberOfSpans) {
+    final Span span = io.opentracing.util.GlobalTracer.get().activeSpan();
+    final long deadline = System.currentTimeMillis() + TIMEOUT_MILLIS;
+    if (span instanceof DDSpan) {
+      final PendingTrace pendingTrace = ((DDSpan) span).context().getTrace();
 
-    while (pendingTrace.size() < numberOfSpans) {
-      Thread.sleep(10);
+      while (pendingTrace.size() < numberOfSpans) {
+        if (System.currentTimeMillis() > deadline) {
+          throw new TimeoutException(
+              "Timed out waiting for child spans.  Received: " + pendingTrace.size());
+        }
+        Thread.sleep(10);
+      }
     }
   }
 

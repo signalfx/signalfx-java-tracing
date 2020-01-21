@@ -3,19 +3,19 @@ package datadog.trace.instrumentation.netty40.server;
 
 import static datadog.trace.instrumentation.netty40.server.NettyHttpServerDecorator.DECORATE;
 
+import datadog.trace.instrumentation.api.AgentSpan;
 import datadog.trace.instrumentation.netty40.AttributeKeys;
 import datadog.trace.instrumentation.netty40.NettyUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpResponse;
-import io.opentracing.Span;
 
 public class HttpServerResponseTracingHandler extends ChannelOutboundHandlerAdapter {
 
   @Override
   public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise prm) {
-    final Span span = ctx.channel().attr(AttributeKeys.SERVER_ATTRIBUTE_KEY).get();
+    final AgentSpan span = ctx.channel().attr(AttributeKeys.SERVER_ATTRIBUTE_KEY).get();
     if (span == null || !(msg instanceof HttpResponse)) {
       ctx.write(msg, prm);
       return;

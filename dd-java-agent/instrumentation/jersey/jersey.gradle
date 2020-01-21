@@ -1,3 +1,4 @@
+// Modified by SignalFx
 muzzle {
   pass {
     group = "org.glassfish.jersey.core"
@@ -18,15 +19,6 @@ testSets {
 
 dependencies {
   compileOnly group: 'org.glassfish.jersey.core', name: 'jersey-server', version: '2.1'
-
-  compile project(':dd-java-agent:agent-tooling')
-
-  compile deps.bytebuddy
-  compile deps.opentracing
-  annotationProcessor deps.autoservice
-  implementation deps.autoservice
-
-  testCompile project(':dd-java-agent:testing')
 
   testCompile group: 'com.squareup.okhttp3', name: 'okhttp', version: '[3.11.0,)'
 

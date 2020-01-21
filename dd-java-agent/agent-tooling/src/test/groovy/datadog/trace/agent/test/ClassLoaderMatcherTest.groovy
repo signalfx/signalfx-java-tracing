@@ -2,9 +2,9 @@ package datadog.trace.agent.test
 
 import datadog.trace.agent.tooling.ClassLoaderMatcher
 import datadog.trace.bootstrap.DatadogClassLoader
-import spock.lang.Specification
+import datadog.trace.util.test.DDSpecification
 
-class ClassLoaderMatcherTest extends Specification {
+class ClassLoaderMatcherTest extends DDSpecification {
 
   def "skip non-delegating classloader"() {
     setup:
@@ -16,7 +16,7 @@ class ClassLoaderMatcherTest extends Specification {
   def "skips agent classloader"() {
     setup:
     URL root = new URL("file://")
-    final URLClassLoader agentLoader = new DatadogClassLoader(root, root, null)
+    final URLClassLoader agentLoader = new DatadogClassLoader(root, null, null)
     expect:
     ClassLoaderMatcher.skipClassLoader().matches(agentLoader)
   }

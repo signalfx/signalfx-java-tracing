@@ -1,8 +1,12 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.netty41.client;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.HOST;
 
 import datadog.trace.agent.decorator.HttpClientDecorator;
+import datadog.trace.api.Config;
+import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.instrumentation.netty41.NettyUtils;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import java.net.URI;
@@ -39,17 +43,51 @@ public class NettyHttpClientDecorator extends HttpClientDecorator<HttpRequest, H
   }
 
   @Override
-  protected String hostname(final HttpRequest httpRequest) {
-    return null;
+  protected String hostname(final HttpRequest request) {
+    try {
+      final URI uri = new URI(request.uri());
+      if ((uri.getHost() == null || uri.getHost().equals("")) && request.headers().contains(HOST)) {
+        return request.headers().get(HOST).split(":")[0];
+      } else {
+        return uri.getHost();
+      }
+    } catch (final Exception e) {
+      return null;
+    }
   }
 
   @Override
-  protected Integer port(final HttpRequest httpRequest) {
-    return null;
+  protected Integer port(final HttpRequest request) {
+    try {
+      final URI uri = new URI(request.uri());
+      if ((uri.getHost() == null || uri.getHost().equals("")) && request.headers().contains(HOST)) {
+        final String[] hostPort = request.headers().get(HOST).split(":");
+        return hostPort.length == 2 ? Integer.parseInt(hostPort[1]) : null;
+      } else {
+        return uri.getPort();
+      }
+    } catch (final Exception e) {
+      return null;
+    }
   }
 
   @Override
   protected Integer status(final HttpResponse httpResponse) {
     return httpResponse.status().code();
+  }
+
+  @Override
+  public AgentSpan onResponse(final AgentSpan span, final HttpResponse response) {
+    assert span != null;
+    if (response != null) {
+      final Integer status = status(response);
+      if (status != null) {
+        final boolean rewritten = NettyUtils.setClientSpanHttpStatus(span, status);
+        if (!rewritten && Config.get().getHttpClientErrorStatuses().contains(status)) {
+          span.setError(true);
+        }
+      }
+    }
+    return span;
   }
 }

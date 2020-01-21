@@ -1,15 +1,17 @@
 package datadog.trace.agent.test
 
+import datadog.trace.agent.test.utils.ConfigUtils
 import datadog.trace.agent.tooling.Instrumenter
+import datadog.trace.util.test.DDSpecification
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.description.type.TypeDescription
 import net.bytebuddy.matcher.ElementMatcher
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.EnvironmentVariables
 import org.junit.contrib.java.lang.system.RestoreSystemProperties
-import spock.lang.Specification
 
-class DefaultInstrumenterTest extends Specification {
+class DefaultInstrumenterTest extends DDSpecification {
+
   @Rule
   public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties()
   @Rule
@@ -75,7 +77,9 @@ class DefaultInstrumenterTest extends Specification {
 
   def "configure default sys prop as #value"() {
     setup:
-    System.setProperty("dd.integrations.enabled", value)
+    ConfigUtils.updateConfig {
+      System.setProperty("dd.integrations.enabled", value)
+    }
     def target = new TestDefaultInstrumenter("test")
     target.instrument(new AgentBuilder.Default())
 
@@ -93,6 +97,7 @@ class DefaultInstrumenterTest extends Specification {
   def "configure default env var as #value"() {
     setup:
     environmentVariables.set("DD_INTEGRATIONS_ENABLED", value)
+    ConfigUtils.resetConfig()
     def target = new TestDefaultInstrumenter("test")
     target.instrument(new AgentBuilder.Default())
 

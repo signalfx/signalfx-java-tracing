@@ -23,72 +23,74 @@ public abstract class AbstractExecutorInstrumentation extends Instrumenter.Defau
 
   public static final String EXEC_NAME = "java_concurrent";
 
-  private static final boolean TRACE_ALL_EXECUTORS =
-      Config.getBooleanSettingFromEnvironment("trace.executors.all", false);
+  private final boolean TRACE_ALL_EXECUTORS = Config.get().isTraceExecutorsAll();
 
   /**
    * Only apply executor instrumentation to whitelisted executors. To apply to all executors, use
    * override setting above.
    */
-  private static final Collection<String> WHITELISTED_EXECUTORS;
+  private final Collection<String> WHITELISTED_EXECUTORS;
 
   /**
    * Some frameworks have their executors defined as anon classes inside other classes. Referencing
    * anon classes by name would be fragile, so instead we will use list of class prefix names. Since
    * checking this list is more expensive (O(n)) we should try to keep it short.
    */
-  private static final Collection<String> WHITELISTED_EXECUTORS_PREFIXES;
+  private final Collection<String> WHITELISTED_EXECUTORS_PREFIXES;
 
-  static {
+  public AbstractExecutorInstrumentation(final String... additionalNames) {
+    super(EXEC_NAME, additionalNames);
+
     if (TRACE_ALL_EXECUTORS) {
       log.info("Tracing all executors enabled.");
       WHITELISTED_EXECUTORS = Collections.emptyList();
       WHITELISTED_EXECUTORS_PREFIXES = Collections.emptyList();
     } else {
       final String[] whitelist = {
-        "java.util.concurrent.AbstractExecutorService",
-        "java.util.concurrent.ThreadPoolExecutor",
-        "java.util.concurrent.ScheduledThreadPoolExecutor",
-        "java.util.concurrent.ForkJoinPool",
-        "java.util.concurrent.Executors$FinalizableDelegatedExecutorService",
-        "java.util.concurrent.Executors$DelegatedExecutorService",
-        "java.util.concurrent.CompletableFuture$ThreadPerTaskExecutor",
-        "javax.management.NotificationBroadcasterSupport$1",
-        "kotlinx.coroutines.scheduling.CoroutineScheduler",
-        "scala.concurrent.Future$InternalCallbackExecutor$",
-        "scala.concurrent.impl.ExecutionContextImpl",
-        "scala.concurrent.impl.ExecutionContextImpl$$anon$1",
-        "scala.concurrent.forkjoin.ForkJoinPool",
-        "scala.concurrent.impl.ExecutionContextImpl$$anon$3",
-        "akka.dispatch.MessageDispatcher",
+        "akka.actor.ActorSystemImpl$$anon$1",
+        "akka.dispatch.BalancingDispatcher",
         "akka.dispatch.Dispatcher",
         "akka.dispatch.Dispatcher$LazyExecutorServiceDelegate",
-        "akka.actor.ActorSystemImpl$$anon$1",
-        "akka.dispatch.ForkJoinExecutorConfigurator$AkkaForkJoinPool",
-        "akka.dispatch.forkjoin.ForkJoinPool",
-        "akka.dispatch.BalancingDispatcher",
-        "akka.dispatch.ThreadPoolConfig$ThreadPoolExecutorServiceFactory$$anon$1",
-        "akka.dispatch.PinnedDispatcher",
         "akka.dispatch.ExecutionContexts$sameThreadExecutionContext$",
-        "play.api.libs.streams.Execution$trampoline$",
-        "io.netty.channel.MultithreadEventLoopGroup",
-        "io.netty.util.concurrent.MultithreadEventExecutorGroup",
-        "io.netty.util.concurrent.AbstractEventExecutorGroup",
-        "io.netty.channel.epoll.EpollEventLoopGroup",
-        "io.netty.channel.nio.NioEventLoopGroup",
-        "io.netty.util.concurrent.GlobalEventExecutor",
-        "io.netty.util.concurrent.AbstractScheduledEventExecutor",
-        "io.netty.util.concurrent.AbstractEventExecutor",
-        "io.netty.util.concurrent.SingleThreadEventExecutor",
-        "io.netty.channel.nio.NioEventLoop",
-        "io.netty.channel.SingleThreadEventLoop",
+        "akka.dispatch.forkjoin.ForkJoinPool",
+        "akka.dispatch.ForkJoinExecutorConfigurator$AkkaForkJoinPool",
+        "akka.dispatch.MessageDispatcher",
+        "akka.dispatch.PinnedDispatcher",
         "com.google.common.util.concurrent.AbstractListeningExecutorService",
         "com.google.common.util.concurrent.MoreExecutors$ListeningDecorator",
         "com.google.common.util.concurrent.MoreExecutors$ScheduledListeningDecorator",
+        "io.netty.channel.epoll.EpollEventLoop",
+        "io.netty.channel.epoll.EpollEventLoopGroup",
+        "io.netty.channel.MultithreadEventLoopGroup",
+        "io.netty.channel.nio.NioEventLoop",
+        "io.netty.channel.nio.NioEventLoopGroup",
+        "io.netty.channel.SingleThreadEventLoop",
+        "io.netty.util.concurrent.AbstractEventExecutor",
+        "io.netty.util.concurrent.AbstractEventExecutorGroup",
+        "io.netty.util.concurrent.AbstractScheduledEventExecutor",
+        "io.netty.util.concurrent.DefaultEventExecutor",
+        "io.netty.util.concurrent.DefaultEventExecutorGroup",
+        "io.netty.util.concurrent.GlobalEventExecutor",
+        "io.netty.util.concurrent.MultithreadEventExecutorGroup",
+        "io.netty.util.concurrent.SingleThreadEventExecutor",
+        "java.util.concurrent.AbstractExecutorService",
+        "java.util.concurrent.CompletableFuture$ThreadPerTaskExecutor",
+        "java.util.concurrent.Executors$DelegatedExecutorService",
+        "java.util.concurrent.Executors$FinalizableDelegatedExecutorService",
+        "java.util.concurrent.ForkJoinPool",
+        "java.util.concurrent.ScheduledThreadPoolExecutor",
+        "java.util.concurrent.ThreadPoolExecutor",
+        "kotlinx.coroutines.scheduling.CoroutineScheduler",
+        "org.eclipse.jetty.util.thread.QueuedThreadPool",
+        "org.eclipse.jetty.util.thread.ReservedThreadExecutor",
+        "org.glassfish.grizzly.threadpool.GrizzlyExecutorService",
+        "play.api.libs.streams.Execution$trampoline$",
+        "scala.concurrent.forkjoin.ForkJoinPool",
+        "scala.concurrent.Future$InternalCallbackExecutor$",
+        "scala.concurrent.impl.ExecutionContextImpl",
       };
 
-      final Set<String> executors =
-          new HashSet<>(Config.getListSettingFromEnvironment("trace.executors", ""));
+      final Set<String> executors = new HashSet<>(Config.get().getTraceExecutors());
       executors.addAll(Arrays.asList(whitelist));
 
       WHITELISTED_EXECUTORS = Collections.unmodifiableSet(executors);
@@ -97,10 +99,6 @@ public abstract class AbstractExecutorInstrumentation extends Instrumenter.Defau
       WHITELISTED_EXECUTORS_PREFIXES =
           Collections.unmodifiableCollection(Arrays.asList(whitelistPrefixes));
     }
-  }
-
-  public AbstractExecutorInstrumentation(final String... additionalNames) {
-    super(EXEC_NAME, additionalNames);
   }
 
   @Override

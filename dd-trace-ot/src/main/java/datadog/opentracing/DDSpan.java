@@ -17,6 +17,7 @@ import datadog.trace.api.interceptor.MutableSpan;
 import datadog.trace.api.sampling.PrioritySampling;
 import datadog.trace.common.util.Clock;
 import io.opentracing.Span;
+import io.opentracing.tag.Tag;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -196,6 +197,12 @@ public class DDSpan implements Span, MutableSpan {
   @Override
   public final DDSpan setTag(final String tag, final Number value) {
     context().setTag(tag, (Object) value);
+    return this;
+  }
+
+  @Override
+  public <T> Span setTag(final Tag<T> tag, final T value) {
+    context().setTag(tag.getKey(), value);
     return this;
   }
 
@@ -435,6 +442,7 @@ public class DDSpan implements Span, MutableSpan {
   }
 
   protected static class UInt64IDStringSerializer extends StdSerializer<String> {
+    private static final int LONG_PARSE_LIMIT = String.valueOf(Long.MAX_VALUE).length();
 
     public UInt64IDStringSerializer() {
       this(null);
@@ -448,7 +456,15 @@ public class DDSpan implements Span, MutableSpan {
     public void serialize(
         final String value, final JsonGenerator gen, final SerializerProvider provider)
         throws IOException {
-      gen.writeNumber(new BigInteger(value));
+      final int length = value.length();
+      // BigInteger's are expensive, so lets try to avoid using them if possible.
+      // This is a rough approximation for optimization.
+      // There are some values that would pass this test that could be parsed with Long.parseLong.
+      if (length > LONG_PARSE_LIMIT || (length == LONG_PARSE_LIMIT && value.startsWith("9"))) {
+        gen.writeNumber(new BigInteger(value));
+      } else {
+        gen.writeNumber(Long.parseLong(value));
+      }
     }
   }
 }

@@ -10,6 +10,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.ArrayList;
@@ -17,6 +19,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -173,6 +177,17 @@ public class IntegrationTestUtils {
     return (String[]) f.get(null);
   }
 
+  private static String getAgentArgument() {
+    final RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+    for (final String arg : runtimeMxBean.getInputArguments()) {
+      if (arg.startsWith("-javaagent")) {
+        return arg;
+      }
+    }
+
+    throw new RuntimeException("Agent jar not found");
+  }
+
   /**
    * On a separate JVM, run the main method for a given class.
    *
@@ -188,12 +203,17 @@ public class IntegrationTestUtils {
       final Map<String, String> envVars,
       final boolean printOutputStreams)
       throws Exception {
+
     final String separator = System.getProperty("file.separator");
     final String classpath = System.getProperty("java.class.path");
     final String path = System.getProperty("java.home") + separator + "bin" + separator + "java";
+
+    final List<String> vmArgsList = new ArrayList<>(Arrays.asList(jvmArgs));
+    vmArgsList.add(getAgentArgument());
+
     final List<String> commands = new ArrayList<>();
     commands.add(path);
-    commands.addAll(Arrays.asList(jvmArgs));
+    commands.addAll(vmArgsList);
     commands.add("-cp");
     commands.add(classpath);
     commands.add(mainClassName);
@@ -201,7 +221,8 @@ public class IntegrationTestUtils {
     final ProcessBuilder processBuilder = new ProcessBuilder(commands.toArray(new String[0]));
     processBuilder.environment().putAll(envVars);
     final Process process = processBuilder.start();
-    final int result = process.waitFor();
+
+    waitFor(process, 30, TimeUnit.SECONDS);
 
     if (printOutputStreams) {
       final BufferedReader stdInput =
@@ -221,6 +242,25 @@ public class IntegrationTestUtils {
       }
       System.out.println("--- stderr end ---");
     }
-    return result;
+    return process.exitValue();
+  }
+
+  private static void waitFor(final Process process, final long timeout, final TimeUnit unit)
+      throws InterruptedException, TimeoutException {
+    final long startTime = System.nanoTime();
+    long rem = unit.toNanos(timeout);
+
+    do {
+      try {
+        process.exitValue();
+        return;
+      } catch (final IllegalThreadStateException ex) {
+        if (rem > 0) {
+          Thread.sleep(Math.min(TimeUnit.NANOSECONDS.toMillis(rem) + 1, 100));
+        }
+      }
+      rem = unit.toNanos(timeout) - (System.nanoTime() - startTime);
+    } while (rem > 0);
+    throw new TimeoutException();
   }
 }

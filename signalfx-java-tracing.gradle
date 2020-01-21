@@ -1,9 +1,10 @@
 // Modified by SignalFx
 plugins {
-  id 'io.franzbecker.gradle-lombok' version '1.14'
+  id 'io.franzbecker.gradle-lombok' version '1.14' // Last to support Java 7
   id 'com.jfrog.artifactory' version '4.8.1'
   id 'com.jfrog.bintray' version '1.8.4'
   id 'org.unbroken-dome.test-sets' version '2.1.1'
+  id 'com.github.ben-manes.versions' version '0.21.0'
 
   id 'com.gradle.build-scan' version '2.2.1'
   // Not applying google java format by default because it gets confused by stray java build
@@ -17,7 +18,7 @@ def isCI = System.getenv("CI") != null
 allprojects {
   group = 'com.signalfx.public'
   // Don't forget to update TRACING_VERSION_VALUE in dd-trace-api/src/main/java/datadog/trace/api/Config.java
-  version = '0.28.0-sfx7'
+  version = '0.36.0-sfx0'
 
   if (isCI) {
     buildDir = "${rootDir}/workspace/${projectDir.path.replace(rootDir.path, '')}/build/"
@@ -28,6 +29,8 @@ allprojects {
 }
 
 repositories {
+  mavenLocal()
+  jcenter()
   mavenCentral()
 }
 
@@ -52,7 +55,6 @@ buildScan {
 
 wrapper {
   distributionType = Wrapper.DistributionType.ALL
-  version = '5.4.1'
 }
 
 allprojects {

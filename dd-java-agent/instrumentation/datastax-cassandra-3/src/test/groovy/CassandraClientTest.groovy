@@ -3,15 +3,23 @@ import com.datastax.driver.core.Cluster
 import com.datastax.driver.core.Session
 import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.AgentTestRunner
+import datadog.trace.agent.test.asserts.TraceAssert
+import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
-import io.opentracing.tag.Tags
+import datadog.trace.instrumentation.api.Tags
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import spock.lang.Shared
+
+import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
+import static datadog.trace.agent.test.utils.TraceUtils.basicSpan
+import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 
 class CassandraClientTest extends AgentTestRunner {
 
   @Shared
   Cluster cluster
+  @Shared
+  int port = 9142
 
   def setupSpec() {
     /*
@@ -35,74 +43,96 @@ class CassandraClientTest extends AgentTestRunner {
     EmbeddedCassandraServerHelper.cleanEmbeddedCassandra()
   }
 
-  def "sync traces"() {
+  def "test sync"() {
     setup:
-    final Session session = cluster.newSession()
+    Session session = cluster.connect(keyspace)
 
-    session.execute("DROP KEYSPACE IF EXISTS sync_test")
-    session.execute(
-      "CREATE KEYSPACE sync_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':3}")
-    session.execute("CREATE TABLE sync_test.users ( id UUID PRIMARY KEY, name text )")
-    session.execute("INSERT INTO sync_test.users (id, name) values (uuid(), 'alice')")
-    session.execute("SELECT * FROM sync_test.users where name = 'alice' ALLOW FILTERING")
-
-    def query = "SELECT * FROM sync_test.users where name = 'alice' ALLOW FILTERING"
+    withConfigOverride(Config.DB_CLIENT_HOST_SPLIT_BY_INSTANCE, "$renameService") {
+      session.execute(statement)
+    }
 
     expect:
-    session.getClass().getName().endsWith("cassandra.TracingSession")
-    TEST_WRITER.size() == 5
-    final DDSpan selectTrace = TEST_WRITER.get(TEST_WRITER.size() - 1).get(0)
+    assertTraces(keyspace ? 2 : 1) {
+      if (keyspace) {
+        trace(0, 1) {
+          cassandraSpan(it, 0, "USE $keyspace", null, false)
+        }
+      }
+      trace(keyspace ? 1 : 0, 1) {
+        cassandraSpan(it, 0, statement, keyspace, renameService)
+      }
+    }
 
-    selectTrace.getServiceName() == "unnamed-java-app"
-    selectTrace.getOperationName() == "cassandra.query"
-    selectTrace.getResourceName() == "cassandra.query"
-    selectTrace.getTags().get(Tags.DB_STATEMENT.getKey()) == query
-    selectTrace.getSpanType() == DDSpanTypes.CASSANDRA
+    cleanup:
+    session.close()
 
-    selectTrace.getTags().get(Tags.COMPONENT.getKey()) == "java-cassandra"
-    selectTrace.getTags().get(Tags.DB_TYPE.getKey()) == "cassandra"
-    selectTrace.getTags().get(Tags.PEER_HOSTNAME.getKey()) == "localhost"
-    // More info about IPv4 tag: https://trello.com/c/2el2IwkF/174-mongodb-ot-contrib-provides-a-wrong-peeripv4
-    selectTrace.getTags().get(Tags.PEER_HOST_IPV4.getKey()) == 2130706433
-    selectTrace.getTags().get(Tags.PEER_PORT.getKey()) == 9142
-    selectTrace.getTags().get(Tags.SPAN_KIND.getKey()) == "client"
+    where:
+    statement                                                                                         | keyspace    | renameService
+    "DROP KEYSPACE IF EXISTS sync_test"                                                               | null        | false
+    "CREATE KEYSPACE sync_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':3}" | null        | true
+    "CREATE TABLE sync_test.users ( id UUID PRIMARY KEY, name text )"                                 | "sync_test" | false
+    "INSERT INTO sync_test.users (id, name) values (uuid(), 'alice')"                                 | "sync_test" | false
+    "SELECT * FROM users where name = 'alice' ALLOW FILTERING"                                        | "sync_test" | true
   }
 
-  def "async traces"() {
+  def "test async"() {
     setup:
-    final Session session = cluster.connectAsync().get()
-
-    session.executeAsync("DROP KEYSPACE IF EXISTS async_test").get()
-    session
-      .executeAsync(
-      "CREATE KEYSPACE async_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':3}")
-      .get()
-    session.executeAsync("CREATE TABLE async_test.users ( id UUID PRIMARY KEY, name text )").get()
-    session.executeAsync("INSERT INTO async_test.users (id, name) values (uuid(), 'alice')").get()
-    TEST_WRITER.waitForTraces(4)
-    session
-      .executeAsync("SELECT * FROM async_test.users where name = 'alice' ALLOW FILTERING")
-      .get()
-    TEST_WRITER.waitForTraces(5)
-
-    def query = "SELECT * FROM async_test.users where name = 'alice' ALLOW FILTERING"
+    Session session = cluster.connect(keyspace)
+    runUnderTrace("parent") {
+      withConfigOverride(Config.DB_CLIENT_HOST_SPLIT_BY_INSTANCE, "$renameService") {
+        session.executeAsync(statement)
+      }
+      blockUntilChildSpansFinished(1)
+    }
 
     expect:
-    session.getClass().getName().endsWith("cassandra.TracingSession")
-    final DDSpan selectTrace = TEST_WRITER.get(TEST_WRITER.size() - 1).get(0)
+    assertTraces(keyspace ? 2 : 1) {
+      if (keyspace) {
+        trace(0, 1) {
+          cassandraSpan(it, 0, "USE $keyspace", null, false)
+        }
+      }
+      trace(keyspace ? 1 : 0, 2) {
+        basicSpan(it, 0, "parent")
+        cassandraSpan(it, 1, statement, keyspace, renameService, span(0))
+      }
+    }
 
-    selectTrace.getServiceName() == "unnamed-java-app"
-    selectTrace.getOperationName() == "cassandra.query"
-    selectTrace.getResourceName() == "cassandra.query"
-    selectTrace.getTags().get(Tags.DB_STATEMENT.getKey()) == query
-    selectTrace.getSpanType() == DDSpanTypes.CASSANDRA
+    cleanup:
+    session.close()
 
-    selectTrace.getTags().get(Tags.COMPONENT.getKey()) == "java-cassandra"
-    selectTrace.getTags().get(Tags.DB_TYPE.getKey()) == "cassandra"
-    selectTrace.getTags().get(Tags.PEER_HOSTNAME.getKey()) == "localhost"
-    // More info about IPv4 tag: https://trello.com/c/2el2IwkF/174-mongodb-ot-contrib-provides-a-wrong-peeripv4
-    selectTrace.getTags().get(Tags.PEER_HOST_IPV4.getKey()) == 2130706433
-    selectTrace.getTags().get(Tags.PEER_PORT.getKey()) == 9142
-    selectTrace.getTags().get(Tags.SPAN_KIND.getKey()) == "client"
+    where:
+    statement                                                                                          | keyspace     | renameService
+    "DROP KEYSPACE IF EXISTS async_test"                                                               | null         | false
+    "CREATE KEYSPACE async_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':3}" | null         | true
+    "CREATE TABLE async_test.users ( id UUID PRIMARY KEY, name text )"                                 | "async_test" | false
+    "INSERT INTO async_test.users (id, name) values (uuid(), 'alice')"                                 | "async_test" | false
+    "SELECT * FROM users where name = 'alice' ALLOW FILTERING"                                         | "async_test" | true
   }
+
+  def cassandraSpan(TraceAssert trace, int index, String statement, String keyspace, boolean renameService, Object parentSpan = null, Throwable exception = null) {
+    trace.span(index) {
+      serviceName renameService && keyspace ? keyspace : "cassandra"
+      operationName "cassandra.query"
+      resourceName "cassandra.query"
+      spanType DDSpanTypes.CASSANDRA
+      if (parentSpan == null) {
+        parent()
+      } else {
+        childOf((DDSpan) parentSpan)
+      }
+      tags {
+        "$Tags.COMPONENT" "java-cassandra"
+        "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+        "$Tags.DB_INSTANCE" keyspace
+        "$Tags.DB_STATEMENT" statement
+        "$Tags.DB_TYPE" "cassandra"
+        "$Tags.PEER_HOSTNAME" "localhost"
+        "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+        "$Tags.PEER_PORT" port
+        defaultTags()
+      }
+    }
+  }
+
 }

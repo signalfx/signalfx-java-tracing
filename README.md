@@ -24,17 +24,18 @@ import io.opentracing.util.GlobalTracer;
 public class MyClass {
   public void MyLogic() {
     // Use the GlobalTracer utility to create and modify an active span.
-    final Scope scope = GlobalTracer.get().buildSpan("MyOperation").startActive(true);
-    scope.span().setTag("MyTag", "MyValue");
-
-    <your functionality...>
+    final Tracer tracer = GlobalTracer.get();
 
     // Depending on MyLogic's context within a supported framework or library, the custom span
     // created here can automatically become part of an applicable agent-generated trace,
     // like those created for web framework filter activity.
-
-    // Close the current scope, finishing the span.
-    scope.close()
+    final Span span = tracer.buildSpan("MyOperation").start();
+    try (Scope scope = tracer.scopeManager().activate(span)) {
+        span.setTag("MyTag", "MyValue");
+        <your functionality...>
+    } finally {
+       span.finish();
+    }
   }
 }
 ```
@@ -59,6 +60,7 @@ explicitly validated for compatibility with all instrumentations.
 | **CouchBase Client** | 2.0.0+ | `couchbase` | |
 | **DropWizard Views** | * | `dropwizard`, `dropwizard-view` | |
 | **ElasticSearch Client** | 2+ | `elasticsearch` | Supports both REST and transport clients |
+| _Grizzly_ | 2.0+ | `grizzly` | |
 | **gRPC (Client and Server)** | 1.5.0+ | `grpc` | |
 | **java.net.HttpURLConnection** | * | `httpurlconnection` | |
 | **Hibernate** | 3.5.0+ | `hibernate` | |
@@ -81,14 +83,15 @@ explicitly validated for compatibility with all instrumentations.
 | **OkHTTP Client** | 3.0+ | `okhttp` | |
 | **Play Web Framework** | 2.4+ | `play` | |
 | **RabbitMQ Client** | 2.7.0+ | `rabbitmq` | |
-| _Ratpack_ | 1.4+ | `ratpack` | |
+| **Ratpack** | 1.4+ | `ratpack` | |
 | **Reactor Core** | 3.1.0+ | `reactor-core` | |
+| **RestTemplate** | 3.1.1+ | `rest-template` | |
 | **Java Servlet** | 2+ | `servlet` | |
 | _Spark Java_ | 2.3+ | `sparkjava` | |
-| **Spring Data** | 1.5.0+ | `spring-data` | Automatic tracing of all `org.springframework.data.repository.Repository` implementor public methods |
-| **Spring Web** | 4.0+ | `spring-web` | Includes DispatcherServlet, HandlerAdapter, and RestTemplate |
+| **Spring Data** | 1.8.0+ | `spring-data` | |
+| **Spring Web (MVC)** | 4.0+ | `spring-web` | Includes DispatcherServlet and HandlerAdapter |
 | **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
-| **Vertx Web** | 3.0.0+  | `vertx` | This works primarily through the Netty instrumentation for requests, but it includes spans for handlers. |
+| **Vertx Web** | 3.0.0+  | `vertx` | This works through the Netty instrumentation for requests, and also includes spans for handlers. |
 
 _Italicized_ libraries are in beta and must be explicitly enabled by setting the
 `-Dsignalfx.integration.<name>.enabled=true` system property, where `<name>` is

@@ -1,0 +1,104 @@
+// Modified by SignalFx
+/*
+ * Copyright 2015 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// Source: https://github.com/ratpack/ratpack/blob/master/gradle/publish.gradle
+
+apply plugin: "maven-publish"
+apply plugin: "signing"
+
+afterEvaluate {
+  assert description: "Project $project.path is published, must have a description"
+}
+
+tasks.withType(Upload).matching { it.name != "install" }.configureEach {
+  rootProject.subprojects {
+    mustRunAfter tasks.matching { it instanceof VerificationTask }
+  }
+}
+
+def isRoot = project.rootProject == project
+if (!isRoot) {
+  apply from: "$rootDir/gradle/version.gradle"
+
+  def isCI = Boolean.parseBoolean("$System.env.CI")
+
+  publishing {
+    publications {
+      shadow(MavenPublication) { publication ->
+        project.shadow.component(publication)
+
+        artifact sourceJar
+        artifact javaDocJar
+
+        pom {
+          name = project.name
+          artifactId = project.name.replaceAll('dd-', 'signalfx-')
+          description = project.name
+          url = "https://github.com/signalfx/signalfx-java-tracing"
+          licenses {
+            license {
+              name = "The Apache Software License, Version 2.0"
+              url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+              distribution = "repo"
+            }
+          }
+          scm {
+            connection = "scm:https://git@github.com/signalfx/signalfx-java-tracing"
+            developerConnection = "scm:git@github.com:signalfx/signalfx-java-tracing.git"
+            url = "https://github.com/signalfx/signalfx-java-tracing"
+          }
+          developers {
+            developer {
+              id = "signalfx"
+              name = "SignalFx"
+            }
+            developer {
+              id = "datadog"
+              name = "Datadog"
+            }
+          }
+        }
+      }
+    }
+
+    repositories {
+      maven {
+        def ossrhUsername = project.findProperty("ossrhUsername") ?: null
+        def ossrhPassword = project.findProperty("ossrhPassword") ?: null
+
+        credentials(PasswordCredentials) {
+          username ossrhUsername
+          password ossrhPassword
+        }
+
+        def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+        def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+        def isSnapshot = version.endsWith('SNAPSHOT')
+        name = isSnapshot ? 'OssrhSnapshot' : 'ossrhRelease'
+        url = isSnapshot ? snapshotsRepoUrl : releasesRepoUrl
+
+      }
+    }
+  }
+
+  signing {
+    required = !version.endsWith('SNAPSHOT')
+    useGpgCmd()
+    sign publishing.publications.shadow
+  }
+}
+

@@ -356,7 +356,7 @@ class TraceAnnotationsTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           resourceName "SayTracedHello\$1.call"
-          operationName "trace.annotation"
+          operationName "SayTracedHello\$1.call"
         }
       }
     }
@@ -377,7 +377,7 @@ class TraceAnnotationsTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           resourceName "SayTracedHello\$1.call"
-          operationName "trace.annotation"
+          operationName "SayTracedHello\$1.call"
         }
         trace(1, 1) {
           span(0) {

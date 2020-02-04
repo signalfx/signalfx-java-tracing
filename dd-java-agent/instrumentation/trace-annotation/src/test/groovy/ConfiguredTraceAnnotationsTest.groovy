@@ -40,7 +40,7 @@ class ConfiguredTraceAnnotationsTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           resourceName "AnnotationTracedCallable.call"
-          operationName "trace.annotation"
+          operationName "AnnotationTracedCallable.call"
         }
       }
     }

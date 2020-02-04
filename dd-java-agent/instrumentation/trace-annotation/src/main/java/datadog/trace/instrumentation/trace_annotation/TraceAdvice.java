@@ -18,34 +18,30 @@ public class TraceAdvice {
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static AgentScope onEnter(@Advice.Origin final Method method) {
-    Annotation trace = method.getAnnotation(Trace.class);
-    if (trace == null) {
-      trace = method.getAnnotation(com.signalfx.tracing.api.Trace.class);
-    }
+    String resourceName = DECORATE.spanNameForMethod(method);
+    String operationName = resourceName;
+    String annotatedOperationName = null;
 
-    boolean useResourceAsOperation = false;
-    String operationName = null;
-    String resourceName = null;
+    Annotation trace = method.getAnnotation(Trace.class);
     if (trace != null) {
-      // Java annotations do not support polymorphism.
-      if (trace.annotationType().equals(Trace.class)) {
-        final Trace traceAnnotation = (Trace) trace;
-        operationName = traceAnnotation.operationName();
-        resourceName = traceAnnotation.resourceName();
-      } else {
-        operationName = ((com.signalfx.tracing.api.Trace) trace).operationName();
-        if (operationName == null || operationName.isEmpty()) {
-          useResourceAsOperation = true;
-        }
+      // DD Trace annotation defaults to generic operation name
+      operationName = DEFAULT_OPERATION_NAME;
+
+      final Trace traceAnnotation = (Trace) trace;
+      annotatedOperationName = traceAnnotation.operationName();
+      String annotatedResource = traceAnnotation.resourceName();
+      if (annotatedResource != null && !annotatedResource.isEmpty()) {
+        resourceName = annotatedResource;
+      }
+    } else {
+      trace = method.getAnnotation(com.signalfx.tracing.api.Trace.class);
+      if (trace != null) {
+        annotatedOperationName = ((com.signalfx.tracing.api.Trace) trace).operationName();
       }
     }
 
-    if (resourceName == null || resourceName.isEmpty()) {
-      resourceName = DECORATE.spanNameForMethod(method);
-    }
-
-    if (operationName == null || operationName.isEmpty()) {
-      operationName = useResourceAsOperation ? resourceName : DEFAULT_OPERATION_NAME;
+    if (annotatedOperationName != null && !annotatedOperationName.isEmpty()) {
+      operationName = annotatedOperationName;
     }
 
     final AgentSpan span = startSpan(operationName);

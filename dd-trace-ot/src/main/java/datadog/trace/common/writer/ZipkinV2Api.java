@@ -10,7 +10,7 @@ import com.google.common.base.Strings;
 import datadog.opentracing.DDSpan;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
-import datadog.trace.common.util.Ids;
+import datadog.trace.api.Ids;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;

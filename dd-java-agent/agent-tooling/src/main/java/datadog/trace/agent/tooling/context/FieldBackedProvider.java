@@ -84,6 +84,18 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
   private static final String INJECTED_FIELDS_MARKER_CLASS_NAME =
       Utils.getInternalName(FieldBackedContextStoreAppliedMarker.class.getName());
 
+  private static final AgentBuilder.Transformer NOOP_TRANSFORMER =
+      new AgentBuilder.Transformer() {
+        @Override
+        public DynamicType.Builder<?> transform(
+            DynamicType.Builder<?> builder,
+            TypeDescription typeDescription,
+            ClassLoader classLoader,
+            JavaModule module) {
+          return builder;
+        }
+      };
+
   private static final Method CONTEXT_GET_METHOD;
   private static final Method GET_CONTEXT_STORE_METHOD;
 
@@ -358,7 +370,7 @@ public class FieldBackedProvider implements InstrumentationContextProvider {
                     safeHasSuperType(named(entry.getKey())).and(not(isInterface())),
                     instrumenter.classLoaderMatcher())
                 .and(safeToInjectFieldsMatcher())
-                .transform(AgentBuilder.Transformer.NoOp.INSTANCE);
+                .transform(NOOP_TRANSFORMER);
 
         /**
          * We inject helpers here as well as when instrumentation is applied to ensure that helpers

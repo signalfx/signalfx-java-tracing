@@ -39,7 +39,7 @@ class SpringJpaTest extends AgentTestRunner {
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
             "$Tags.DB_USER" "sa"
             "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
-            "$Tags.DB_STATEMENT" "select customer0_.id as id1_0_, customer0_.firstName as firstNam2_0_, customer0_.lastName as lastName3_0_ from Customer customer0_"
+            "$Tags.DB_STATEMENT" ~/select customer0_.id as id1_0_, customer0_.firstName as first[nN]am2_0_, customer0_.lastName as last[nN]ame3_0_ from Customer customer0_/
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()
           }
@@ -114,7 +114,7 @@ class SpringJpaTest extends AgentTestRunner {
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
             "$Tags.DB_USER" "sa"
             "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
-            "$Tags.DB_STATEMENT" "select customer0_.id as id1_0_0_, customer0_.firstName as firstNam2_0_0_, customer0_.lastName as lastName3_0_0_ from Customer customer0_ where customer0_.id=?"
+            "$Tags.DB_STATEMENT" ~/select customer0_.id as id1_0_0_, customer0_.firstName as first[nN]am2_0_0_, customer0_.lastName as last[nN]ame3_0_0_ from Customer customer0_ where customer0_.id=?/
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()
           }
@@ -158,7 +158,7 @@ class SpringJpaTest extends AgentTestRunner {
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
             "$Tags.DB_USER" "sa"
             "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
-            "$Tags.DB_STATEMENT" "select customer0_.id as id1_0_, customer0_.firstName as firstNam2_0_, customer0_.lastName as lastName3_0_ from Customer customer0_ where customer0_.lastName=?"
+            "$Tags.DB_STATEMENT" ~/select customer0_.id as id1_0_, customer0_.firstName as first[nN]am2_0_, customer0_.lastName as last[nN]ame3_0_ from Customer customer0_ where customer0_.lastName=?/
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()
           }
@@ -183,7 +183,7 @@ class SpringJpaTest extends AgentTestRunner {
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
             "$Tags.DB_USER" "sa"
             "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
-            "$Tags.DB_STATEMENT" "select customer0_.id as id1_0_0_, customer0_.firstName as firstNam2_0_0_, customer0_.lastName as lastName3_0_0_ from Customer customer0_ where customer0_.id=?"
+            "$Tags.DB_STATEMENT" ~/select customer0_.id as id1_0_0_, customer0_.firstName as first[nN]am2_0_0_, customer0_.lastName as last[nN]ame3_0_0_ from Customer customer0_ where customer0_.id=?/
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()
           }

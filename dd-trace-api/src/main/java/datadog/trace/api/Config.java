@@ -120,7 +120,7 @@ public class Config {
   public static final String TRACING_LIBRARY_KEY = "signalfx.tracing.library";
   public static final String TRACING_LIBRARY_VALUE = "java-tracing";
   public static final String TRACING_VERSION_KEY = "signalfx.tracing.version";
-  public static final String TRACING_VERSION_VALUE = "0.36.0-sfx1";
+  public static final String TRACING_VERSION_VALUE = "0.36.0-sfx2";
   public static final String DEFAULT_GLOBAL_TAGS =
       String.format(
           "%s:%s,%s:%s",

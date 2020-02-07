@@ -21,10 +21,10 @@ public class CorrelationIdentifier {
   }
 
   public static String getTraceId() {
-    return GlobalTracer.get().getTraceId();
+    return Ids.idToHex(GlobalTracer.get().getTraceId());
   }
 
   public static String getSpanId() {
-    return GlobalTracer.get().getSpanId();
+    return Ids.idToHex(GlobalTracer.get().getSpanId());
   }
 }

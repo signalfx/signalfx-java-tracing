@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.CorrelationIdentifier
@@ -12,14 +13,14 @@ class TraceCorrelationTest extends AgentTestRunner {
     DDSpan span = (DDSpan) scope.span()
 
     then:
-    CorrelationIdentifier.traceId == span.traceId
-    CorrelationIdentifier.spanId == span.spanId
+    CorrelationIdentifier.traceId == String.format("%016x", new BigInteger(span.traceId, 10))
+    CorrelationIdentifier.spanId == String.format("%016x", new BigInteger(span.spanId, 10))
 
     when:
     scope.close()
 
     then:
-    CorrelationIdentifier.traceId == "0"
-    CorrelationIdentifier.spanId == "0"
+    CorrelationIdentifier.traceId == "0000000000000000"
+    CorrelationIdentifier.spanId == "0000000000000000"
   }
 }

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.ConfigUtils
 import datadog.trace.instrumentation.trace_annotation.TraceConfigInstrumentation
@@ -37,7 +38,7 @@ class TraceConfigTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           resourceName "ConfigTracedCallable.call"
-          operationName "trace.annotation"
+          operationName "ConfigTracedCallable.call"
         }
       }
     }

@@ -1,4 +1,5 @@
-package datadog.trace.common.util;
+// Modified by SignalFx
+package datadog.trace.api;
 
 import java.math.BigInteger;
 

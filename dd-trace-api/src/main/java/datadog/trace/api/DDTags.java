@@ -29,8 +29,8 @@ public class DDTags {
 
   // Used by ZipkinV2Api to prevent OT/instrumentation api dep
   public static final String SPAN_KIND = "span.kind";
-  public static final String SPAN_KIND_SERVER = "server";
-  public static final String SPAN_KIND_CLIENT = "client";
-  public static final String SPAN_KIND_PRODUCER = "producer";
-  public static final String SPAN_KIND_CONSUMER = "consumer";
+  public static final String SPAN_KIND_SERVER = "SERVER";
+  public static final String SPAN_KIND_CLIENT = "CLIENT";
+  public static final String SPAN_KIND_PRODUCER = "PRODUCER";
+  public static final String SPAN_KIND_CONSUMER = "CONSUMER";
 }

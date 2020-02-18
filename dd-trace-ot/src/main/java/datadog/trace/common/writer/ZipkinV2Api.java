@@ -111,7 +111,7 @@ public class ZipkinV2Api implements Api {
       }
       String responseContent = sb.toString();
 
-      if (responseCode != 200) {
+      if (responseCode != 200 && responseCode != 202) {
         if (log.isDebugEnabled()) {
           log.debug(
               "Error while sending {} of {} traces to {}. Status: {}, Response: {}",
@@ -220,7 +220,7 @@ public class ZipkinV2Api implements Api {
     if (tags.containsKey(DDTags.SPAN_KIND)) {
       Object kindObj = tags.get(DDTags.SPAN_KIND);
       if (kindObj instanceof String) {
-        return (String) kindObj;
+        return ((String) kindObj).toUpperCase();
       }
     }
 

@@ -119,7 +119,7 @@ class ZipkinV2ApiTest extends DDSpecification {
       "annotations": [["timestamp" : 1000, "value": "{\"event\":\"some event\"}"], ["timestamp" : 2000, "value":"{\"another event\":1}"]],
       "name"     : "fakeOperation",
       "localEndpoint": ["serviceName": "fakeService"],
-      "kind"    : "CliEnt",
+      "kind"    : "CLIENT",
       "timestamp"    : 100,
     ])]
     [[SpanFactory.newSpanOf(100L).setTag("span.kind", "SerVeR")]] | [new TreeMap<>([
@@ -132,7 +132,7 @@ class ZipkinV2ApiTest extends DDSpecification {
       "annotations": [],
       "name"     : "fakeResource",
       "localEndpoint": ["serviceName": "fakeService"],
-      "kind"    : "SerVeR",
+      "kind"    : "SERVER",
       "timestamp"    : 100,
     ])]
   }

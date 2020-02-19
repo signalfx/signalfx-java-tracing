@@ -57,6 +57,8 @@ import static datadog.trace.api.Config.WRITER_TYPE
 import static datadog.trace.api.Config.HEALTH_METRICS_ENABLED
 import static datadog.trace.api.Config.HEALTH_METRICS_STATSD_HOST
 import static datadog.trace.api.Config.HEALTH_METRICS_STATSD_PORT
+import static datadog.trace.api.Config.RECORDED_VALUE_MAX_LENGTH
+import static datadog.trace.api.Config.DEFAULT_RECORDED_VALUE_MAX_LENGTH
 
 class ConfigTest extends DDSpecification {
   @Rule
@@ -79,6 +81,7 @@ class ConfigTest extends DDSpecification {
   private static final SIGNALFX_DB_STATEMENT_MAX_LENGTH = "SIGNALFX_DB_STATEMENT_MAX_LENGTH"
   private static final SIGNALFX_KAFKA_ATTEMPT_PROPAGATION_ENV = "SIGNALFX_INSTRUMENTATION_KAFKA_ATTEMPT_PROPAGATION"
   private static final SIGNALFX_REDIS_CAPTURE_COMMAND_ARGUMENTS = "SIGNALFX_INSTRUMENTATION_REDIS_CAPTURE_COMMAND_ARGUMENTS"
+  private static final SIGNALFX_RECORDED_VALUE_MAX_LENGTH = "SIGNALFX_RECORDED_VALUE_MAX_LENGTH"
 
   def "verify defaults"() {
     when:
@@ -126,6 +129,7 @@ class ConfigTest extends DDSpecification {
     config.dbStatementMaxLength == DEFAULT_DB_STATEMENT_MAX_LENGTH
     config.kafkaAttemptPropagation == DEFAULT_KAFKA_ATTEMPT_PROPAGATION
     config.redisCaptureCommandArguments == DEFAULT_REDIS_CAPTURE_COMMAND_ARGUMENTS
+    config.recordedValueMaxLength == DEFAULT_RECORDED_VALUE_MAX_LENGTH
 
     where:
     provider << [{ new Config() }, { Config.get() }, {
@@ -171,6 +175,7 @@ class ConfigTest extends DDSpecification {
     prop.setProperty(DB_STATEMENT_MAX_LENGTH, "100")
     prop.setProperty(KAFKA_ATTEMPT_PROPAGATION, "false")
     prop.setProperty(REDIS_CAPTURE_COMMAND_ARGUMENTS, "false")
+    prop.setProperty(RECORDED_VALUE_MAX_LENGTH, "10")
     prop.setProperty(HEALTH_METRICS_ENABLED, "false")
     prop.setProperty(HEALTH_METRICS_STATSD_HOST, "metrics statsd host")
     prop.setProperty(HEALTH_METRICS_STATSD_PORT, "654")
@@ -209,6 +214,7 @@ class ConfigTest extends DDSpecification {
     config.jmxFetchStatsdPort == 321
     config.dbStatementMaxLength == 100
     config.kafkaAttemptPropagation == false
+    config.recordedValueMaxLength == 10
     config.redisCaptureCommandArguments == false
     config.healthMetricsEnabled == false
     config.healthMetricsStatsdHost == "metrics statsd host"
@@ -254,6 +260,7 @@ class ConfigTest extends DDSpecification {
     System.setProperty(PREFIX + DB_STATEMENT_MAX_LENGTH, "100") // SFX
     System.setProperty(PREFIX + KAFKA_ATTEMPT_PROPAGATION, "false") // SFX
     System.setProperty(PREFIX + REDIS_CAPTURE_COMMAND_ARGUMENTS, "false") // SFX
+    System.setProperty(PREFIX + RECORDED_VALUE_MAX_LENGTH, "100") // SFX
     System.setProperty(PREFIX + JMX_FETCH_ENABLED, "false")
     System.setProperty(PREFIX + JMX_FETCH_METRICS_CONFIGS, "/foo.yaml,/bar.yaml")
     System.setProperty(PREFIX + JMX_FETCH_CHECK_PERIOD, "100")
@@ -305,6 +312,7 @@ class ConfigTest extends DDSpecification {
     config.dbStatementMaxLength == 100
     config.kafkaAttemptPropagation == false
     config.redisCaptureCommandArguments == false
+    config.recordedValueMaxLength == 100
 
     where:
     prefix      | _
@@ -325,6 +333,7 @@ class ConfigTest extends DDSpecification {
     environmentVariables.set(SIGNALFX_DB_STATEMENT_MAX_LENGTH, "100")
     environmentVariables.set(SIGNALFX_KAFKA_ATTEMPT_PROPAGATION_ENV, "false")
     environmentVariables.set(SIGNALFX_REDIS_CAPTURE_COMMAND_ARGUMENTS, "false")
+    environmentVariables.set(SIGNALFX_RECORDED_VALUE_MAX_LENGTH, "1000")
 
     when:
     def config = new Config()
@@ -341,6 +350,7 @@ class ConfigTest extends DDSpecification {
     config.dbStatementMaxLength == 100
     config.kafkaAttemptPropagation == false
     config.redisCaptureCommandArguments == false
+    config.recordedValueMaxLength == 1000
   }
 
   def "malformed endpoint url fails"() {

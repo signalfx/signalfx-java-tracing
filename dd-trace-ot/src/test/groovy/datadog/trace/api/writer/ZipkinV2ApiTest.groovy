@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.api.writer
 
 import com.fasterxml.jackson.core.type.TypeReference
@@ -135,6 +136,37 @@ class ZipkinV2ApiTest extends DDSpecification {
       "kind"    : "SERVER",
       "timestamp"    : 100,
     ])]
+  }
+
+  def "Recorded values are truncated"() {
+    setup:
+    def agent = httpServer {
+      handlers {
+        post("v1/trace") {
+          response.send()
+        }
+      }
+    }
+    def client = new ZipkinV2Api("localhost", agent.address.port, "/v1/trace", false)
+    def span = SpanFactory.newSpanOf(100L)
+    span.setTag("some.tag", "0" * 100000)
+    span.log(1000L, Collections.singletonMap("event", "1" * 100000))
+    span.log(2000L, Collections.singletonMap("event", new Exception("SomeException")))
+    def traces = [[span]]
+
+    expect:
+    client.traceEndpoint == "http://localhost:${agent.address.port}/v1/trace"
+    client.sendTraces(traces)
+    def received = convertList(agent.lastRequest.body)
+
+    // Default recorded value max length + [...]
+    received[0]["tags"]["some.tag"].toString().length() == 12293
+    received[0]["annotations"][0]["value"].toString().length() == 12293
+    // Different java versions have different serialized exception lengths
+    received[0]["annotations"][1]["value"].toString().length() <= 12293
+
+    cleanup:
+    agent.close()
   }
 
   static List<TreeMap<String, Object>> convertList(byte[] bytes) {

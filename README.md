@@ -122,6 +122,7 @@ content](https://docs.signalfx.com/en/latest/apm/apm-overview/apm-metadata.html)
 | `signalfx.integration.<name>.enabled=true` | none | Varies per instrumentation | `<name>` is the instrumentation name detailed in the supported libraries. |
 | `signalfx.span.tags` | `SIGNALFX_SPAN_TAGS` | `null` | Comma-separated list of tags of the form `"key1:val1,key2:val2"` to be included in every reported span. |
 | `signalfx.db.statement.max.length` | `SIGNALFX_DB_STATEMENT_MAX_LENGTH` | `1024` | The maximum number of characters written for the OpenTracing `db.statement` tag. |
+| `signalfx.recorded.value.max.length` | `SIGNALFX_RECORDED_VALUE_MAX_LENGTH` | `12288` | The maximum number of characters for any Zipkin-encoded tagged or logged value. |
 
 **Note: System property values take priority over corresponding environment
 variables.**

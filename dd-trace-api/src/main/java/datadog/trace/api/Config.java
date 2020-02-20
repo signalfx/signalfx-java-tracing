@@ -108,6 +108,7 @@ public class Config {
 
   public static final String LOGS_INJECTION_ENABLED = "logs.injection";
   public static final String DB_STATEMENT_MAX_LENGTH = "db.statement.max.length";
+  public static final String RECORDED_VALUE_MAX_LENGTH = "recorded.value.max.length";
 
   public static final String SERVICE_TAG = "service";
   @Deprecated public static final String SERVICE = SERVICE_TAG; // To be removed in 0.34.0
@@ -184,6 +185,8 @@ public class Config {
   }
 
   public static final int DEFAULT_DB_STATEMENT_MAX_LENGTH = 1024;
+  public static final int DEFAULT_RECORDED_VALUE_MAX_LENGTH = 12288;
+
   /** A tag intended for internal use only, hence not added to the public api DDTags class. */
   private static final String INTERNAL_HOST_NAME = "_dd.hostname";
 
@@ -247,6 +250,7 @@ public class Config {
   @Getter private final boolean reportHostName;
 
   @Getter private final Integer dbStatementMaxLength;
+  @Getter private final Integer recordedValueMaxLength;
 
   // Read order: System Properties -> Env Variables, [-> default value]
   @Getter private final String traceAnnotations;
@@ -380,6 +384,10 @@ public class Config {
 
     dbStatementMaxLength =
         getIntegerSettingFromEnvironment(DB_STATEMENT_MAX_LENGTH, DEFAULT_DB_STATEMENT_MAX_LENGTH);
+
+    recordedValueMaxLength =
+        getIntegerSettingFromEnvironment(
+            RECORDED_VALUE_MAX_LENGTH, DEFAULT_RECORDED_VALUE_MAX_LENGTH);
 
     traceAnnotations = getSettingFromEnvironment(TRACE_ANNOTATIONS, DEFAULT_TRACE_ANNOTATIONS);
 
@@ -522,6 +530,10 @@ public class Config {
 
     dbStatementMaxLength =
         getPropertyIntegerValue(properties, DB_STATEMENT_MAX_LENGTH, parent.dbStatementMaxLength);
+
+    recordedValueMaxLength =
+        getPropertyIntegerValue(
+            properties, RECORDED_VALUE_MAX_LENGTH, parent.recordedValueMaxLength);
 
     traceAnnotations = properties.getProperty(TRACE_ANNOTATIONS, parent.traceAnnotations);
 

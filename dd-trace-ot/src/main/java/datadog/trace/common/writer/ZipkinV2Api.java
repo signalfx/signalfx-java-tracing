@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
 import datadog.opentracing.DDSpan;
+import datadog.trace.api.Config;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import datadog.trace.api.Ids;
@@ -30,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ZipkinV2Api implements Api {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final String traceEndpoint;
+  private static final int recordedValueMaxLength = Config.get().getRecordedValueMaxLength();
 
   // Used to throttle logging when spans can't be sent
   private volatile long nextAllowedLogTime = 0;
@@ -192,7 +194,8 @@ public class ZipkinV2Api implements Api {
         continue;
       }
       // Zipkin tags are always string values
-      tagNode.put(tag.getKey(), tag.getValue().toString());
+      String value = truncatedString(tag.getValue().toString());
+      tagNode.put(tag.getKey(), value);
     }
 
     updateFromResourceName(spanNode, tagNode, span);
@@ -203,7 +206,7 @@ public class ZipkinV2Api implements Api {
       annotation.put("timestamp", item.getKey());
       JsonNode value = OBJECT_MAPPER.valueToTree(item.getValue());
       try {
-        String encodedValue = OBJECT_MAPPER.writeValueAsString(value);
+        String encodedValue = truncatedString(OBJECT_MAPPER.writeValueAsString(value));
         annotation.put("value", encodedValue);
       } catch (JsonProcessingException e) {
         log.warn("Failed creating annotation");
@@ -271,6 +274,14 @@ public class ZipkinV2Api implements Api {
     httpCon.setRequestProperty("Content-Type", "application/json");
 
     return httpCon;
+  }
+
+  private String truncatedString(String value) {
+    String encodedValue = value;
+    if (encodedValue.length() > recordedValueMaxLength) {
+      encodedValue = encodedValue.substring(0, recordedValueMaxLength) + "[...]";
+    }
+    return encodedValue;
   }
 
   @Override

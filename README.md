@@ -127,6 +127,10 @@ content](https://docs.signalfx.com/en/latest/apm/apm-overview/apm-metadata.html)
 **Note: System property values take priority over corresponding environment
 variables.**
 
+**Note: To enable debug logging for troubleshooting assistance, please set the
+`datadog.slf4j.simpleLogger.defaultLogLevel=debug` property at runtime.  These logs
+are extremely verbose.**
+
 ```bash
 $ export SIGNALFX_SERVICE_NAME=my-app
 $ export SIGNALFX_SPAN_TAGS="MyTag:MyValue"

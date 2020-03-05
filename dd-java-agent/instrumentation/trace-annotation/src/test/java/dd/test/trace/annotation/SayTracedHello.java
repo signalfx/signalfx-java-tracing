@@ -23,8 +23,10 @@ public class SayTracedHello {
 
   @Trace(operationName = "SAY_HA")
   public static String sayHA() {
-    activeSpan().setTag(DDTags.SERVICE_NAME, "test");
-    activeSpan().setTag(DDTags.SPAN_TYPE, "DB");
+    if (activeSpan() != null) {
+      activeSpan().setTag(DDTags.SERVICE_NAME, "test");
+      activeSpan().setTag(DDTags.SPAN_TYPE, "DB");
+    }
     return "HA!!";
   }
 
@@ -54,7 +56,9 @@ public class SayTracedHello {
 
   @Trace(operationName = "NEW_TRACE", resourceName = "WORLD")
   public static String sayHELLOsayHAWithResource() {
-    activeSpan().setTag(DDTags.SERVICE_NAME, "test2");
+    if (activeSpan() != null) {
+      activeSpan().setTag(DDTags.SERVICE_NAME, "test2");
+    }
     return sayHello() + sayHA();
   }
 

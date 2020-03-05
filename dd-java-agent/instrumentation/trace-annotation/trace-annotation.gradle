@@ -1,5 +1,19 @@
+// Modified by SignalFx
 apply from: "${rootDir}/gradle/java.gradle"
+apply plugin: 'org.unbroken-dome.test-sets'
 
 dependencies {
   testCompile group: 'com.newrelic.agent.java', name: 'newrelic-api', version: '+'
 }
+
+testSets {
+  propertyTest {
+    dirName = 'test'
+  }
+}
+
+tasks.getByName('propertyTest').configure {
+  jvmArgs "-Dsignalfx.trace.annotated.method.blacklist=something.That[doesnt,exist];dd.test.trace.annotation.SayTracedHello[doesntExist,sayHA,sayHELLOsayHAWithResource,alsoDoesntExist];"
+}
+
+test.dependsOn(propertyTest)

@@ -78,6 +78,7 @@ public class TraceConfigInstrumentation implements Instrumenter {
       return new String[] {
         "datadog.trace.agent.decorator.BaseDecorator",
         packageName + ".TraceAnnotationUtils",
+        packageName + ".TraceAnnotationUtils$ContainsEverythingSet",
         packageName + ".TraceDecorator",
       };
     }

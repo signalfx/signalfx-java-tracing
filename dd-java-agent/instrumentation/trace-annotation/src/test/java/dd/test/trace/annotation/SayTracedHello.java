@@ -97,4 +97,16 @@ public class SayTracedHello {
       }
     }.call();
   }
+
+  public static class SomeInnerClass {
+    @Trace
+    public static String one() {
+      return two();
+    }
+
+    @Trace
+    public static String two() {
+      return "Two!";
+    }
+  }
 }

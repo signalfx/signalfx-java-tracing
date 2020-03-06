@@ -16,7 +16,8 @@ public class TraceAnnotationUtils {
       getClassMethodMap(Config.get().getAnnotatedMethodBlacklist());
 
   static final String PACKAGE_CLASS_NAME_REGEX = "[\\w.\\$]+";
-  private static final String METHOD_LIST_REGEX = "\\s*(?:\\w+\\s*,)*\\s*(?:\\w+\\s*,?)\\s*";
+  private static final String METHOD_LIST_REGEX =
+      "\\s*(?:\\*|(?:(?:\\w+\\s*,)*\\s*(?:\\w+\\s*,?)))\\s*";
   private static final String CONFIG_FORMAT =
       "(?:\\s*"
           + PACKAGE_CLASS_NAME_REGEX
@@ -33,7 +34,7 @@ public class TraceAnnotationUtils {
       return Collections.emptyMap();
     } else if (!configString.matches(CONFIG_FORMAT)) {
       log.warn(
-          "Invalid trace method config '{}'. Must match 'package.Class$Name[method1,method2];*'.",
+          "Invalid trace method config '{}'. Must match 'package.Class$Name[method1,method2];package.Class[*];'.",
           configString);
       return Collections.emptyMap();
     } else {
@@ -52,6 +53,12 @@ public class TraceAnnotationUtils {
         for (final String methodName : splitMethodNames) {
           final String trimmedMethodName = methodName.trim();
           if (!trimmedMethodName.isEmpty()) {
+            // wildcard, so clear trimmedMethodNames to avoid subsequent overwrite
+            if (trimmedMethodName.equals("*")) {
+              trimmedMethodNames.clear();
+              toTrace.put(className.trim(), new ContainsEverythingSet<String>());
+              break;
+            }
             trimmedMethodNames.add(trimmedMethodName);
           }
         }
@@ -60,6 +67,13 @@ public class TraceAnnotationUtils {
         }
       }
       return Collections.unmodifiableMap(toTrace);
+    }
+  }
+
+  public static class ContainsEverythingSet<E> extends HashSet<E> {
+    @Override
+    public boolean contains(Object o) {
+      return true;
     }
   }
 }

@@ -445,4 +445,39 @@ class TraceAnnotationsTest extends AgentTestRunner {
       }
     }
   }
+
+  def "test inner class tracing"() {
+    when:
+    SayTracedHello.SomeInnerClass.one()
+
+    then:
+    if (methodsBlacklisted) {
+      assertTraces(0) {}
+    } else {
+      assertTraces(1) {
+        trace(0, 2) {
+          span(0) {
+            resourceName "SomeInnerClass.one"
+            operationName "trace.annotation"
+            parent()
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
+          }
+          span(1) {
+            resourceName "SomeInnerClass.two"
+            operationName "trace.annotation"
+            childOf span(0)
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
+          }
+        }
+      }
+    }
+  }
 }

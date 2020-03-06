@@ -89,6 +89,7 @@ public final class TraceAnnotationsInstrumentation extends Instrumenter.Default 
     return new String[] {
       "datadog.trace.agent.decorator.BaseDecorator",
       packageName + ".TraceAnnotationUtils",
+      packageName + ".TraceAnnotationUtils$ContainsEverythingSet",
       packageName + ".TraceDecorator",
     };
   }

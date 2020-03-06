@@ -1,11 +1,11 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.trace_annotation;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.instrumentation.trace_annotation.TraceAnnotationUtils.getClassMethodMap;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 import com.google.auto.service.AutoService;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.api.Config;
 import java.util.Collections;
@@ -31,58 +31,11 @@ import net.bytebuddy.matcher.ElementMatcher;
 @AutoService(Instrumenter.class)
 public class TraceConfigInstrumentation implements Instrumenter {
 
-  static final String PACKAGE_CLASS_NAME_REGEX = "[\\w.\\$]+";
-  private static final String METHOD_LIST_REGEX = "\\s*(?:\\w+\\s*,)*\\s*(?:\\w+\\s*,?)\\s*";
-  private static final String CONFIG_FORMAT =
-      "(?:\\s*"
-          + PACKAGE_CLASS_NAME_REGEX
-          + "\\["
-          + METHOD_LIST_REGEX
-          + "\\]\\s*;)*\\s*"
-          + PACKAGE_CLASS_NAME_REGEX
-          + "\\["
-          + METHOD_LIST_REGEX
-          + "\\]\\s*;?\\s*";
-
   private final Map<String, Set<String>> classMethodsToTrace;
 
   public TraceConfigInstrumentation() {
     final String configString = Config.get().getTraceMethods();
-    if (configString == null || configString.trim().isEmpty()) {
-      classMethodsToTrace = Collections.emptyMap();
-
-    } else if (!configString.matches(CONFIG_FORMAT)) {
-      log.warn(
-          "Invalid trace method config '{}'. Must match 'package.Class$Name[method1,method2];*'.",
-          configString);
-      classMethodsToTrace = Collections.emptyMap();
-
-    } else {
-      final Map<String, Set<String>> toTrace = Maps.newHashMap();
-      final String[] classMethods = configString.split(";", -1);
-      for (final String classMethod : classMethods) {
-        if (classMethod.trim().isEmpty()) {
-          continue;
-        }
-        final String[] splitClassMethod = classMethod.split("\\[", -1);
-        final String className = splitClassMethod[0];
-        final String method = splitClassMethod[1].trim();
-        final String methodNames = method.substring(0, method.length() - 1);
-        final String[] splitMethodNames = methodNames.split(",", -1);
-        final Set<String> trimmedMethodNames =
-            Sets.newHashSetWithExpectedSize(splitMethodNames.length);
-        for (final String methodName : splitMethodNames) {
-          final String trimmedMethodName = methodName.trim();
-          if (!trimmedMethodName.isEmpty()) {
-            trimmedMethodNames.add(trimmedMethodName);
-          }
-        }
-        if (!trimmedMethodNames.isEmpty()) {
-          toTrace.put(className.trim(), trimmedMethodNames);
-        }
-      }
-      classMethodsToTrace = Collections.unmodifiableMap(toTrace);
-    }
+    classMethodsToTrace = getClassMethodMap(configString);
   }
 
   @Override
@@ -123,7 +76,10 @@ public class TraceConfigInstrumentation implements Instrumenter {
     @Override
     public String[] helperClassNames() {
       return new String[] {
-        "datadog.trace.agent.decorator.BaseDecorator", packageName + ".TraceDecorator",
+        "datadog.trace.agent.decorator.BaseDecorator",
+        packageName + ".TraceAnnotationUtils",
+        packageName + ".TraceAnnotationUtils$ContainsEverythingSet",
+        packageName + ".TraceDecorator",
       };
     }
 

@@ -69,6 +69,7 @@ public class Config {
   public static final String JMX_TAGS = "trace.jmx.tags";
   public static final String TRACE_ANALYTICS_ENABLED = "trace.analytics.enabled";
   public static final String TRACE_ANNOTATIONS = "trace.annotations";
+  public static final String ANNOTATED_METHOD_BLACKLIST = "trace.annotated.method.blacklist";
   public static final String TRACE_EXECUTORS_ALL = "trace.executors.all";
   public static final String TRACE_EXECUTORS = "trace.executors";
   public static final String TRACE_METHODS = "trace.methods";
@@ -172,6 +173,7 @@ public class Config {
 
   private static final boolean DEFAULT_TRACE_REPORT_HOSTNAME = false;
   private static final String DEFAULT_TRACE_ANNOTATIONS = null;
+  private static final String DEFAULT_ANNOTATED_METHOD_BLACKLIST = null;
   private static final boolean DEFAULT_TRACE_EXECUTORS_ALL = false;
   private static final String DEFAULT_TRACE_EXECUTORS = "";
   private static final String DEFAULT_TRACE_METHODS = null;
@@ -254,6 +256,7 @@ public class Config {
 
   // Read order: System Properties -> Env Variables, [-> default value]
   @Getter private final String traceAnnotations;
+  @Getter private final String annotatedMethodBlacklist;
 
   @Getter private final String traceMethods;
 
@@ -390,6 +393,8 @@ public class Config {
             RECORDED_VALUE_MAX_LENGTH, DEFAULT_RECORDED_VALUE_MAX_LENGTH);
 
     traceAnnotations = getSettingFromEnvironment(TRACE_ANNOTATIONS, DEFAULT_TRACE_ANNOTATIONS);
+    annotatedMethodBlacklist =
+        getSettingFromEnvironment(ANNOTATED_METHOD_BLACKLIST, DEFAULT_ANNOTATED_METHOD_BLACKLIST);
 
     traceMethods = getSettingFromEnvironment(TRACE_METHODS, DEFAULT_TRACE_METHODS);
 
@@ -536,6 +541,8 @@ public class Config {
             properties, RECORDED_VALUE_MAX_LENGTH, parent.recordedValueMaxLength);
 
     traceAnnotations = properties.getProperty(TRACE_ANNOTATIONS, parent.traceAnnotations);
+    annotatedMethodBlacklist =
+        properties.getProperty(ANNOTATED_METHOD_BLACKLIST, parent.annotatedMethodBlacklist);
 
     traceMethods = properties.getProperty(TRACE_METHODS, parent.traceMethods);
 

@@ -123,6 +123,7 @@ content](https://docs.signalfx.com/en/latest/apm/apm-overview/apm-metadata.html)
 | `signalfx.span.tags` | `SIGNALFX_SPAN_TAGS` | `null` | Comma-separated list of tags of the form `"key1:val1,key2:val2"` to be included in every reported span. |
 | `signalfx.db.statement.max.length` | `SIGNALFX_DB_STATEMENT_MAX_LENGTH` | `1024` | The maximum number of characters written for the OpenTracing `db.statement` tag. |
 | `signalfx.recorded.value.max.length` | `SIGNALFX_RECORDED_VALUE_MAX_LENGTH` | `12288` | The maximum number of characters for any Zipkin-encoded tagged or logged value. |
+| `signalfx.trace.annotated.method.blacklist` | `SIGNALFX_TRACE_ANNOTATED_METHOD_BLACKLIST` | `null` | Prevent `@Trace` annotation functionality for the target method string of format `package.OuterClass[methodOne,methodTwo];other.package.OuterClass$InnerClass[*];` (`;` is required and `*` for all methods in class). |
 
 **Note: System property values take priority over corresponding environment
 variables.**
@@ -155,6 +156,43 @@ headers](https://github.com/openzipkin/b3-propagation).
 See [our example applications that use
 this utility](https://github.com/signalfx/tracing-examples/tree/master/signalfx-tracing/signalfx-java-tracing) for
 more details on how to use and configure the SignalFx Java Agent.
+
+### Trace Annotation
+
+In cases where you'd like to gain some of the benefits of custom instrumentation without
+using the OpenTracing `GlobalTracer` and API directly, we offer a `@Trace` annotation you
+can use where desired:
+
+```java
+import com.signalfx.tracing.api.Trace;
+
+public class MyClass {
+  @Trace
+  public void MyLogic() {
+      <...>
+  }
+}
+```
+
+Each time an annotated method is invoked, a span denoting its duration and detailing any thrown
+exceptions will be produced.  This utility is provided assuming you've added the `signalfx-trace-api`
+dependency matching the version of your Java Agent:
+
+```
+Maven:
+<dependency>
+   <groupId>com.signalfx.public</groupId>
+   <artifactId>signalfx-trace-api</artifactId>
+   <version>MyAgentVersion</version>
+   <scope>provided</scope>
+</dependency>
+
+Gradle:
+compileOnly group: 'com.signalfx.public', name: 'signalfx-trace-api', version: 'MyAgentVersion'
+```
+
+This annotation can be disabled at runtime using the `signalfx.trace.annotated.method.blacklist` property
+and associated environment variable as detailed [above](#configuration-and-usage).
 
 # License and Versioning
 

@@ -6,6 +6,8 @@ import datadog.trace.api.Trace
 import datadog.trace.instrumentation.api.Tags
 import dd.test.trace.annotation.SayTracedHello
 
+import spock.lang.Shared
+
 import java.util.concurrent.Callable
 
 class TraceAnnotationsTest extends AgentTestRunner {
@@ -14,6 +16,13 @@ class TraceAnnotationsTest extends AgentTestRunner {
     ConfigUtils.updateConfig {
       System.clearProperty("dd.trace.annotations")
     }
+  }
+
+  @Shared
+  def methodsBlacklisted
+
+  def setupSpec() {
+    methodsBlacklisted = System.getProperty("signalfx.trace.annotated.method.blacklist") != null
   }
 
   def "test simple case annotations"() {
@@ -45,18 +54,22 @@ class TraceAnnotationsTest extends AgentTestRunner {
     SayTracedHello.sayHA()
 
     expect:
-    assertTraces(1) {
-      trace(0, 1) {
-        span(0) {
-          serviceName "test"
-          resourceName "SayTracedHello.sayHA"
-          operationName "SAY_HA"
-          spanType "DB"
-          parent()
-          errored false
-          tags {
-            "$Tags.COMPONENT" "trace"
-            defaultTags()
+    if (methodsBlacklisted) {
+      assertTraces(0) {}
+    } else {
+      assertTraces(1) {
+        trace(0, 1) {
+          span(0) {
+            serviceName "test"
+            resourceName "SayTracedHello.sayHA"
+            operationName "SAY_HA"
+            spanType "DB"
+            parent()
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
           }
         }
       }
@@ -163,37 +176,64 @@ class TraceAnnotationsTest extends AgentTestRunner {
 
     then:
     assertTraces(1) {
-      trace(0, 3) {
-        span(0) {
-          resourceName "SayTracedHello.sayHELLOsayHA"
-          operationName "NEW_TRACE"
-          parent()
-          errored false
-          tags {
-            "$Tags.COMPONENT" "trace"
-            defaultTags()
+      if (methodsBlacklisted) {
+        trace(0, 2) {
+          span(0) {
+            resourceName "SayTracedHello.sayHELLOsayHA"
+            operationName "NEW_TRACE"
+            spanType "DB"
+            parent()
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
+          }
+          span(1) {
+            serviceName "test"
+            resourceName "SayTracedHello.sayHello"
+            operationName "trace.annotation"
+            childOf span(0)
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
           }
         }
-        span(1) {
-          resourceName "SayTracedHello.sayHA"
-          operationName "SAY_HA"
-          spanType "DB"
-          childOf span(0)
-          errored false
-          tags {
-            "$Tags.COMPONENT" "trace"
-            defaultTags()
+      } else {
+        trace(0, 3) {
+          span(0) {
+            resourceName "SayTracedHello.sayHELLOsayHA"
+            operationName "NEW_TRACE"
+            parent()
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
           }
-        }
-        span(2) {
-          serviceName "test"
-          resourceName "SayTracedHello.sayHello"
-          operationName "trace.annotation"
-          childOf span(0)
-          errored false
-          tags {
-            "$Tags.COMPONENT" "trace"
-            defaultTags()
+          span(1) {
+            resourceName "SayTracedHello.sayHA"
+            operationName "SAY_HA"
+            spanType "DB"
+            childOf span(0)
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
+          }
+          span(2) {
+            serviceName "test"
+            resourceName "SayTracedHello.sayHello"
+            operationName "trace.annotation"
+            childOf span(0)
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
           }
         }
       }
@@ -206,38 +246,55 @@ class TraceAnnotationsTest extends AgentTestRunner {
     SayTracedHello.sayHELLOsayHAWithResource()
 
     then:
-    assertTraces(1) {
-      trace(0, 3) {
-        span(0) {
-          resourceName "WORLD"
-          operationName "NEW_TRACE"
-          parent()
-          errored false
-          tags {
-            "$Tags.COMPONENT" "trace"
-            defaultTags()
+    if (methodsBlacklisted) {
+      assertTraces(1) {
+        trace(0, 1) {
+          span(0) {
+            resourceName "SayTracedHello.sayHello"
+            operationName "trace.annotation"
+            parent()
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
           }
         }
-        span(1) {
-          resourceName "SayTracedHello.sayHA"
-          operationName "SAY_HA"
-          spanType "DB"
-          childOf span(0)
-          errored false
-          tags {
-            "$Tags.COMPONENT" "trace"
-            defaultTags()
+      }
+    } else {
+      assertTraces(1) {
+        trace(0, 3) {
+          span(0) {
+            resourceName "WORLD"
+            operationName "NEW_TRACE"
+            parent()
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
           }
-        }
-        span(2) {
-          serviceName "test"
-          resourceName "SayTracedHello.sayHello"
-          operationName "trace.annotation"
-          childOf span(0)
-          errored false
-          tags {
-            "$Tags.COMPONENT" "trace"
-            defaultTags()
+          span(1) {
+            resourceName "SayTracedHello.sayHA"
+            operationName "SAY_HA"
+            spanType "DB"
+            childOf span(0)
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
+          }
+          span(2) {
+            serviceName "test"
+            resourceName "SayTracedHello.sayHello"
+            operationName "trace.annotation"
+            childOf span(0)
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
           }
         }
       }
@@ -383,6 +440,41 @@ class TraceAnnotationsTest extends AgentTestRunner {
           span(0) {
             resourceName "TraceAnnotationsTest\$1.call"
             operationName "trace.annotation"
+          }
+        }
+      }
+    }
+  }
+
+  def "test inner class tracing"() {
+    when:
+    SayTracedHello.SomeInnerClass.one()
+
+    then:
+    if (methodsBlacklisted) {
+      assertTraces(0) {}
+    } else {
+      assertTraces(1) {
+        trace(0, 2) {
+          span(0) {
+            resourceName "SomeInnerClass.one"
+            operationName "trace.annotation"
+            parent()
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
+          }
+          span(1) {
+            resourceName "SomeInnerClass.two"
+            operationName "trace.annotation"
+            childOf span(0)
+            errored false
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
           }
         }
       }

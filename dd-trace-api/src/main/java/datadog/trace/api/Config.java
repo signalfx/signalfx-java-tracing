@@ -117,6 +117,9 @@ public class Config {
   public static final String LANGUAGE_TAG_KEY = "language";
   public static final String LANGUAGE_TAG_VALUE = "jvm";
 
+  public static final String MAX_SPANS_PER_TRACE = "maxSpansPerTrace";
+  public static final Integer DEFAULT_MAX_SPANS_PER_TRACE = 2000;
+
   public static final String DEFAULT_SERVICE_NAME = "unnamed-java-app";
 
   public static final String TRACING_LIBRARY_KEY = "signalfx.tracing.library";
@@ -265,6 +268,8 @@ public class Config {
 
   @Getter private final boolean traceAnalyticsEnabled;
 
+  @Getter private final Integer maxSpansPerTrace;
+
   // Values from an optionally provided properties file
   private static Properties propertiesFromConfigFile;
 
@@ -405,6 +410,9 @@ public class Config {
 
     traceAnalyticsEnabled =
         getBooleanSettingFromEnvironment(TRACE_ANALYTICS_ENABLED, DEFAULT_TRACE_ANALYTICS_ENABLED);
+
+    maxSpansPerTrace =
+        getIntegerSettingFromEnvironment(MAX_SPANS_PER_TRACE, DEFAULT_MAX_SPANS_PER_TRACE);
 
     log.debug("New instance: {}", this);
   }
@@ -552,6 +560,9 @@ public class Config {
 
     traceAnalyticsEnabled =
         getPropertyBooleanValue(properties, TRACE_ANALYTICS_ENABLED, parent.traceAnalyticsEnabled);
+
+    maxSpansPerTrace =
+        getPropertyIntegerValue(properties, MAX_SPANS_PER_TRACE, DEFAULT_MAX_SPANS_PER_TRACE);
 
     log.debug("New instance: {}", this);
   }

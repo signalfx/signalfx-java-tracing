@@ -15,6 +15,7 @@ import org.junit.contrib.java.lang.system.EnvironmentVariables
 import org.junit.contrib.java.lang.system.RestoreSystemProperties
 import spock.lang.Ignore
 
+import static datadog.trace.api.Config.DEFAULT_MAX_SPANS_PER_TRACE
 import static datadog.trace.api.Config.DEFAULT_SERVICE_NAME
 import static datadog.trace.api.Config.HEADER_TAGS
 import static datadog.trace.api.Config.HEALTH_METRICS_ENABLED
@@ -178,4 +179,26 @@ class DDTracerTest extends DDSpecification {
     child.finish()
     root.finish()
   }
+
+  def "spans per trace are capped at writing"() {
+    setup:
+    def writer = new ListWriter()
+    def tracer = new DDTracer('my_service', writer, new AllSampler())
+    // one below the limit
+    def ok = tracer.buildSpan("ok").start()
+    tracer.buildSpan("ok.child").asChildOf(ok).start().finish()
+    ok.finish()
+
+    // and one above it
+    def tooBig = tracer.buildSpan("tooBig").start()
+    for (int i = 0; i < Config.DEFAULT_MAX_SPANS_PER_TRACE; i++) {
+      tracer.buildSpan("tooBig.child" + i).asChildOf(tooBig).start().finish()
+    }
+    tooBig.finish()
+
+    expect:
+    writer.size() == 1
+    writer.get(0).size() == 2 // parent+child
+  }
+
 }

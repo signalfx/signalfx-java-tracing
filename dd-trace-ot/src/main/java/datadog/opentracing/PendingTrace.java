@@ -1,6 +1,7 @@
 package datadog.opentracing;
 
 import datadog.opentracing.scopemanager.ContinuableScope;
+import datadog.trace.api.Config;
 import datadog.trace.common.util.Clock;
 import java.io.Closeable;
 import java.lang.ref.Reference;
@@ -228,6 +229,13 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
   private synchronized void write() {
     if (isWritten.compareAndSet(false, true)) {
       removePendingTrace();
+      if (size() > Config.get().getMaxSpansPerTrace()) {
+        log.error(
+            "Not writing trace of {} spans, exceeds configured max of {}",
+            size(),
+            Config.get().getMaxSpansPerTrace());
+        return;
+      }
       if (!isEmpty()) {
         log.debug("Writing {} spans to {}.", size(), tracer.writer);
         tracer.write(this);

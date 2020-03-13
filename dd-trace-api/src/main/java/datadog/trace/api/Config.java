@@ -157,7 +157,7 @@ public class Config {
   private static final boolean DEFAULT_HTTP_CLIENT_SPLIT_BY_DOMAIN = false;
   private static final boolean DEFAULT_DB_CLIENT_HOST_SPLIT_BY_INSTANCE = false;
   private static final String DEFAULT_SPLIT_BY_TAGS = "";
-  private static final int DEFAULT_PARTIAL_FLUSH_MIN_SPANS = 1000;
+  public static final int DEFAULT_PARTIAL_FLUSH_MIN_SPANS = 1000;
   private static final String DEFAULT_PROPAGATION_STYLE_EXTRACT = PropagationStyle.B3.name();
   private static final String DEFAULT_PROPAGATION_STYLE_INJECT = PropagationStyle.B3.name();
   private static final boolean DEFAULT_JMX_FETCH_ENABLED = false;

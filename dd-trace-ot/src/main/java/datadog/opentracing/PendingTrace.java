@@ -59,6 +59,8 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
    */
   private final AtomicReference<WeakReference<DDSpan>> rootSpan = new AtomicReference<>();
 
+  private final AtomicInteger partiallyWrittenSpanCount = new AtomicInteger(0);
+
   /** Ensure a trace is never written multiple times */
   private final AtomicBoolean isWritten = new AtomicBoolean(false);
 
@@ -203,9 +205,12 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
     if (count == 0) {
       write();
     } else {
-      if (tracer.getPartialFlushMinSpans() > 0 && size() > tracer.getPartialFlushMinSpans()) {
+      if (tracer.getPartialFlushMinSpans() > 0
+          && size() > tracer.getPartialFlushMinSpans()
+          && size() + partiallyWrittenSpanCount.get() < Config.get().getMaxSpansPerTrace()) {
         synchronized (this) {
-          if (size() > tracer.getPartialFlushMinSpans()) {
+          if (size() > tracer.getPartialFlushMinSpans()
+              && size() + partiallyWrittenSpanCount.get() < Config.get().getMaxSpansPerTrace()) {
             final DDSpan rootSpan = getRootSpan();
             final List<DDSpan> partialTrace = new ArrayList(size());
             final Iterator<DDSpan> it = iterator();
@@ -218,6 +223,7 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
               }
             }
             log.debug("Writing partial trace {} of size {}", traceId, partialTrace.size());
+            partiallyWrittenSpanCount.addAndGet(partialTrace.size());
             tracer.write(partialTrace);
           }
         }
@@ -229,9 +235,9 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
   private synchronized void write() {
     if (isWritten.compareAndSet(false, true)) {
       removePendingTrace();
-      if (size() > Config.get().getMaxSpansPerTrace()) {
+      if (size() + partiallyWrittenSpanCount.get() > Config.get().getMaxSpansPerTrace()) {
         log.error(
-            "Not writing trace of {} spans, exceeds configured max of {}",
+            "Dropping trace of {} spans, exceeds configured max of {}",
             size(),
             Config.get().getMaxSpansPerTrace());
         return;

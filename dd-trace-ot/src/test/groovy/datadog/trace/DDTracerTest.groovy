@@ -3,7 +3,6 @@ package datadog.trace
 
 import datadog.opentracing.DDTracer
 import datadog.opentracing.propagation.HttpCodec
-import datadog.opentracing.scopemanager.ContinuableScope
 import datadog.trace.api.Config
 import datadog.trace.common.sampling.AllSampler
 import datadog.trace.common.sampling.RateByServiceSampler
@@ -211,43 +210,28 @@ class DDTracerTest extends DDSpecification {
     def tracer = new DDTracer('partial_write_test_cap', writer, new AllSampler(), Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP, Config.DEFAULT_PARTIAL_FLUSH_MIN_SPANS)
     // First cause a partial write
     def tooBigEventually = tracer.buildSpan("tooBigEventually").start()
-    for(int i=0; i < Config.DEFAULT_PARTIAL_FLUSH_MIN_SPANS + 1; i++) {
+    for (int i = 0; i < Config.DEFAULT_PARTIAL_FLUSH_MIN_SPANS + 1; i++) {
       tracer.buildSpan("tooBigEventually.child" + i).asChildOf(tooBigEventually).start().finish()
     }
-    if (true) { // keep scope of copy+paste in check
-      def cont = tracer.buildSpan("tooBigEventually.cont").asChildOf(tooBigEventually).start()
-      def cscope = tracer.scopeManager().activate(cont)
-      ((ContinuableScope) cscope).setAsyncPropagation(true)
-      def continuation = ((ContinuableScope) cscope).capture()
-      continuation.activate().close() // causes partial write
-    }
-
 
     assert writer.size() == 1
     assert writer.get(0).size() >= Config.DEFAULT_PARTIAL_FLUSH_MIN_SPANS
 
-    // Then add a bunch more (over capping limit) and cause another (capped) partial write
-    for(int i=0; i < Config.DEFAULT_MAX_SPANS_PER_TRACE; i++) {
+    // Then add a bunch more (over capping limit) which causes another (capped) partial write
+    for (int i = 0; i < Config.DEFAULT_MAX_SPANS_PER_TRACE; i++) {
       tracer.buildSpan("tooBigEventually.child.2." + i).asChildOf(tooBigEventually).start().finish()
-    }
-    if (true) {
-      def cont = tracer.buildSpan("tooBigEventually.cont").asChildOf(tooBigEventually).start()
-      def cscope = tracer.scopeManager().activate(cont)
-      ((ContinuableScope) cscope).setAsyncPropagation(true)
-      def continuation = ((ContinuableScope) cscope).capture()
-      continuation.activate().close() // causes partial write
     }
 
     assert writer.size() == 1 // partial write didn't actually happen
 
     // Then close the trace which causes a (capped) write
     tooBigEventually.finish()
-    assert writer.size() == 1 // partial write didn't actually happen
+    assert writer.size() == 1 // final write didn't actually happen
+    assert writer.get(0).size() < Config.DEFAULT_MAX_SPANS_PER_TRACE
 
 
     expect:
     Config.DEFAULT_MAX_SPANS_PER_TRACE > Config.DEFAULT_PARTIAL_FLUSH_MIN_SPANS
-    writer.size() == 1 // only 1 partial write happened, second partial and final regular did not
 
     cleanup:
     tracer.close()

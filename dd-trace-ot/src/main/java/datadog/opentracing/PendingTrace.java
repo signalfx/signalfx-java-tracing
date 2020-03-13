@@ -205,12 +205,9 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
     if (count == 0) {
       write();
     } else {
-      if (tracer.getPartialFlushMinSpans() > 0
-          && size() > tracer.getPartialFlushMinSpans()
-          && size() + partiallyWrittenSpanCount.get() < Config.get().getMaxSpansPerTrace()) {
+      if (tracer.getPartialFlushMinSpans() > 0 && size() > tracer.getPartialFlushMinSpans()) {
         synchronized (this) {
-          if (size() > tracer.getPartialFlushMinSpans()
-              && size() + partiallyWrittenSpanCount.get() < Config.get().getMaxSpansPerTrace()) {
+          if (size() > tracer.getPartialFlushMinSpans()) {
             final DDSpan rootSpan = getRootSpan();
             final List<DDSpan> partialTrace = new ArrayList(size());
             final Iterator<DDSpan> it = iterator();
@@ -222,9 +219,19 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
                 it.remove();
               }
             }
-            log.debug("Writing partial trace {} of size {}", traceId, partialTrace.size());
+            // mark that we've "written" this partial trace to the span count
             partiallyWrittenSpanCount.addAndGet(partialTrace.size());
-            tracer.write(partialTrace);
+            // but only write it if we actually have room under the cap
+            if (partiallyWrittenSpanCount.get() < Config.get().getMaxSpansPerTrace()) {
+              log.debug("Writing partial trace {} of size {}", traceId, partialTrace.size());
+              tracer.write(partialTrace);
+            } else {
+              log.error(
+                  "Dropping partial trace {} of size {} exceeding max of {}",
+                  traceId,
+                  partiallyWrittenSpanCount.get(),
+                  Config.get().getMaxSpansPerTrace());
+            }
           }
         }
       }
@@ -238,7 +245,7 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
       if (size() + partiallyWrittenSpanCount.get() > Config.get().getMaxSpansPerTrace()) {
         log.error(
             "Dropping trace of {} spans, exceeds configured max of {}",
-            size(),
+            size() + partiallyWrittenSpanCount.get(),
             Config.get().getMaxSpansPerTrace());
         return;
       }

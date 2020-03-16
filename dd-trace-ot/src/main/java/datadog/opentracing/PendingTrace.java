@@ -1,6 +1,7 @@
 package datadog.opentracing;
 
 import datadog.opentracing.scopemanager.ContinuableScope;
+import datadog.trace.api.Config;
 import datadog.trace.common.util.Clock;
 import java.io.Closeable;
 import java.lang.ref.Reference;
@@ -57,6 +58,8 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
    * strongly ref'd in this queue or is unfinished and ref'd in a ContinuableScope.
    */
   private final AtomicReference<WeakReference<DDSpan>> rootSpan = new AtomicReference<>();
+
+  private final AtomicInteger partiallyWrittenSpanCount = new AtomicInteger(0);
 
   /** Ensure a trace is never written multiple times */
   private final AtomicBoolean isWritten = new AtomicBoolean(false);
@@ -216,8 +219,19 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
                 it.remove();
               }
             }
-            log.debug("Writing partial trace {} of size {}", traceId, partialTrace.size());
-            tracer.write(partialTrace);
+            // mark that we've "written" this partial trace to the span count
+            partiallyWrittenSpanCount.addAndGet(partialTrace.size());
+            // but only write it if we actually have room under the cap
+            if (partiallyWrittenSpanCount.get() < Config.get().getMaxSpansPerTrace()) {
+              log.debug("Writing partial trace {} of size {}", traceId, partialTrace.size());
+              tracer.write(partialTrace);
+            } else {
+              log.error(
+                  "Dropping partial trace {} of size {} exceeding max of {}",
+                  traceId,
+                  partiallyWrittenSpanCount.get(),
+                  Config.get().getMaxSpansPerTrace());
+            }
           }
         }
       }
@@ -228,6 +242,13 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
   private synchronized void write() {
     if (isWritten.compareAndSet(false, true)) {
       removePendingTrace();
+      if (size() + partiallyWrittenSpanCount.get() > Config.get().getMaxSpansPerTrace()) {
+        log.error(
+            "Dropping trace of {} spans, exceeds configured max of {}",
+            size() + partiallyWrittenSpanCount.get(),
+            Config.get().getMaxSpansPerTrace());
+        return;
+      }
       if (!isEmpty()) {
         log.debug("Writing {} spans to {}.", size(), tracer.writer);
         tracer.write(this);

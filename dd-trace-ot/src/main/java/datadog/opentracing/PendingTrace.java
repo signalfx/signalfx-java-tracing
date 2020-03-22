@@ -1,7 +1,6 @@
 package datadog.opentracing;
 
 import datadog.opentracing.scopemanager.ContinuableScope;
-import datadog.trace.api.Config;
 import datadog.trace.common.util.Clock;
 import java.io.Closeable;
 import java.lang.ref.Reference;
@@ -222,7 +221,8 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
             // mark that we've "written" this partial trace to the span count
             partiallyWrittenSpanCount.addAndGet(partialTrace.size());
             // but only write it if we actually have room under the cap
-            if (partiallyWrittenSpanCount.get() < Config.get().getMaxSpansPerTrace()) {
+            if (tracer.getMaxSpansPerTrace() <= 0
+                || partiallyWrittenSpanCount.get() < tracer.getMaxSpansPerTrace()) {
               log.debug("Writing partial trace {} of size {}", traceId, partialTrace.size());
               tracer.write(partialTrace);
             } else {
@@ -230,7 +230,7 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
                   "Dropping partial trace {} of size {} exceeding max of {}",
                   traceId,
                   partiallyWrittenSpanCount.get(),
-                  Config.get().getMaxSpansPerTrace());
+                  tracer.getMaxSpansPerTrace());
             }
           }
         }
@@ -242,11 +242,12 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
   private synchronized void write() {
     if (isWritten.compareAndSet(false, true)) {
       removePendingTrace();
-      if (size() + partiallyWrittenSpanCount.get() > Config.get().getMaxSpansPerTrace()) {
+      if (tracer.getMaxSpansPerTrace() > 0
+          && size() + partiallyWrittenSpanCount.get() > tracer.getMaxSpansPerTrace()) {
         log.error(
             "Dropping trace of {} spans, exceeds configured max of {}",
             size() + partiallyWrittenSpanCount.get(),
-            Config.get().getMaxSpansPerTrace());
+            tracer.getMaxSpansPerTrace());
         return;
       }
       if (!isEmpty()) {

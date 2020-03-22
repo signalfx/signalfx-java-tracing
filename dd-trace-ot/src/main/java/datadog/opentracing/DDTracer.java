@@ -93,6 +93,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
   private final HttpCodec.Injector injector;
   private final HttpCodec.Extractor extractor;
 
+  @Getter private final int maxSpansPerTrace;
+
   /** By default, report to local agent and collect all traces. */
   public DDTracer() {
     this(Config.get());
@@ -217,6 +219,28 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
       final Map<String, String> serviceNameMappings,
       final Map<String, String> taggedHeaders,
       final int partialFlushMinSpans) {
+    this(
+        serviceName,
+        writer,
+        sampler,
+        localRootSpanTags,
+        defaultSpanTags,
+        serviceNameMappings,
+        taggedHeaders,
+        partialFlushMinSpans,
+        Config.DEFAULT_MAX_SPANS_PER_TRACE);
+  }
+
+  public DDTracer(
+      final String serviceName,
+      final Writer writer,
+      final Sampler sampler,
+      final Map<String, String> localRootSpanTags,
+      final Map<String, String> defaultSpanTags,
+      final Map<String, String> serviceNameMappings,
+      final Map<String, String> taggedHeaders,
+      final int partialFlushMinSpans,
+      final int maxSpansPerTrace) {
     assert localRootSpanTags != null;
     assert defaultSpanTags != null;
     assert serviceNameMappings != null;
@@ -230,6 +254,7 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
     this.defaultSpanTags = defaultSpanTags;
     this.serviceNameMappings = serviceNameMappings;
     this.partialFlushMinSpans = partialFlushMinSpans;
+    this.maxSpansPerTrace = maxSpansPerTrace;
 
     shutdownCallback = new ShutdownHook(this);
     try {

@@ -180,10 +180,27 @@ class DDTracerTest extends DDSpecification {
     root.finish()
   }
 
+  def "default is no capping"() {
+    def writer = new ListWriter()
+    def tracer = new DDTracer(DEFAULT_SERVICE_NAME, writer, new AllSampler(), Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP, 0, Config.DEFAULT_MAX_SPANS_PER_TRACE)
+
+    // and one above it
+    def ok = tracer.buildSpan("ok").start()
+    for (int i = 0; i < 3000; i++) {
+      tracer.buildSpan("ok.child" + i).asChildOf(ok).start().finish()
+    }
+    ok.finish()
+
+    expect:
+    writer.size() == 1
+    writer.get(0).size() == 3001
+
+  }
+
   def "spans per trace are capped at writing"() {
     setup:
     def writer = new ListWriter()
-    def tracer = new DDTracer(DEFAULT_SERVICE_NAME, writer, new AllSampler())
+    def tracer = new DDTracer(DEFAULT_SERVICE_NAME, writer, new AllSampler(), Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP, 0, 2000)
     // one below the limit
     def ok = tracer.buildSpan("ok").start()
     tracer.buildSpan("ok.child").asChildOf(ok).start().finish()
@@ -191,7 +208,7 @@ class DDTracerTest extends DDSpecification {
 
     // and one above it
     def tooBig = tracer.buildSpan("tooBig").start()
-    for (int i = 0; i < Config.DEFAULT_MAX_SPANS_PER_TRACE; i++) {
+    for (int i = 0; i < 3000; i++) {
       tracer.buildSpan("tooBig.child" + i).asChildOf(tooBig).start().finish()
     }
     tooBig.finish()
@@ -207,18 +224,18 @@ class DDTracerTest extends DDSpecification {
   def "partial writes are still eventually capped"() {
     setup:
     def writer = new ListWriter()
-    def tracer = new DDTracer(DEFAULT_SERVICE_NAME, writer, new AllSampler(), Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP, Config.DEFAULT_PARTIAL_FLUSH_MIN_SPANS)
+    def tracer = new DDTracer(DEFAULT_SERVICE_NAME, writer, new AllSampler(), Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP, 1000, 2000)
     // First cause a partial write
     def tooBigEventually = tracer.buildSpan("tooBigEventually").start()
-    for (int i = 0; i < Config.DEFAULT_PARTIAL_FLUSH_MIN_SPANS + 1; i++) {
+    for (int i = 0; i < 1001; i++) {
       tracer.buildSpan("tooBigEventually.child" + i).asChildOf(tooBigEventually).start().finish()
     }
 
     assert writer.size() == 1
-    assert writer.get(0).size() >= Config.DEFAULT_PARTIAL_FLUSH_MIN_SPANS
+    assert writer.get(0).size() >= 1000
 
     // Then add a bunch more (over capping limit) which causes another (capped) partial write
-    for (int i = 0; i < Config.DEFAULT_MAX_SPANS_PER_TRACE; i++) {
+    for (int i = 0; i < 1001; i++) {
       tracer.buildSpan("tooBigEventually.child.2." + i).asChildOf(tooBigEventually).start().finish()
     }
 
@@ -227,11 +244,8 @@ class DDTracerTest extends DDSpecification {
     // Then close the trace which causes a (capped) write
     tooBigEventually.finish()
     assert writer.size() == 1 // final write didn't actually happen
-    assert writer.get(0).size() < Config.DEFAULT_MAX_SPANS_PER_TRACE
+    assert writer.get(0).size() < 2000
 
-
-    expect:
-    Config.DEFAULT_MAX_SPANS_PER_TRACE > Config.DEFAULT_PARTIAL_FLUSH_MIN_SPANS
 
     cleanup:
     tracer.close()

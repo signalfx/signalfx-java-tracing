@@ -118,7 +118,7 @@ public class Config {
   public static final String LANGUAGE_TAG_VALUE = "jvm";
 
   public static final String MAX_SPANS_PER_TRACE = "max.spans.per.trace";
-  public static final Integer DEFAULT_MAX_SPANS_PER_TRACE = 2000;
+  public static final Integer DEFAULT_MAX_SPANS_PER_TRACE = 0;
 
   public static final String DEFAULT_SERVICE_NAME = "unnamed-java-app";
 

@@ -126,7 +126,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
         config.getMergedSpanTags(),
         config.getServiceMapping(),
         config.getHeaderTags(),
-        config.getPartialFlushMinSpans());
+        config.getPartialFlushMinSpans(),
+        config.getMaxSpansPerTrace());
     log.debug("Using config: {}", config);
   }
 
@@ -160,7 +161,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
         config.getMergedSpanTags(),
         config.getServiceMapping(),
         config.getHeaderTags(),
-        config.getPartialFlushMinSpans());
+        config.getPartialFlushMinSpans(),
+        config.getMaxSpansPerTrace());
   }
 
   /**
@@ -184,7 +186,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
         defaultSpanTags,
         serviceNameMappings,
         taggedHeaders,
-        Config.get().getPartialFlushMinSpans());
+        Config.get().getPartialFlushMinSpans(),
+        Config.get().getMaxSpansPerTrace());
   }
 
   /**
@@ -207,7 +210,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
         defaultSpanTags,
         serviceNameMappings,
         taggedHeaders,
-        Config.get().getPartialFlushMinSpans());
+        Config.get().getPartialFlushMinSpans(),
+        Config.get().getMaxSpansPerTrace());
   }
 
   public DDTracer(
@@ -228,7 +232,7 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
         serviceNameMappings,
         taggedHeaders,
         partialFlushMinSpans,
-        Config.DEFAULT_MAX_SPANS_PER_TRACE);
+        Config.get().getMaxSpansPerTrace());
   }
 
   public DDTracer(

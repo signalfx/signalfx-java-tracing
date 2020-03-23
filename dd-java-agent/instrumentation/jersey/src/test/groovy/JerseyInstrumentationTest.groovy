@@ -99,9 +99,10 @@ class JerseyInstrumentationTest extends AgentTestRunner {
             "$Tags.COMPONENT.key" "jersey"
             // Raised exception varies by version so don't use TagsAssert helpers
             "error" true
-            "error.type" String
-            "error.stack" String
-            "error.msg" String
+            "sfx.error.object" String
+            "sfx.error.kind" String
+            "sfx.error.stack" String
+            "sfx.error.message" String
           }
         }
       }

@@ -320,13 +320,14 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
             "servlet.context" "/$jspWebappContext"
             "http.status_code" 500
             "error" true
-            "error.type" { String tagExceptionType ->
+            "sfx.error.object" { String tagExceptionType ->
               return tagExceptionType == exceptionClass.getName() || tagExceptionType.contains(exceptionClass.getSimpleName())
             }
-            "error.msg" { String tagErrorMsg ->
+            "sfx.error.message" { String tagErrorMsg ->
               return errorMessageOptional || tagErrorMsg instanceof String
             }
-            "error.stack" String
+            "sfx.error.stack" String
+            "sfx.error.kind" String
             defaultTags()
           }
         }
@@ -342,13 +343,14 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
             "error" true
-            "error.type" { String tagExceptionType ->
+            "sfx.error.object" { String tagExceptionType ->
               return tagExceptionType == exceptionClass.getName() || tagExceptionType.contains(exceptionClass.getSimpleName())
             }
-            "error.msg" { String tagErrorMsg ->
+            "sfx.error.message" { String tagErrorMsg ->
               return errorMessageOptional || tagErrorMsg instanceof String
             }
-            "error.stack" String
+            "sfx.error.stack" String
+            "sfx.error.kind" String
             defaultTags()
           }
         }

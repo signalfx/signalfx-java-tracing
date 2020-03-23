@@ -214,8 +214,9 @@ class JaxRsAnnotationsInstrumentationTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD" "GET"
             if (error) {
               tag('error', true)
-              tag('error.stack', String)
-              tag('error.type', errorType)
+              tag('sfx.error.stack', String)
+              tag('sfx.error.kind', String)
+              tag('sfx.error.object', errorType)
             }
             defaultTags()
           }

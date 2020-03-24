@@ -102,7 +102,7 @@ class JettyServlet2Test extends HttpServerTest<Server, Servlet2Decorator> {
         if (endpoint.errored) {
           "$Tags.ERROR" endpoint.errored
           "sfx.error.message" { it == null || it == EXCEPTION.body }
-          "sfx.error.kind" { it == null || it == Exception.name }
+          "sfx.error.object" { it == null || it == Exception.name }
           "sfx.error.kind" { it == null || it instanceof String }
           "sfx.error.stack" { it == null || it instanceof String }
         }

@@ -15,8 +15,10 @@ public class DDTags {
   public static final String USER_NAME = "user.principal";
   public static final String ENTITY_NAME = "entity.name";
 
-  public static final String ERROR_MSG = "sfx.error.message"; // string representing the error message
-  public static final String ERROR_TYPE = "sfx.error.object"; // string representing the type of the error
+  public static final String ERROR_MSG =
+      "sfx.error.message"; // string representing the error message
+  public static final String ERROR_TYPE =
+      "sfx.error.object"; // string representing the type of the error
   public static final String ERROR_STACK = "sfx.error.stack"; // human readable version of the stack
 
   public static final String ANALYTICS_SAMPLE_RATE = "_dd1.sr.eausr";

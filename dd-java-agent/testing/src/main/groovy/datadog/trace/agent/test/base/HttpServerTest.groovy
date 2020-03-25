@@ -22,11 +22,7 @@ import spock.lang.Unroll
 import java.util.concurrent.atomic.AtomicBoolean
 
 import static datadog.trace.agent.test.asserts.TraceAssert.assertTrace
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.ERROR
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.NOT_FOUND
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.REDIRECT
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.*
 import static datadog.trace.agent.test.utils.TraceUtils.basicSpan
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 import static datadog.trace.instrumentation.api.AgentTracer.activeScope
@@ -108,9 +104,9 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
     SUCCESS("success", 200, "success"),
     REDIRECT("redirect", 302, "/redirected"),
     CLIENT_EXCEPTION("client-exception", 400, "controller client exception",
-    IllegalArgumentException.class),
+      IllegalArgumentException),
     ERROR("error-status", 500, "controller error"), // "error" is a special path for some frameworks
-    EXCEPTION("exception", 500, "controller exception", Exception.class),
+    EXCEPTION("exception", 500, "controller exception", Exception),
     NOT_FOUND("notFound", 404, "not found"),
     UNAVAILABLE("unavailable", 503, "service unavailable"),
 
@@ -122,7 +118,7 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
     final int status
     final String body
     final Boolean errored
-    final Class<? extends Exception> exceptionClass;
+    final Class<? extends Exception> exceptionClass
 
     ServerEndpoint(String path, int status, String body) {
       this(path, status, body, null)
@@ -131,7 +127,7 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
     ServerEndpoint(String path, int status, String body, Class<? extends Exception> exceptionClass) {
       this.path = path
       this.status = status
-      this.body = body
+      this.body = bTestControllerody
       this.errored = status >= 500
       this.exceptionClass = exceptionClass
     }
@@ -151,7 +147,9 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
     Class<? extends Exception> getExceptionClass() {
       return exceptionClass
     }
-    private static final Map<String, ServerEndpoint> PATH_MAP = values().collectEntries { [it.path, it] }
+    private static final Map<String, ServerEndpoint> PATH_MAP = values().collectEntries {
+      [it.path, it]
+    }
 
     static ServerEndpoint forPath(String path) {
       return PATH_MAP.get(path)
@@ -160,7 +158,7 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
 
 
   Request.Builder request(ServerEndpoint uri, String method, String body,
-                          Map<String,String> params = null) {
+                          Map<String, String> params = null) {
 
     HttpUrl.Builder httpBuilder = HttpUrl.get(uri.resolve(address)).newBuilder()
     if (params != null) {

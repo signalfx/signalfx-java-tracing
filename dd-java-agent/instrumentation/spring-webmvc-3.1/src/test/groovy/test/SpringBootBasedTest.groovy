@@ -18,9 +18,7 @@ import org.springframework.boot.SpringApplication
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.web.servlet.view.RedirectView
 
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.CLIENT_EXCEPTION
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.*
 import static java.util.Collections.singletonMap
 
 class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext, Servlet3Decorator> {
@@ -47,9 +45,9 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
     }
 
     where:
-    exception | error
+    exception                | error
     IllegalArgumentException | false
-    Exception | true
+    Exception                | true
   }
 
   @Override
@@ -122,7 +120,7 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
 
   @Override
   void handlerSpan(TraceAssert trace, int index, Object parent, ServerEndpoint endpoint = SUCCESS,
-                    Boolean error = null) {
+                   Boolean error = null) {
     def spanErrored = error != null ? error : endpoint == EXCEPTION
     trace.span(index) {
       serviceName expectedServiceName()
@@ -165,17 +163,17 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
         defaultTags(true)
         "$Tags.COMPONENT" serverDecorator.component()
         if (spanErrored) {
-          "$Tags.ERROR" endpoint.errored
-          "sfx.error.message" { it == null || it == EXCEPTION.body }
+          "$Tags.ERROR" true
+          "sfx.error.message" { it == null || it == endpoint.body }
           "sfx.error.object" { it == null || it == Exception.name }
           "sfx.error.kind" { it == null || it instanceof String }
           "sfx.error.stack" { it == null || it instanceof String }
-        } else {
-          "$Tags.ERROR" CLIENT_EXCEPTION.errored
-          "sfx.error.message" { it == null || it == CLIENT_EXCEPTION.body }
-          "sfx.error.object" { it == null || it == IllegalArgumentException.name }
-          "sfx.error.kind" { it == null || it instanceof String }
-          "sfx.error.stack" { it == null || it instanceof String }
+        } else if (endpoint == CLIENT_EXCEPTION) {
+          "$Tags.ERROR" false
+          "sfx.error.message" CLIENT_EXCEPTION.body
+          "sfx.error.object" IllegalArgumentException.name
+          "sfx.error.kind" { it instanceof String }
+          "sfx.error.stack" { it instanceof String }
         }
 
         "$Tags.HTTP_STATUS" spanErrored ? EXCEPTION.status : endpoint.status

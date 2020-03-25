@@ -2,14 +2,12 @@ package test
 
 import com.signalfx.tracing.api.TraceSetting
 import datadog.trace.agent.test.base.HttpServerTest
-import net.bytebuddy.implementation.bytecode.Throw
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseBody
-import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.servlet.view.RedirectView
 
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.*
@@ -48,7 +46,7 @@ class TestController {
   }
 
   @RequestMapping("/client-exception")
-  @TraceSetting(allowedExceptions = IllegalArgumentException.class)
+  @TraceSetting(allowedExceptions = IllegalArgumentException)
   ResponseEntity client_exception(String exceptionName) {
     throw (Throwable) Class.forName(exceptionName).newInstance(CLIENT_EXCEPTION.body)
   }

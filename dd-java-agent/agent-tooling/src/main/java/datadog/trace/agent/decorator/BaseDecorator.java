@@ -1,5 +1,6 @@
 package datadog.trace.agent.decorator;
 
+import com.signalfx.tracing.api.TraceSetting;
 import datadog.trace.api.Config;
 import datadog.trace.api.DDTags;
 import datadog.trace.instrumentation.api.AgentScope;
@@ -11,6 +12,8 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 
@@ -63,18 +66,48 @@ public abstract class BaseDecorator {
   }
 
   public AgentScope onError(final AgentScope scope, final Throwable throwable) {
+    return onError(scope, throwable, null);
+  }
+
+  public AgentScope onError(
+      final AgentScope scope, final Throwable throwable, final Method method) {
     assert scope != null;
-    onError(scope.span(), throwable);
+    onError(scope.span(), throwable, method);
     return scope;
   }
 
   public AgentSpan onError(final AgentSpan span, final Throwable throwable) {
+    return onError(span, throwable, null);
+  }
+
+  public AgentSpan onError(final AgentSpan span, final Throwable throwable, final Method method) {
     assert span != null;
     if (throwable != null) {
-      span.setError(true);
-      span.addThrowable(throwable instanceof ExecutionException ? throwable.getCause() : throwable);
+      List<Class> allowedExceptions =
+          method != null
+              ? TraceSetting.Annotated.getAllowedExceptions(method)
+              : Collections.<Class>emptyList();
+      if (!isAllowedException(throwable, allowedExceptions)) {
+        span.setError(true);
+        span.addThrowable(
+            throwable instanceof ExecutionException ? throwable.getCause() : throwable);
+      }
     }
     return span;
+  }
+
+  private boolean isAllowedException(
+      final Throwable throwable, final List<Class> allowedExceptions) {
+    boolean result = false;
+    if (allowedExceptions != null) {
+      for (Class allowed : allowedExceptions) {
+        if (allowed.isInstance(throwable)) {
+          result = true;
+          break;
+        }
+      }
+    }
+    return result;
   }
 
   public AgentSpan onPeerConnection(

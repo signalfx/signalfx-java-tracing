@@ -20,12 +20,14 @@ import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.instrumentation.api.AgentScope;
 import datadog.trace.instrumentation.api.AgentSpan;
+import java.lang.reflect.Method;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import org.springframework.web.method.HandlerMethod;
 
 @AutoService(Instrumenter.class)
 public final class HandlerAdapterInstrumentation extends Instrumenter.Default {
@@ -91,11 +93,19 @@ public final class HandlerAdapterInstrumentation extends Instrumenter.Default {
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void stopSpan(
-        @Advice.Enter final AgentScope scope, @Advice.Thrown final Throwable throwable) {
+        @Advice.Enter final AgentScope scope,
+        @Advice.Argument(2) final Object handler,
+        @Advice.Thrown final Throwable throwable) {
       if (scope == null) {
         return;
       }
-      DECORATE.onError(scope, throwable);
+      Method method = null;
+      if (handler instanceof HandlerMethod) {
+        HandlerMethod handlerMethod = (HandlerMethod) handler;
+        method = handlerMethod.getMethod();
+      }
+      DECORATE.onError(scope, throwable, method);
+
       DECORATE.beforeFinish(scope);
       scope.close();
     }

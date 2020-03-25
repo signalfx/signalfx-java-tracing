@@ -107,8 +107,10 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
   enum ServerEndpoint {
     SUCCESS("success", 200, "success"),
     REDIRECT("redirect", 302, "/redirected"),
+    CLIENT_EXCEPTION("client-exception", 400, "controller client exception",
+    IllegalArgumentException.class),
     ERROR("error-status", 500, "controller error"), // "error" is a special path for some frameworks
-    EXCEPTION("exception", 500, "controller exception"),
+    EXCEPTION("exception", 500, "controller exception", Exception.class),
     NOT_FOUND("notFound", 404, "not found"),
     UNAVAILABLE("unavailable", 503, "service unavailable"),
 
@@ -120,12 +122,18 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
     final int status
     final String body
     final Boolean errored
+    final Class<? extends Exception> exceptionClass;
 
     ServerEndpoint(String path, int status, String body) {
+      this(path, status, body, null)
+    }
+
+    ServerEndpoint(String path, int status, String body, Class<? extends Exception> exceptionClass) {
       this.path = path
       this.status = status
       this.body = body
       this.errored = status >= 500
+      this.exceptionClass = exceptionClass
     }
 
     String getPath() {
@@ -140,6 +148,9 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
       return address.resolve(path)
     }
 
+    Class<? extends Exception> getExceptionClass() {
+      return exceptionClass
+    }
     private static final Map<String, ServerEndpoint> PATH_MAP = values().collectEntries { [it.path, it] }
 
     static ServerEndpoint forPath(String path) {
@@ -147,9 +158,19 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
     }
   }
 
-  Request.Builder request(ServerEndpoint uri, String method, String body) {
+
+  Request.Builder request(ServerEndpoint uri, String method, String body,
+                          Map<String,String> params = null) {
+
+    HttpUrl.Builder httpBuilder = HttpUrl.get(uri.resolve(address)).newBuilder()
+    if (params != null) {
+      for (Map.Entry<String, String> param : params.entrySet()) {
+        httpBuilder.addQueryParameter(param.getKey(), param.getValue())
+      }
+    }
+
     return new Request.Builder()
-      .url(HttpUrl.get(uri.resolve(address)))
+      .url(httpBuilder.build())
       .method(method, body)
   }
 

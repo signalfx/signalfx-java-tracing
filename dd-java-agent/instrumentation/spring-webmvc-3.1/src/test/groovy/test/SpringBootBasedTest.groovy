@@ -1,6 +1,7 @@
 // Modified by SignalFx
 package test
 
+import com.google.common.collect.ImmutableMap
 import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.asserts.ListWriterAssert
 import datadog.trace.agent.test.asserts.SpanAssert
@@ -17,11 +18,39 @@ import org.springframework.boot.SpringApplication
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.web.servlet.view.RedirectView
 
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.CLIENT_EXCEPTION
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
 import static java.util.Collections.singletonMap
 
 class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext, Servlet3Decorator> {
+
+  def "allowedExceptions=IllegalArgument should tag error=#error when exception=#exception is thrown"() {
+    setup:
+    def method = "GET"
+    def request = request(CLIENT_EXCEPTION, method, null,
+      ImmutableMap.of("exceptionName", exception.getName())).build()
+    def response = client.newCall(request).execute()
+
+    expect:
+    response.code() == (error ? EXCEPTION.status : CLIENT_EXCEPTION.status)
+    if (testExceptionBody()) {
+      assert response.body().string() == CLIENT_EXCEPTION.getBody().toString()
+    }
+
+    and:
+    cleanAndAssertTraces(1) {
+      trace(0, 2) {
+        serverSpan(it, 0, null, null, method, CLIENT_EXCEPTION, error)
+        handlerSpan(it, 1, span(0), CLIENT_EXCEPTION, error)
+      }
+    }
+
+    where:
+    exception | error
+    IllegalArgumentException | false
+    Exception | true
+  }
 
   @Override
   ConfigurableApplicationContext startServer(int port) {
@@ -92,33 +121,38 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
   }
 
   @Override
-  void handlerSpan(TraceAssert trace, int index, Object parent, ServerEndpoint endpoint = SUCCESS) {
+  void handlerSpan(TraceAssert trace, int index, Object parent, ServerEndpoint endpoint = SUCCESS,
+                    Boolean error = null) {
+    def spanErrored = error != null ? error : endpoint == EXCEPTION
     trace.span(index) {
       serviceName expectedServiceName()
       operationName "spring.handler"
       resourceName "TestController.${endpoint.name().toLowerCase()}"
       spanType DDSpanTypes.HTTP_SERVER
-      errored endpoint == EXCEPTION
+      errored spanErrored
       childOf(parent as DDSpan)
       tags {
         "$Tags.COMPONENT" SpringWebHttpServerDecorator.DECORATE.component()
         "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
         defaultTags()
-        if (endpoint == EXCEPTION) {
-          errorTags(Exception, EXCEPTION.body)
+        if (spanErrored) {
+          errorTags(Exception, endpoint.body)
         }
       }
     }
   }
 
   @Override
-  void serverSpan(TraceAssert trace, int index, String traceID = null, String parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
+  void serverSpan(TraceAssert trace, int index, String traceID = null, String parentID = null,
+                  String method = "GET", ServerEndpoint endpoint = SUCCESS, Boolean error = null
+  ) {
+    def spanErrored = error != null ? error : endpoint.errored
     trace.span(index) {
       serviceName expectedServiceName()
       operationName expectedOperationName()
       resourceName endpoint.status == 404 ? "404" : "${endpoint.resolve(address).path}"
       spanType DDSpanTypes.HTTP_SERVER
-      errored endpoint.errored
+      errored spanErrored
       if (parentID != null) {
         traceId traceID
         parentId parentID
@@ -130,14 +164,21 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
 
         defaultTags(true)
         "$Tags.COMPONENT" serverDecorator.component()
-        if (endpoint.errored) {
+        if (spanErrored) {
           "$Tags.ERROR" endpoint.errored
           "sfx.error.message" { it == null || it == EXCEPTION.body }
           "sfx.error.object" { it == null || it == Exception.name }
           "sfx.error.kind" { it == null || it instanceof String }
           "sfx.error.stack" { it == null || it instanceof String }
+        } else {
+          "$Tags.ERROR" CLIENT_EXCEPTION.errored
+          "sfx.error.message" { it == null || it == CLIENT_EXCEPTION.body }
+          "sfx.error.object" { it == null || it == IllegalArgumentException.name }
+          "sfx.error.kind" { it == null || it instanceof String }
+          "sfx.error.stack" { it == null || it instanceof String }
         }
-        "$Tags.HTTP_STATUS" endpoint.status
+
+        "$Tags.HTTP_STATUS" spanErrored ? EXCEPTION.status : endpoint.status
         "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
         "$Tags.PEER_HOSTNAME" { it == "localhost" || it == "127.0.0.1" }
         "$Tags.PEER_PORT" Integer

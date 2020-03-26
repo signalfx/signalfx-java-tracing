@@ -54,11 +54,12 @@ class TagsAssert {
 
   def errorTags(Class<Throwable> errorType, message) {
     tag("error", true)
-    tag("error.type", errorType.name)
-    tag("error.stack", String)
+    tag("sfx.error.object", errorType.name)
+    tag("sfx.error.stack", String)
+    tag("sfx.error.kind", String)
 
     if (message != null) {
-      tag("error.msg", message)
+      tag("sfx.error.message", message)
     }
   }
 

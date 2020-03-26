@@ -152,8 +152,10 @@ public class DDSpan implements Span, MutableSpan {
   public void setErrorMeta(final Throwable error) {
     setError(true);
 
+    final String type = error.getClass().getName();
     setTag(DDTags.ERROR_MSG, error.getMessage());
-    setTag(DDTags.ERROR_TYPE, error.getClass().getName());
+    setTag(DDTags.ERROR_TYPE, type);
+    setTag("sfx.error.kind", type.contains(".") ? type.substring(type.lastIndexOf(".") + 1) : type);
 
     final StringWriter errorString = new StringWriter();
     error.printStackTrace(new PrintWriter(errorString));

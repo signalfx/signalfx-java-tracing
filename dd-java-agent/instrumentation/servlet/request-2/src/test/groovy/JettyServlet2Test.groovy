@@ -101,9 +101,10 @@ class JettyServlet2Test extends HttpServerTest<Server, Servlet2Decorator> {
         "$Tags.COMPONENT" serverDecorator.component()
         if (endpoint.errored) {
           "$Tags.ERROR" endpoint.errored
-          "error.msg" { it == null || it == EXCEPTION.body }
-          "error.type" { it == null || it == Exception.name }
-          "error.stack" { it == null || it instanceof String }
+          "sfx.error.message" { it == null || it == EXCEPTION.body }
+          "sfx.error.object" { it == null || it == Exception.name }
+          "sfx.error.kind" { it == null || it instanceof String }
+          "sfx.error.stack" { it == null || it instanceof String }
         }
         "$Tags.HTTP_STATUS" endpoint.status
         "$Tags.HTTP_URL" "${endpoint.resolve(address)}"

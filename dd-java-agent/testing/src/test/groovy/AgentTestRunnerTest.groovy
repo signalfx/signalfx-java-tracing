@@ -131,6 +131,28 @@ class AgentTestRunnerTest extends AgentTestRunner {
     }
   }
 
+  def "test unblocked by completed span using findByOperationName"() {
+    setup:
+    runUnderTrace("parent") {
+      runUnderTrace("child") {}
+      blockUntilChildSpansFinished(1)
+    }
+
+    expect:
+    assertTraces(1) {
+      trace(0, 2) {
+        spanByOperationName("parent") {
+          operationName "parent"
+          parent()
+        }
+        spanByOperationName("child") {
+          operationName "child"
+          childOf(span(0))
+        }
+      }
+    }
+  }
+
   private static getAgentTransformer() {
     Field f
     try {

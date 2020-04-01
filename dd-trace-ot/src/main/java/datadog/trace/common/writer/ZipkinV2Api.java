@@ -1,11 +1,12 @@
 // Modified by SignalFx
 package datadog.trace.common.writer;
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.base.Strings;
 import datadog.opentracing.DDSpan;
 import datadog.trace.api.Config;
@@ -13,6 +14,7 @@ import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import datadog.trace.api.Ids;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -29,6 +31,8 @@ import lombok.extern.slf4j.Slf4j;
 /** Zipkin V2 JSON HTTP encoder/sender. Follows a similar pattern to DDApi. */
 @Slf4j
 public class ZipkinV2Api implements Api {
+
+  private static final JsonFactory JSON_FACTORY = new JsonFactory();
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final String traceEndpoint;
   private static final int recordedValueMaxLength = Config.get().getRecordedValueMaxLength();
@@ -54,7 +58,7 @@ public class ZipkinV2Api implements Api {
         final byte[] serializedTrace = serializeTrace(trace);
         sizeInBytes += serializedTrace.length;
         serializedTraces.add(serializedTrace);
-      } catch (final JsonProcessingException e) {
+      } catch (final IOException e) {
         log.warn("Error serializing trace", e);
       }
     }
@@ -63,12 +67,17 @@ public class ZipkinV2Api implements Api {
   }
 
   @Override
-  public byte[] serializeTrace(final List<DDSpan> trace) throws JsonProcessingException {
-    ArrayNode spanArr = OBJECT_MAPPER.createArrayNode();
+  public byte[] serializeTrace(final List<DDSpan> trace) throws IOException {
+    final ByteArrayOutputStream stream = new ByteArrayOutputStream();
+    final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(stream, JsonEncoding.UTF8);
+
+    jsonGenerator.writeStartArray();
     for (DDSpan span : trace) {
-      spanArr.add(encodeSpan(span));
+      writeSpan(span, jsonGenerator);
     }
-    return OBJECT_MAPPER.writeValueAsBytes(spanArr);
+    jsonGenerator.writeEndArray();
+    jsonGenerator.close();
+    return stream.toByteArray();
   }
 
   @Override
@@ -157,65 +166,64 @@ public class ZipkinV2Api implements Api {
     }
   }
 
-  /**
-   * We want to avoid having to import Zipkin code here so construct its V2 JSON format manually.
-   *
-   * <p>Just flatten out the lists of spans to a single output list.
-   */
-  private ArrayNode encodeTraces(final List<List<DDSpan>> traces) {
-    ArrayNode spanArr = OBJECT_MAPPER.createArrayNode();
-    for (List<DDSpan> trace : traces) {
-      for (DDSpan span : trace) {
-        spanArr.add(encodeSpan(span));
-      }
+  private void writeSpan(final DDSpan span, final JsonGenerator jsonGenerator) throws IOException {
+    final String spanKind = deriveKind(span);
+    final String spanName = getSpanName(span);
+
+    jsonGenerator.writeStartObject();
+    jsonGenerator.writeStringField("id", Ids.idToHex(span.getSpanId()));
+    jsonGenerator.writeStringField("name", spanName);
+    jsonGenerator.writeStringField("traceId", Ids.idToHex(span.getTraceId()));
+    jsonGenerator.writeStringField("parentId", Ids.idToHex(span.getParentId()));
+
+    if (!Strings.isNullOrEmpty(spanKind)) {
+      jsonGenerator.writeStringField("kind", spanKind);
     }
-    return spanArr;
-  }
 
-  private ObjectNode encodeSpan(final DDSpan span) {
-    ObjectNode spanNode = OBJECT_MAPPER.createObjectNode();
-    spanNode.put("id", Ids.idToHex(span.getSpanId()));
-    spanNode.put("name", span.getOperationName());
-    spanNode.put("traceId", Ids.idToHex(span.getTraceId()));
-    spanNode.put("parentId", Ids.idToHex(span.getParentId()));
-    spanNode.put("kind", deriveKind(span));
-
-    ObjectNode localEndpointNode = spanNode.putObject("localEndpoint");
-    localEndpointNode.put("serviceName", span.getServiceName());
+    jsonGenerator.writeObjectFieldStart("localEndpoint");
+    jsonGenerator.writeStringField("serviceName", span.getServiceName());
+    jsonGenerator.writeEndObject();
 
     // DDSpan outputs time in nanoseconds and Zipkin is microseconds.
-    spanNode.put("timestamp", span.getStartTime() / 1000);
+    jsonGenerator.writeNumberField("timestamp", span.getStartTime() / 1000);
     // Same units as timestamp
-    spanNode.put("duration", span.getDurationNano() / 1000);
+    jsonGenerator.writeNumberField("duration", span.getDurationNano() / 1000);
 
-    ObjectNode tagNode = spanNode.putObject("tags");
+    jsonGenerator.writeObjectFieldStart("tags");
     for (Map.Entry<String, Object> tag : span.getTags().entrySet()) {
-      if (DDTags.SPAN_KIND.equals(tag.getKey())) {
+      final String key = tag.getKey();
+      if (DDTags.SPAN_KIND.equals(key)) {
         continue;
       }
       // Zipkin tags are always string values
       String value = truncatedString(tag.getValue().toString());
-      tagNode.put(tag.getKey(), value);
+
+      jsonGenerator.writeStringField(tag.getKey(), value);
     }
 
-    updateFromResourceName(spanNode, tagNode, span);
+    final String resourceName = span.getResourceName();
+    if (!spanName.equals(resourceName)) {
+      jsonGenerator.writeStringField(DDTags.RESOURCE_NAME, resourceName);
+    }
+    jsonGenerator.writeEndObject();
 
-    ArrayNode annotations = spanNode.putArray("annotations");
+    jsonGenerator.writeArrayFieldStart("annotations");
     for (AbstractMap.SimpleEntry<Long, Map<String, ?>> item : span.getLogs()) {
-      final ObjectNode annotation = OBJECT_MAPPER.createObjectNode();
-      annotation.put("timestamp", item.getKey());
-      JsonNode value = OBJECT_MAPPER.valueToTree(item.getValue());
+      jsonGenerator.writeStartObject();
       try {
+        final Long timestamp = item.getKey();
+        JsonNode value = OBJECT_MAPPER.valueToTree(item.getValue());
         String encodedValue = truncatedString(OBJECT_MAPPER.writeValueAsString(value));
-        annotation.put("value", encodedValue);
+        jsonGenerator.writeNumberField("timestamp", timestamp);
+        jsonGenerator.writeStringField("value", encodedValue);
       } catch (JsonProcessingException e) {
         log.warn("Failed creating annotation");
         continue;
       }
-      annotations.add(annotation);
+      jsonGenerator.writeEndObject();
     }
-
-    return spanNode;
+    jsonGenerator.writeEndArray();
+    jsonGenerator.writeEndObject();
   }
 
   private String deriveKind(DDSpan span) {
@@ -246,22 +254,17 @@ public class ZipkinV2Api implements Api {
    * <p>If the (updated) spanNode's name doesn't match the resource name, set the resource.name tag,
    * as it likely contains worthwhile information.
    */
-  private void updateFromResourceName(ObjectNode spanNode, ObjectNode tagNode, DDSpan span) {
+  private String getSpanName(final DDSpan span) {
     String resourceName = span.getResourceName();
-    if (Strings.isNullOrEmpty(resourceName)) {
-      return;
+
+    final String spanKind = deriveKind(span);
+    if (!Strings.isNullOrEmpty(resourceName)
+        && !Strings.isNullOrEmpty(spanKind)
+        && spanKind.equalsIgnoreCase(DDTags.SPAN_KIND_SERVER)) {
+      return resourceName;
     }
 
-    final String spanKind = spanNode.get("kind").textValue();
-    if (!Strings.isNullOrEmpty(spanKind)
-        && spanKind.toLowerCase().equals(DDTags.SPAN_KIND_SERVER.toLowerCase())) {
-      spanNode.put("name", resourceName);
-    }
-
-    String spanName = spanNode.get("name").textValue();
-    if (!spanName.equals(resourceName)) {
-      tagNode.put(DDTags.RESOURCE_NAME, span.getResourceName());
-    }
+    return span.getOperationName();
   }
 
   private static HttpURLConnection getHttpURLConnection(final String endpoint) throws IOException {

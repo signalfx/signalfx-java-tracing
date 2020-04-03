@@ -60,7 +60,7 @@ dependencies {
   handlerTestCompile group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
   handlerTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.0.0'
 
-  rxHandlerTestCompile project(':dd-java-agent:instrumentation:netty-4.0')
+  rxHandlerTestCompile project(':dd-java-agent:instrumentation:netty-4.1')
   rxHandlerTestCompile project(':dd-java-agent:instrumentation:jdbc')
   rxHandlerTestCompile group: 'io.vertx', name: 'vertx-core', version: '3.6.0'
   rxHandlerTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.6.0'

@@ -18,7 +18,9 @@ import org.springframework.boot.SpringApplication
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.web.servlet.view.RedirectView
 
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.*
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.CLIENT_EXCEPTION
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
 import static java.util.Collections.singletonMap
 
 class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext, Servlet3Decorator> {

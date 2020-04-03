@@ -127,7 +127,7 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
     ServerEndpoint(String path, int status, String body, Class<? extends Exception> exceptionClass) {
       this.path = path
       this.status = status
-      this.body = bTestControllerody
+      this.body = body
       this.errored = status >= 500
       this.exceptionClass = exceptionClass
     }

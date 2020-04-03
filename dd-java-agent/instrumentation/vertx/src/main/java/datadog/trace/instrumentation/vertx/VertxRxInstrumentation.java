@@ -1,6 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
+import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isStatic;
@@ -10,7 +11,6 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import java.util.HashMap;
 import java.util.Map;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
@@ -38,13 +38,11 @@ public class VertxRxInstrumentation extends Instrumenter.Default {
 
   @Override
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
-    final Map adviceMap = new HashMap();
-    adviceMap.put(
+    return singletonMap(
         isMethod()
             .and(isStatic())
             .and(named("toSingle"))
             .and(takesArgument(0, named("java.util.function.Consumer"))),
         packageName + ".AsyncResultSingleAdvice");
-    return adviceMap;
   }
 }

@@ -3,18 +3,22 @@ package datadog.trace.api;
 
 import java.math.BigInteger;
 
-/** Conversions between DataDog numeric ids and Zipkin hex ids. Supports both 64 and 128 bit ids. */
+/** Conversions between DataDog decimal ids and Zipkin hex ids. Supports both 64 and 128 bit ids. */
 public class Ids {
   private static char[] pad = "00000000000000000000000000000000".toCharArray();
 
-  public static String idToHex(String id) {
+  public static char[] idToHexChars(final String id) {
     final String asHex = new BigInteger(id, 10).toString(16);
     final int desiredLength = asHex.length() > 16 ? 32 : 16;
     final int padLength = desiredLength - asHex.length();
-    StringBuilder sb = new StringBuilder(desiredLength);
-    sb.insert(0, pad, 0, padLength);
-    sb.insert(padLength, asHex);
-    return sb.toString();
+    final char[] s = new char[desiredLength];
+    System.arraycopy(pad, 0, s, 0, desiredLength - asHex.length());
+    asHex.getChars(0, asHex.length(), s, desiredLength - asHex.length());
+    return s;
+  }
+
+  public static String idToHex(final String id) {
+    return new String(idToHexChars(id));
   }
 
   /** The inverse of idToHex. Returns a string that is used as an id in DDSpan. */

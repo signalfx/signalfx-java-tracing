@@ -68,7 +68,7 @@ public class ZipkinV2Api implements Api {
 
   @Override
   public byte[] serializeTrace(final List<DDSpan> trace) throws IOException {
-    final ByteArrayOutputStream stream = new ByteArrayOutputStream();
+    final ByteArrayOutputStream stream = new ByteArrayOutputStream(trace.size()*128);
     final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(stream, JsonEncoding.UTF8);
 
     jsonGenerator.writeStartArray();
@@ -166,15 +166,23 @@ public class ZipkinV2Api implements Api {
     }
   }
 
+  private void writeIdField(
+      final JsonGenerator jsonGenerator, final String key, final String decimalId)
+      throws IOException {
+    jsonGenerator.writeFieldName(key);
+    final char[] asHex = Ids.idToHexChars(decimalId);
+    jsonGenerator.writeString(asHex, 0, asHex.length);
+  }
+
   private void writeSpan(final DDSpan span, final JsonGenerator jsonGenerator) throws IOException {
     final String spanKind = deriveKind(span);
     final String spanName = getSpanName(span);
 
     jsonGenerator.writeStartObject();
-    jsonGenerator.writeStringField("id", Ids.idToHex(span.getSpanId()));
+    writeIdField(jsonGenerator, "id", span.getSpanId());
     jsonGenerator.writeStringField("name", spanName);
-    jsonGenerator.writeStringField("traceId", Ids.idToHex(span.getTraceId()));
-    jsonGenerator.writeStringField("parentId", Ids.idToHex(span.getParentId()));
+    writeIdField(jsonGenerator, "traceId", span.getTraceId());
+    writeIdField(jsonGenerator, "parentId", span.getParentId());
 
     if (!Strings.isNullOrEmpty(spanKind)) {
       jsonGenerator.writeStringField("kind", spanKind);

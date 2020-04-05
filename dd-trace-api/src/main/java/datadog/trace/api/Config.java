@@ -120,6 +120,9 @@ public class Config {
   public static final String MAX_SPANS_PER_TRACE = "max.spans.per.trace";
   public static final Integer DEFAULT_MAX_SPANS_PER_TRACE = 0;
 
+  public static final String MAX_CONTINUATION_DEPTH = "max.continutation.depth";
+  public static final Integer DEFAULT_MAX_CONTINUATION_DEPTH = 100;
+
   public static final String DEFAULT_SERVICE_NAME = "unnamed-java-app";
 
   public static final String TRACING_LIBRARY_KEY = "signalfx.tracing.library";
@@ -269,6 +272,7 @@ public class Config {
   @Getter private final boolean traceAnalyticsEnabled;
 
   @Getter private final Integer maxSpansPerTrace;
+  @Getter private final Integer maxContinuationDepth;
 
   // Values from an optionally provided properties file
   private static Properties propertiesFromConfigFile;
@@ -413,6 +417,8 @@ public class Config {
 
     maxSpansPerTrace =
         getIntegerSettingFromEnvironment(MAX_SPANS_PER_TRACE, DEFAULT_MAX_SPANS_PER_TRACE);
+    maxContinuationDepth =
+        getIntegerSettingFromEnvironment(MAX_CONTINUATION_DEPTH, DEFAULT_MAX_CONTINUATION_DEPTH);
 
     log.debug("New instance: {}", this);
   }
@@ -563,6 +569,8 @@ public class Config {
 
     maxSpansPerTrace =
         getPropertyIntegerValue(properties, MAX_SPANS_PER_TRACE, DEFAULT_MAX_SPANS_PER_TRACE);
+    maxContinuationDepth =
+        getPropertyIntegerValue(properties, MAX_CONTINUATION_DEPTH, DEFAULT_MAX_CONTINUATION_DEPTH);
 
     log.debug("New instance: {}", this);
   }

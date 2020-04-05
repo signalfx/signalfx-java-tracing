@@ -1,8 +1,10 @@
+// Modified by SignalFx
 package datadog.opentracing.scopemanager
 
 import datadog.opentracing.DDSpan
 import datadog.opentracing.DDSpanContext
 import datadog.opentracing.DDTracer
+import datadog.trace.api.Config
 import datadog.trace.common.writer.ListWriter
 import datadog.trace.context.ScopeListener
 import datadog.trace.util.gc.GCUtils
@@ -272,6 +274,33 @@ class ScopeManagerTest extends DDSpecification {
     scopeManager.active() == null
     spanFinished(scope.span())
     writer == [[scope.span()]]
+  }
+
+  def "Recursive continuation construction caps out"() {
+    setup:
+    def builder = tracer.buildSpan("test")
+    def scope = (ContinuableScope) builder.startActive(true)
+    scope.setAsyncPropagation(true)
+
+    when:
+    def continuation = (ContinuableScope.Continuation) scope.capture()
+    ArrayList<ContinuableScope.Continuation> conts = new ArrayList<>()
+    for (int i = 0; i < Config.DEFAULT_MAX_CONTINUATION_DEPTH; i++) {
+      conts.add(continuation)
+      def next = (ContinuableScope) continuation.activate()
+      next.setAsyncPropagation(true)
+      continuation = next.capture()
+    }
+
+    then:
+    continuation != null
+
+    cleanup:
+    for (ContinuableScope.Continuation c : conts) {
+      c.close()
+    }
+    continuation.close()
+    scope.close()
   }
 
   @Timeout(value = 60, unit = SECONDS)

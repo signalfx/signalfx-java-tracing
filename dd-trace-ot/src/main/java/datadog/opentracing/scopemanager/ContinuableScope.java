@@ -5,6 +5,7 @@ import com.signalfx.tracing.context.TraceScope;
 import datadog.opentracing.DDSpan;
 import datadog.opentracing.DDSpanContext;
 import datadog.opentracing.PendingTrace;
+import datadog.trace.api.Config;
 import datadog.trace.context.ScopeListener;
 import java.io.Closeable;
 import java.lang.ref.WeakReference;
@@ -31,11 +32,13 @@ public class ContinuableScope implements DDScope, TraceScope {
   /** Flag to propagate this scope across async boundaries. */
   private final AtomicBoolean isAsyncPropagating = new AtomicBoolean(false);
 
+  private final int depth;
+
   ContinuableScope(
       final ContextualScopeManager scopeManager,
       final DDSpan spanUnderScope,
       final boolean finishOnClose) {
-    this(scopeManager, new AtomicInteger(1), null, spanUnderScope, finishOnClose);
+    this(scopeManager, new AtomicInteger(1), null, spanUnderScope, finishOnClose, 0);
   }
 
   private ContinuableScope(
@@ -43,7 +46,8 @@ public class ContinuableScope implements DDScope, TraceScope {
       final AtomicInteger openCount,
       final Continuation continuation,
       final DDSpan spanUnderScope,
-      final boolean finishOnClose) {
+      final boolean finishOnClose,
+      final int depth) {
     assert spanUnderScope != null : "span must not be null";
     this.scopeManager = scopeManager;
     this.openCount = openCount;
@@ -55,6 +59,7 @@ public class ContinuableScope implements DDScope, TraceScope {
     for (final ScopeListener listener : scopeManager.scopeListeners) {
       listener.afterScopeActivated();
     }
+    this.depth = depth;
   }
 
   @Override
@@ -108,6 +113,12 @@ public class ContinuableScope implements DDScope, TraceScope {
    */
   @Override
   public Continuation capture() {
+    if (depth > Config.get().getMaxContinuationDepth()) {
+      log.error(
+          "Continuation max depth of {} reached, dropping rest of Scope.",
+          Config.get().getMaxContinuationDepth());
+      return null;
+    }
     if (isAsyncPropagating()) {
       return new Continuation();
     } else {
@@ -137,14 +148,15 @@ public class ContinuableScope implements DDScope, TraceScope {
     public ContinuableScope activate() {
       if (used.compareAndSet(false, true)) {
         final ContinuableScope scope =
-            new ContinuableScope(scopeManager, openCount, this, spanUnderScope, finishOnClose);
+            new ContinuableScope(
+                scopeManager, openCount, this, spanUnderScope, finishOnClose, depth + 1);
         log.debug("Activating continuation {}, scope: {}", this, scope);
         return scope;
       } else {
         log.debug(
             "Failed to activate continuation. Reusing a continuation not allowed.  Returning a new scope. Spans will not be linked.");
         return new ContinuableScope(
-            scopeManager, new AtomicInteger(1), null, spanUnderScope, finishOnClose);
+            scopeManager, new AtomicInteger(1), null, spanUnderScope, finishOnClose, depth + 1);
       }
     }
 

@@ -285,7 +285,7 @@ class ScopeManagerTest extends DDSpecification {
     when:
     def continuation = (ContinuableScope.Continuation) scope.capture()
     ArrayList<ContinuableScope.Continuation> conts = new ArrayList<>()
-    for (int i = 0; i < Config.DEFAULT_MAX_CONTINUATION_DEPTH; i++) {
+    for (int i = 0; i < Config.DEFAULT_MAX_CONTINUATION_DEPTH + 1; i++) {
       conts.add(continuation)
       def next = (ContinuableScope) continuation.activate()
       next.setAsyncPropagation(true)
@@ -293,13 +293,12 @@ class ScopeManagerTest extends DDSpecification {
     }
 
     then:
-    continuation != null
+    continuation == null
 
     cleanup:
     for (ContinuableScope.Continuation c : conts) {
       c.close()
     }
-    continuation.close()
     scope.close()
   }
 

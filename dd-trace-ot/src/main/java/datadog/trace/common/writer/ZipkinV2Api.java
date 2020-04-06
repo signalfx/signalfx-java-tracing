@@ -68,7 +68,7 @@ public class ZipkinV2Api implements Api {
 
   @Override
   public byte[] serializeTrace(final List<DDSpan> trace) throws IOException {
-    final ByteArrayOutputStream stream = new ByteArrayOutputStream(trace.size()*128);
+    final ByteArrayOutputStream stream = new ByteArrayOutputStream(trace.size() * 128);
     final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(stream, JsonEncoding.UTF8);
 
     jsonGenerator.writeStartArray();

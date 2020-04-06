@@ -1,9 +1,9 @@
 // Modified by SignalFx
 package datadog.trace.common.writer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import datadog.opentracing.DDSpan;
+import java.io.IOException;
 import java.util.List;
 import okhttp3.Response;
 
@@ -11,7 +11,7 @@ import okhttp3.Response;
 public interface Api {
   Response sendTraces(List<List<DDSpan>> traces);
 
-  byte[] serializeTrace(final List<DDSpan> trace) throws JsonProcessingException;
+  byte[] serializeTrace(final List<DDSpan> trace) throws IOException;
 
   Response sendSerializedTraces(
       final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces);

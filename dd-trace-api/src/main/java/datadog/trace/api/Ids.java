@@ -3,24 +3,22 @@ package datadog.trace.api;
 
 import java.math.BigInteger;
 
-/** Conversions between DataDog numeric ids and Zipkin hex ids. Supports both 64 and 128 bit ids. */
+/** Conversions between DataDog decimal ids and Zipkin hex ids. Supports both 64 and 128 bit ids. */
 public class Ids {
-  private static final String ID_8_BYTES = "%016x";
-  private static final String ID_16_BYTES = "%032x";
+  private static char[] pad = "00000000000000000000000000000000".toCharArray();
 
-  // Anything bigger than this will require more than 16 hex digits to represent
-  private static final BigInteger BIGINT_UNSIGNED_LONG_MAX =
-      BigInteger.valueOf(Long.MAX_VALUE).multiply(BigInteger.valueOf(2)).add(BigInteger.ONE);
+  public static char[] idToHexChars(final String id) {
+    final String asHex = new BigInteger(id, 10).toString(16);
+    final int desiredLength = asHex.length() > 16 ? 32 : 16;
+    final int padLength = desiredLength - asHex.length();
+    final char[] s = new char[desiredLength];
+    System.arraycopy(pad, 0, s, 0, desiredLength - asHex.length());
+    asHex.getChars(0, asHex.length(), s, desiredLength - asHex.length());
+    return s;
+  }
 
-  public static String idToHex(String id) {
-    BigInteger asInt = new BigInteger(id, 10);
-
-    String formatStr = ID_8_BYTES;
-    if (asInt.compareTo(BIGINT_UNSIGNED_LONG_MAX) > 0) {
-      formatStr = ID_16_BYTES;
-    }
-
-    return String.format(formatStr, asInt);
+  public static String idToHex(final String id) {
+    return new String(idToHexChars(id));
   }
 
   /** The inverse of idToHex. Returns a string that is used as an id in DDSpan. */

@@ -125,6 +125,7 @@ content](https://docs.signalfx.com/en/latest/apm/apm-overview/apm-metadata.html)
 | `signalfx.recorded.value.max.length` | `SIGNALFX_RECORDED_VALUE_MAX_LENGTH` | `12288` | The maximum number of characters for any Zipkin-encoded tagged or logged value. |
 | `signalfx.trace.annotated.method.blacklist` | `SIGNALFX_TRACE_ANNOTATED_METHOD_BLACKLIST` | `null` | Prevent `@Trace` annotation functionality for the target method string of format `package.OuterClass[methodOne,methodTwo];other.package.OuterClass$InnerClass[*];` (`;` is required and `*` for all methods in class). |
 | `signalfx.max.spans.per.trace` | `SIGNALFX_MAX_SPANS_PER_TRACE` | `0 (no limit)` | Drop (don't deliver) traces with more spans than this. Intended to prevent runaway traces from flooding upstream systems. |
+| `signalfx.max.continuation.depth` | `SIGNALFX_MAX_CONTINUATION_DEPTH` | `100` | Stop propagating asynchronous context at this recursive depth. Intended to prevent runaway traces from leaking memory. |
 
 **Note: System property values take priority over corresponding environment
 variables.**

@@ -120,7 +120,7 @@ public class Config {
   public static final String MAX_SPANS_PER_TRACE = "max.spans.per.trace";
   public static final Integer DEFAULT_MAX_SPANS_PER_TRACE = 0;
 
-  public static final String MAX_CONTINUATION_DEPTH = "max.continutation.depth";
+  public static final String MAX_CONTINUATION_DEPTH = "max.continuation.depth";
   public static final Integer DEFAULT_MAX_CONTINUATION_DEPTH = 100;
 
   public static final String DEFAULT_SERVICE_NAME = "unnamed-java-app";

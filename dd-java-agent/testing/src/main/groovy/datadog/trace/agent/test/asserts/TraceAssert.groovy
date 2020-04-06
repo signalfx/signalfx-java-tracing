@@ -1,3 +1,4 @@
+// Modified by SignalFx 
 package datadog.trace.agent.test.asserts
 
 import datadog.opentracing.DDSpan
@@ -32,6 +33,10 @@ class TraceAssert {
     trace.get(index)
   }
 
+  DDSpan spanByOperationName(String operationName) {
+    span(spanIndexByOperationName(operationName))
+  }
+
   void span(int index, @ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.SpanAssert']) @DelegatesTo(value = SpanAssert, strategy = Closure.DELEGATE_FIRST) Closure spec) {
     if (index >= size) {
       throw new ArrayIndexOutOfBoundsException(index)
@@ -43,7 +48,15 @@ class TraceAssert {
     assertSpan(trace.get(index), spec)
   }
 
+  void spanByOperationName(String operationName, @ClosureParams(value = SimpleType, options = ['datadog.trace.agent.test.asserts.SpanAssert']) @DelegatesTo(value = SpanAssert, strategy = Closure.DELEGATE_FIRST) Closure spec) {
+    span(spanIndexByOperationName(operationName), spec)
+  }
+
   void assertSpansAllVerified() {
     assert assertedIndexes.size() == size
+  }
+
+  private int spanIndexByOperationName(String operationName) {
+    trace.findIndexOf { it.operationName == operationName }
   }
 }

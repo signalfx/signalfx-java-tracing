@@ -23,6 +23,10 @@ testSets {
     dirName = 'handlerTests'
   }
 
+  rxHandlerTest {
+    dirName = 'rxHandlerTests'
+  }
+
   v35HandlerTest {
     dirName = 'handlerTests'
   }
@@ -56,6 +60,14 @@ dependencies {
   handlerTestCompile group: 'io.vertx', name: 'vertx-core', version: '3.1.0'
   handlerTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.0.0'
 
+  rxHandlerTestCompile project(':dd-java-agent:instrumentation:netty-4.1')
+  rxHandlerTestCompile project(':dd-java-agent:instrumentation:jdbc')
+  rxHandlerTestCompile group: 'io.vertx', name: 'vertx-core', version: '3.6.0'
+  rxHandlerTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.6.0'
+  rxHandlerTestCompile group: 'io.vertx', name: 'vertx-rx-java2', version: '3.6.0'
+  rxHandlerTestCompile group: 'io.vertx', name: 'vertx-jdbc-client', version: '3.6.0'
+  rxHandlerTestCompile 'org.hsqldb:hsqldb:2.3.4'
+
   v35HandlerTestCompile project(':dd-java-agent:instrumentation:netty-4.1')
   v35HandlerTestCompile group: 'io.vertx', name: 'vertx-core', version: '3.5.0'
   v35HandlerTestCompile group: 'io.vertx', name: 'vertx-web', version: '3.5.0'
@@ -63,4 +75,4 @@ dependencies {
   latestDepTestCompile group: 'io.vertx', name: 'vertx-core', version: '3.+'
 }
 
-test.dependsOn(handlerTest, v35HandlerTest)
+test.dependsOn(handlerTest, v35HandlerTest, rxHandlerTest)

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jdbc;
 
 import datadog.trace.bootstrap.ExceptionLogger;
@@ -51,4 +52,18 @@ public abstract class JDBCUtils {
     }
     return connection;
   }
+
+  public static String normalizeSql(String sql) {
+    // FIXME performance could be replaced by a much more efficient lexer.
+    // Also, order of execution matters here.
+    // Numerics
+    sql = sql.replaceAll("0x[0-9a-fA-F]+", "?"); // hex
+    sql = sql.replaceAll("[+.-]*+[0-9]++[0-9xEe.+-]*+", "?"); // regular numeric literal
+    // Quoted strings
+    sql = sql.replaceAll("'((?:''|[^'])*)'", "?"); // '-quoted
+    sql = sql.replaceAll("\"((?:\"\"|[^\"])*)\"", "?"); // "-quoted (some sql flavors support this)
+    return sql;
+  }
+
+
 }

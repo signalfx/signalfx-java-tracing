@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jdbc;
 
 import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
@@ -51,7 +52,7 @@ public final class ConnectionInstrumentation extends Instrumenter.Default {
     @Advice.OnMethodExit(suppress = Throwable.class)
     public static void addDBInfo(
         @Advice.Argument(0) final String sql, @Advice.Return final PreparedStatement statement) {
-      JDBCMaps.preparedStatements.put(statement, sql);
+      JDBCMaps.preparedStatements.put(statement, JDBCUtils.normalizeSql(sql));
     }
   }
 }

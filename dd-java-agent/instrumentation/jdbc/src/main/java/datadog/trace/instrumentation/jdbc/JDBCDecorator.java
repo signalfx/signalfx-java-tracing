@@ -91,7 +91,8 @@ public class JDBCDecorator extends DatabaseClientDecorator<DBInfo> {
   @Override
   public AgentSpan onStatement(final AgentSpan span, final String statement) {
     span.setTag(Tags.COMPONENT, "java-jdbc-statement");
-    return super.onStatement(span, statement);
+    // FIXME For performance, would be better to normalize+truncate in one step (truncation done above here)
+    return super.onStatement(span, JDBCUtils.normalizeSql(statement));
   }
 
   public AgentSpan onPreparedStatement(final AgentSpan span, final PreparedStatement statement) {

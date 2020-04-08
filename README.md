@@ -197,7 +197,7 @@ and associated environment variable as detailed [above](#configuration-and-usage
 
 #### Exceptions whitelist
 
-If you don't want that throw of certain exceptions cause marking their spans with the error tag,
+If you don't want certain exception types to mark their spans with the error tag,
 you can whitelist an exception using `@TraceSetting` annotation:
 
 ```java

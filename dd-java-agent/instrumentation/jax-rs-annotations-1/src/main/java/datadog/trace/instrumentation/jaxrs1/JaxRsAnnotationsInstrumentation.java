@@ -14,12 +14,10 @@ import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 import com.google.auto.service.AutoService;
-import com.signalfx.tracing.api.TraceSetting;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.instrumentation.api.AgentScope;
 import datadog.trace.instrumentation.api.AgentSpan;
 import java.lang.reflect.Method;
-import java.util.List;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -95,20 +93,7 @@ public final class JaxRsAnnotationsInstrumentation extends Instrumenter.Default 
         @Advice.Thrown final Throwable throwable) {
       final AgentSpan span = scope.span();
 
-      if (throwable != null) {
-        List<Class> allowedExceptions = TraceSetting.Annotated.getAllowedExceptions(method);
-
-        Boolean setErrorTag = true;
-        for (Class allowed : allowedExceptions) {
-          if (allowed.isInstance(throwable)) {
-            setErrorTag = false;
-            break;
-          }
-        }
-        if (setErrorTag) {
-          DECORATE.onError(span, throwable);
-        }
-      }
+      DECORATE.onError(span, throwable, method);
       DECORATE.beforeFinish(span);
       scope.close();
     }

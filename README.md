@@ -197,15 +197,20 @@ and associated environment variable as detailed [above](#configuration-and-usage
 
 #### Exceptions whitelist
 
-If you don't want certain exception types to mark their spans with the error tag,
-you can whitelist an exception using `@TraceSetting` annotation:
+If you don't want certain exception types to mark their spans with the error tag, where available 
+(see [Supported Libraries and Frameworks notes](#supported-libraries-and-frameworks)), you can 
+whitelist an exception using `@TraceSetting` annotation:
 
 ```java
+import com.signalfx.tracing.api.TraceSetting;
+
 @TraceSetting(allowedExceptions = {InvalidArgumentException.class})
 public String getFoo() {
     // This error will not cause the span to have error tag
     throw new InvalidArgumentException();
 }
+
+
 ```
 
 # License and Versioning

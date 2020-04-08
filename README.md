@@ -65,7 +65,7 @@ explicitly validated for compatibility with all instrumentations.
 | **java.net.HttpURLConnection** | * | `httpurlconnection` | |
 | **Hibernate** | 3.5.0+ | `hibernate` | |
 | **Hystrix** | 1.4.0+ | `hystrix` | |
-| **JAX-RS Client** | 2.0.0+ | `jaxrs` | Also supports DropWizard client 0.8.0+ |
+| **JAX-RS Client** | 2.0.0+ | `jaxrs` | Also supports DropWizard client 0.8.0+. Supports exceptions whitelist using `@TraceSetting`. |
 | **JDBC API** | * | `jdbc` | |
 | **Jedis (Redis client)** | 1.4.0+ | `jedis` | Prevent command arguments from being sourced in `db.statement` tag with `-Dsignalfx.instrumentation.redis.capture-command-arguments=false` |
 | **Jersey** | 2.1+ | `jersey` | In tandem with JAX-RS Annotations |
@@ -89,7 +89,7 @@ explicitly validated for compatibility with all instrumentations.
 | **Java Servlet** | 2+ | `servlet` | |
 | _Spark Java_ | 2.3+ | `sparkjava` | |
 | **Spring Data** | 1.8.0+ | `spring-data` | |
-| **Spring Web (MVC)** | 4.0+ | `spring-web` | Includes DispatcherServlet and HandlerAdapter |
+| **Spring Web (MVC)** | 4.0+ | `spring-web` | Includes DispatcherServlet and HandlerAdapter. Supports exceptions whitelist using `@TraceSetting`. |
 | **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
 | **Vertx Web** | 3.0.0+  | `vertx` | This works through the Netty instrumentation for requests, and also includes spans for handlers. |
 
@@ -194,6 +194,19 @@ compileOnly group: 'com.signalfx.public', name: 'signalfx-trace-api', version: '
 
 This annotation can be disabled at runtime using the `signalfx.trace.annotated.method.blacklist` property
 and associated environment variable as detailed [above](#configuration-and-usage).
+
+#### Exceptions whitelist
+
+If you don't want that throw of certain exceptions cause marking their spans with the error tag,
+you can whitelist an exception using `@TraceSetting` annotation:
+
+```java
+@TraceSetting(allowedExceptions = {InvalidArgumentException.class})
+public String getFoo() {
+    // This error will not cause the span to have error tag
+    throw new InvalidArgumentException();
+}
+```
 
 # License and Versioning
 

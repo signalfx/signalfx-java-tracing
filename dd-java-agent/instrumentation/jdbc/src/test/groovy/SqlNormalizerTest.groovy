@@ -34,8 +34,8 @@ class SqlNormalizerTest extends DDSpecification {
     // Not numbers but could be confused as such
     "SELECT A + B"                                                             | "SELECT A + B"
     "SELECT -- comment"                                                        | "SELECT -- comment"
-    "SELECT * FROM TABLE123"                                                   | "SELECT * FROM TABLE?" // FIXME negative lookbehind
-    "SELECT FIELD2 FROM TABLE_123"                                             | "SELECT FIELD? FROM TABLE_?" // FIXME negative lookbehind
+    "SELECT * FROM TABLE123"                                                   | "SELECT * FROM TABLE123"
+    "SELECT FIELD2 FROM TABLE_123 WHERE X<>7"                                  | "SELECT FIELD2 FROM TABLE_123 WHERE X<>?"
 
     // Semi-nonsensical almost-numbers to elide or not
     "SELECT --83--...--8e+76e3E-1"                                             | "SELECT ?"

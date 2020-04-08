@@ -58,7 +58,7 @@ public abstract class JDBCUtils {
     // Also, order of execution matters here.
     // Numerics
     sql = sql.replaceAll("0x[0-9a-fA-F]+", "?"); // hex
-    sql = sql.replaceAll("[+.-]*+[0-9]++[0-9xEe.+-]*+", "?"); // regular numeric literal
+    sql = sql.replaceAll("(?<![\\p{LC}_0-9])[+.-]*[0-9]+[0-9xEe.+-]*", "?"); // regular numeric literal
     // Quoted strings
     sql = sql.replaceAll("'((?:''|[^'])*)'", "?"); // '-quoted
     sql = sql.replaceAll("\"((?:\"\"|[^\"])*)\"", "?"); // "-quoted (some sql flavors support this)

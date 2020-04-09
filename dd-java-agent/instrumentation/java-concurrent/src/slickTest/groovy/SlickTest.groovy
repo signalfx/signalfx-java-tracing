@@ -2,6 +2,7 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.instrumentation.api.Tags
+import datadog.trace.instrumentation.jdbc.JDBCUtils
 
 class SlickTest extends AgentTestRunner {
 
@@ -43,7 +44,7 @@ class SlickTest extends AgentTestRunner {
             "$Tags.DB_TYPE" SlickUtils.Driver()
             "$Tags.DB_USER" SlickUtils.Username()
 
-            "db.statement" SlickUtils.TestQuery()
+            "db.statement" JDBCUtils.normalizeSql(SlickUtils.TestQuery())
             "db.instance" SlickUtils.Db()
             "span.origin.type" "org.h2.jdbc.JdbcPreparedStatement"
 

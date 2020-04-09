@@ -1,12 +1,31 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jdbc;
 
 import datadog.trace.bootstrap.ExceptionLogger;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.regex.Pattern;
 
 public abstract class JDBCUtils {
   private static Field c3poField = null;
+  private static final String[] SqlNormalizeClauses = {
+    // Numerics
+    "0x[0-9a-fA-F]+", // hex
+    "(?<![\\p{LC}_0-9])[+.-]*[0-9]+[0-9xEe.+-]*", // regular numeric literal
+    // Quoted strings
+    "'((?:''|[^'])*)'", // '-quoted
+    "\"((?:\"\"|[^\"])*)\"", // "-quoted (some sql flavors support this)
+  };
+  private static final Pattern SqlNormalizePattern;
+
+  static {
+    final String[] clauses = SqlNormalizeClauses;
+    // FIXME peformance benchmark and expirment with, e.g., non-capturing grouping
+    final String pattern =
+        "(" + clauses[0] + ")|(" + clauses[1] + ")|(" + clauses[2] + ")|(" + clauses[3] + ")";
+    SqlNormalizePattern = Pattern.compile(pattern);
+  }
 
   /**
    * @param statement
@@ -50,5 +69,10 @@ public abstract class JDBCUtils {
       return null;
     }
     return connection;
+  }
+
+  public static String normalizeSql(String sql) {
+    // FIXME performance could be replaced by a much more efficient lexer.
+    return SqlNormalizePattern.matcher(sql).replaceAll("?");
   }
 }

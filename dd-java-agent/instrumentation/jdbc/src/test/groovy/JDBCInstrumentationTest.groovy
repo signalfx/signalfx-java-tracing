@@ -6,6 +6,8 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.instrumentation.api.Tags
+import datadog.trace.instrumentation.jdbc.JDBCUtils
+
 import javax.sql.DataSource
 import org.apache.derby.jdbc.EmbeddedDataSource
 import org.apache.derby.jdbc.EmbeddedDriver
@@ -189,7 +191,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-statement"
             "db.instance" dbName.toLowerCase()
-            "db.statement" query
+            "db.statement" JDBCUtils.normalizeSql(query)
             "span.origin.type" String
             defaultTags()
           }
@@ -249,7 +251,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             }
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-prepared_statement"
-            "db.statement" query
+            "db.statement" JDBCUtils.normalizeSql(query)
             "db.instance" dbName.toLowerCase()
             "span.origin.type" String
             defaultTags()
@@ -302,7 +304,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             }
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-prepared_statement"
-            "db.statement" query
+            "db.statement" JDBCUtils.normalizeSql(query)
             "db.instance" dbName.toLowerCase()
             "span.origin.type" String
             defaultTags()
@@ -355,7 +357,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             }
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-prepared_statement"
-            "db.statement" query
+            "db.statement" JDBCUtils.normalizeSql(query)
             "db.instance" dbName.toLowerCase()
             "span.origin.type" String
             defaultTags()
@@ -408,7 +410,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             }
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-statement"
-            "db.statement" query
+            "db.statement" JDBCUtils.normalizeSql(query)
             "db.instance" dbName.toLowerCase()
             "span.origin.type" String
             defaultTags()
@@ -464,7 +466,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             }
             "span.kind" Tags.SPAN_KIND_CLIENT
             "component" "java-jdbc-prepared_statement"
-            "db.statement" query
+            "db.statement" JDBCUtils.normalizeSql(query)
             "db.instance" dbName.toLowerCase()
             "span.origin.type" String
             defaultTags()
@@ -537,7 +539,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
               "component" "java-jdbc-statement"
             }
             "span.kind" Tags.SPAN_KIND_CLIENT
-            "db.statement" query
+            "db.statement" JDBCUtils.normalizeSql(query)
             "db.instance" dbName.toLowerCase()
             "span.origin.type" String
             defaultTags()
@@ -668,7 +670,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             "component" "java-jdbc-prepared_statement"
             "span.kind" Tags.SPAN_KIND_CLIENT
             "db.instance" dbName.toLowerCase()
-            "db.statement" query
+            "db.statement" JDBCUtils.normalizeSql(query)
             "span.origin.type" String
             defaultTags()
           }
@@ -687,7 +689,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
               "db.user" "SA"
               "component" "java-jdbc-prepared_statement"
               "span.kind" Tags.SPAN_KIND_CLIENT
-              "db.statement" query
+              "db.statement" JDBCUtils.normalizeSql(query)
               "db.instance" dbName.toLowerCase()
               "span.origin.type" String
               defaultTags()

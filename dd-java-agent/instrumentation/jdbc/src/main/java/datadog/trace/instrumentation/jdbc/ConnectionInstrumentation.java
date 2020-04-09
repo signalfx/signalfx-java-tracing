@@ -34,7 +34,7 @@ public final class ConnectionInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      packageName + ".JDBCMaps",
+      packageName + ".JDBCMaps", packageName + ".JDBCUtils",
     };
   }
 

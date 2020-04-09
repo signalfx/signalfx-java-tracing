@@ -40,6 +40,8 @@ class SqlNormalizerTest extends DDSpecification {
     // Semi-nonsensical almost-numbers to elide or not
     "SELECT --83--...--8e+76e3E-1"                                             | "SELECT ?"
     "SELECT DEADBEEF"                                                          | "SELECT DEADBEEF"
+    "SELECT 123-45-6789"                                                       | "SELECT ?"
+    "SELECT 1/2/34"                                                            | "SELECT ?/?/?"
 
     // Basic ' strings
     "SELECT * FROM TABLE WHERE FIELD = ''"                                     | "SELECT * FROM TABLE WHERE FIELD = ?"

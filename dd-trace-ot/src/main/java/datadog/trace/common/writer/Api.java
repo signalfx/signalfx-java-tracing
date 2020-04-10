@@ -3,18 +3,68 @@ package datadog.trace.common.writer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import datadog.opentracing.DDSpan;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 import okhttp3.Response;
 
 /** Common interface between the DDApi and ZipkinV2Api senders. */
 public interface Api {
+  // This structure is to avoid re-copying the serialized Zipkin json buffer to a new byte[] and
+  // instead just keep it
+  // in the ByteArrayOutputStream's internal buffer.
+  public static interface SerializedBuffer {
+    public int length();
+
+    public void writeTo(OutputStream out, int startingIndex, int length) throws IOException;
+
+    public byte[] toByteArray();
+  }
+
+  public static class StreamingSerializedBuffer extends ByteArrayOutputStream
+      implements SerializedBuffer {
+    public StreamingSerializedBuffer(int initialCapacity) {
+      super(initialCapacity);
+    }
+
+    public int length() {
+      return size();
+    }
+
+    public void writeTo(OutputStream out, int startingIndex, int length) throws IOException {
+      out.write(buf, startingIndex, length);
+    }
+  }
+
+  public static class PredeterminedByteArraySerializedBuffer implements SerializedBuffer {
+    private final byte[] buf;
+
+    public PredeterminedByteArraySerializedBuffer(byte[] buf) {
+      this.buf = buf;
+    }
+
+    public void writeTo(OutputStream out, int startingIndex, int length) throws IOException {
+      out.write(buf, startingIndex, length);
+    }
+
+    public int length() {
+      return buf.length;
+    }
+
+    public byte[] toByteArray() {
+      return buf;
+    }
+  }
+
   Response sendTraces(List<List<DDSpan>> traces);
 
-  byte[] serializeTrace(final List<DDSpan> trace) throws IOException;
+  SerializedBuffer serializeTrace(final List<DDSpan> trace) throws IOException;
 
   Response sendSerializedTraces(
-      final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces);
+      final int representativeCount,
+      final Integer sizeInBytes,
+      final List<SerializedBuffer> traces);
 
   /**
    * Encapsulates an attempted response from the Datadog agent.

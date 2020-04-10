@@ -93,12 +93,12 @@ public class DDApi implements Api {
    */
   @Override
   public Response sendTraces(final List<List<DDSpan>> traces) {
-    final List<byte[]> serializedTraces = new ArrayList<>(traces.size());
+    final List<SerializedBuffer> serializedTraces = new ArrayList<>(traces.size());
     int sizeInBytes = 0;
     for (final List<DDSpan> trace : traces) {
       try {
-        final byte[] serializedTrace = serializeTrace(trace);
-        sizeInBytes += serializedTrace.length;
+        final SerializedBuffer serializedTrace = serializeTrace(trace);
+        sizeInBytes += serializedTrace.length();
         serializedTraces.add(serializedTrace);
       } catch (final JsonProcessingException e) {
         log.warn("Error serializing trace", e);
@@ -111,13 +111,15 @@ public class DDApi implements Api {
   }
 
   @Override
-  public byte[] serializeTrace(final List<DDSpan> trace) throws JsonProcessingException {
-    return OBJECT_MAPPER.writeValueAsBytes(trace);
+  public SerializedBuffer serializeTrace(final List<DDSpan> trace) throws JsonProcessingException {
+    return new PredeterminedByteArraySerializedBuffer(OBJECT_MAPPER.writeValueAsBytes(trace));
   }
 
   @Override
   public Response sendSerializedTraces(
-      final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces) {
+      final int representativeCount,
+      final Integer sizeInBytes,
+      final List<SerializedBuffer> traces) {
     try {
       final RequestBody body =
           new RequestBody() {
@@ -144,8 +146,8 @@ public class DDApi implements Api {
               final OutputStream out = sink.outputStream();
               final MessagePacker packer = MessagePack.newDefaultPacker(out);
               packer.packArrayHeader(traces.size());
-              for (final byte[] trace : traces) {
-                packer.writePayload(trace);
+              for (final SerializedBuffer trace : traces) {
+                packer.writePayload(trace.toByteArray());
               }
               packer.close();
               out.close();

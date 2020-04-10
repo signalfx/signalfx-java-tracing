@@ -14,7 +14,6 @@ import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import datadog.trace.api.Ids;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -51,12 +50,12 @@ public class ZipkinV2Api implements Api {
 
   @Override
   public Response sendTraces(final List<List<DDSpan>> traces) {
-    final List<byte[]> serializedTraces = new ArrayList<>(traces.size());
+    final List<SerializedBuffer> serializedTraces = new ArrayList<>(traces.size());
     int sizeInBytes = 0;
     for (final List<DDSpan> trace : traces) {
       try {
-        final byte[] serializedTrace = serializeTrace(trace);
-        sizeInBytes += serializedTrace.length;
+        final SerializedBuffer serializedTrace = serializeTrace(trace);
+        sizeInBytes += serializedTrace.length();
         serializedTraces.add(serializedTrace);
       } catch (final IOException e) {
         log.warn("Error serializing trace", e);
@@ -67,8 +66,8 @@ public class ZipkinV2Api implements Api {
   }
 
   @Override
-  public byte[] serializeTrace(final List<DDSpan> trace) throws IOException {
-    final ByteArrayOutputStream stream = new ByteArrayOutputStream(trace.size() * 128);
+  public SerializedBuffer serializeTrace(final List<DDSpan> trace) throws IOException {
+    final StreamingSerializedBuffer stream = new StreamingSerializedBuffer(trace.size() * 128);
     final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(stream, JsonEncoding.UTF8);
 
     jsonGenerator.writeStartArray();
@@ -77,12 +76,14 @@ public class ZipkinV2Api implements Api {
     }
     jsonGenerator.writeEndArray();
     jsonGenerator.close();
-    return stream.toByteArray();
+    return stream;
   }
 
   @Override
   public Response sendSerializedTraces(
-      final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces) {
+      final int representativeCount,
+      final Integer sizeInBytes,
+      final List<SerializedBuffer> traces) {
     try {
       final HttpURLConnection httpCon = getHttpURLConnection(traceEndpoint);
 
@@ -91,14 +92,14 @@ public class ZipkinV2Api implements Api {
         int traceCount = 0;
 
         out.write('[');
-        for (final byte[] trace : traces) {
+        for (final SerializedBuffer trace : traces) {
           traceCount++;
-          if (trace.length == 2) {
+          if (trace.length() == 2) {
             // empty trace
             continue;
           }
           // don't write nested array brackets
-          out.write(trace, 1, trace.length - 2);
+          trace.writeTo(out, 1, trace.length() - 2);
 
           // don't write comma for final span
           if (traceCount != traces.size()) {

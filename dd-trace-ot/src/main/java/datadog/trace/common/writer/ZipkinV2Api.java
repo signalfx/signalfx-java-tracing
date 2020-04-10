@@ -72,8 +72,8 @@ public class ZipkinV2Api implements Api {
     final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(stream, JsonEncoding.UTF8);
 
     jsonGenerator.writeStartArray();
-    for (DDSpan span : trace) {
-      writeSpan(span, jsonGenerator);
+    for (int i = 0; i < trace.size(); i++) {
+      writeSpan(trace.get(i), jsonGenerator);
     }
     jsonGenerator.writeEndArray();
     jsonGenerator.close();
@@ -176,7 +176,7 @@ public class ZipkinV2Api implements Api {
 
   private void writeSpan(final DDSpan span, final JsonGenerator jsonGenerator) throws IOException {
     final String spanKind = deriveKind(span);
-    final String spanName = getSpanName(span);
+    final String spanName = getSpanName(span, spanKind);
 
     jsonGenerator.writeStartObject();
     writeIdField(jsonGenerator, "id", span.getSpanId());
@@ -198,15 +198,15 @@ public class ZipkinV2Api implements Api {
     jsonGenerator.writeNumberField("duration", span.getDurationNano() / 1000);
 
     jsonGenerator.writeObjectFieldStart("tags");
-    for (Map.Entry<String, Object> tag : span.getTags().entrySet()) {
-      final String key = tag.getKey();
+    final Map<String, Object> tags = span.getTags();
+    for (final String key : tags.keySet()) {
       if (DDTags.SPAN_KIND.equals(key)) {
         continue;
       }
       // Zipkin tags are always string values
-      String value = truncatedString(tag.getValue().toString());
+      String value = truncatedString(tags.get(key).toString());
 
-      jsonGenerator.writeStringField(tag.getKey(), value);
+      jsonGenerator.writeStringField(key, value);
     }
 
     final String resourceName = span.getResourceName();
@@ -216,19 +216,22 @@ public class ZipkinV2Api implements Api {
     jsonGenerator.writeEndObject();
 
     jsonGenerator.writeArrayFieldStart("annotations");
-    for (AbstractMap.SimpleEntry<Long, Map<String, ?>> item : span.getLogs()) {
-      jsonGenerator.writeStartObject();
-      try {
-        final Long timestamp = item.getKey();
-        JsonNode value = OBJECT_MAPPER.valueToTree(item.getValue());
-        String encodedValue = truncatedString(OBJECT_MAPPER.writeValueAsString(value));
-        jsonGenerator.writeNumberField("timestamp", timestamp);
-        jsonGenerator.writeStringField("value", encodedValue);
-      } catch (JsonProcessingException e) {
-        log.warn("Failed creating annotation");
-        continue;
+    final List<AbstractMap.SimpleEntry<Long, Map<String, ?>>> logs = span.getLogs();
+    if (!logs.isEmpty()) {
+      for (AbstractMap.SimpleEntry<Long, Map<String, ?>> item : logs) {
+        jsonGenerator.writeStartObject();
+        try {
+          final Long timestamp = item.getKey();
+          JsonNode value = OBJECT_MAPPER.valueToTree(item.getValue());
+          String encodedValue = truncatedString(OBJECT_MAPPER.writeValueAsString(value));
+          jsonGenerator.writeNumberField("timestamp", timestamp);
+          jsonGenerator.writeStringField("value", encodedValue);
+        } catch (JsonProcessingException e) {
+          log.warn("Failed creating annotation");
+          continue;
+        }
+        jsonGenerator.writeEndObject();
       }
-      jsonGenerator.writeEndObject();
     }
     jsonGenerator.writeEndArray();
     jsonGenerator.writeEndObject();
@@ -262,10 +265,9 @@ public class ZipkinV2Api implements Api {
    * <p>If the (updated) spanNode's name doesn't match the resource name, set the resource.name tag,
    * as it likely contains worthwhile information.
    */
-  private String getSpanName(final DDSpan span) {
+  private String getSpanName(final DDSpan span, final String spanKind) {
     String resourceName = span.getResourceName();
 
-    final String spanKind = deriveKind(span);
     if (!Strings.isNullOrEmpty(resourceName)
         && !Strings.isNullOrEmpty(spanKind)
         && spanKind.equalsIgnoreCase(DDTags.SPAN_KIND_SERVER)) {

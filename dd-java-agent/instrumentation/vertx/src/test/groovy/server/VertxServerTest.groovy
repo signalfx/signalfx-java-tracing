@@ -354,4 +354,30 @@ class VertxServerTest extends AgentTestRunner {
       }
     }
   }
+
+  def "test runOnContext"() {
+    when:
+    server.runOnContext(new Handler<Void>() {
+      @Override
+      void handle(Void v) {
+        return
+      }
+    })
+
+    then:
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          serviceName "unnamed-java-app"
+          operationName "server.VertxServerTest.handle"
+          resourceName "server.VertxServerTest.handle"
+          errored false
+          tags {
+            "$Tags.COMPONENT.key" "vertx"
+            defaultTags(true)
+          }
+        }
+      }
+    }
+  }
 }

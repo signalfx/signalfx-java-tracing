@@ -14,7 +14,6 @@ import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
 import datadog.trace.api.Ids;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -51,12 +50,12 @@ public class ZipkinV2Api implements Api {
 
   @Override
   public Response sendTraces(final List<List<DDSpan>> traces) {
-    final List<byte[]> serializedTraces = new ArrayList<>(traces.size());
+    final List<SerializedBuffer> serializedTraces = new ArrayList<>(traces.size());
     int sizeInBytes = 0;
     for (final List<DDSpan> trace : traces) {
       try {
-        final byte[] serializedTrace = serializeTrace(trace);
-        sizeInBytes += serializedTrace.length;
+        final SerializedBuffer serializedTrace = serializeTrace(trace);
+        sizeInBytes += serializedTrace.length();
         serializedTraces.add(serializedTrace);
       } catch (final IOException e) {
         log.warn("Error serializing trace", e);
@@ -67,22 +66,24 @@ public class ZipkinV2Api implements Api {
   }
 
   @Override
-  public byte[] serializeTrace(final List<DDSpan> trace) throws IOException {
-    final ByteArrayOutputStream stream = new ByteArrayOutputStream(trace.size() * 128);
+  public SerializedBuffer serializeTrace(final List<DDSpan> trace) throws IOException {
+    final StreamingSerializedBuffer stream = new StreamingSerializedBuffer(trace.size() * 128);
     final JsonGenerator jsonGenerator = JSON_FACTORY.createGenerator(stream, JsonEncoding.UTF8);
 
     jsonGenerator.writeStartArray();
-    for (DDSpan span : trace) {
-      writeSpan(span, jsonGenerator);
+    for (int i = 0; i < trace.size(); i++) {
+      writeSpan(trace.get(i), jsonGenerator);
     }
     jsonGenerator.writeEndArray();
     jsonGenerator.close();
-    return stream.toByteArray();
+    return stream;
   }
 
   @Override
   public Response sendSerializedTraces(
-      final int representativeCount, final Integer sizeInBytes, final List<byte[]> traces) {
+      final int representativeCount,
+      final Integer sizeInBytes,
+      final List<SerializedBuffer> traces) {
     try {
       final HttpURLConnection httpCon = getHttpURLConnection(traceEndpoint);
 
@@ -91,14 +92,14 @@ public class ZipkinV2Api implements Api {
         int traceCount = 0;
 
         out.write('[');
-        for (final byte[] trace : traces) {
+        for (final SerializedBuffer trace : traces) {
           traceCount++;
-          if (trace.length == 2) {
+          if (trace.length() == 2) {
             // empty trace
             continue;
           }
           // don't write nested array brackets
-          out.write(trace, 1, trace.length - 2);
+          trace.writeTo(out, 1, trace.length() - 2);
 
           // don't write comma for final span
           if (traceCount != traces.size()) {
@@ -176,7 +177,7 @@ public class ZipkinV2Api implements Api {
 
   private void writeSpan(final DDSpan span, final JsonGenerator jsonGenerator) throws IOException {
     final String spanKind = deriveKind(span);
-    final String spanName = getSpanName(span);
+    final String spanName = getSpanName(span, spanKind);
 
     jsonGenerator.writeStartObject();
     writeIdField(jsonGenerator, "id", span.getSpanId());
@@ -198,15 +199,15 @@ public class ZipkinV2Api implements Api {
     jsonGenerator.writeNumberField("duration", span.getDurationNano() / 1000);
 
     jsonGenerator.writeObjectFieldStart("tags");
-    for (Map.Entry<String, Object> tag : span.getTags().entrySet()) {
-      final String key = tag.getKey();
+    final Map<String, Object> tags = span.getTags();
+    for (final String key : tags.keySet()) {
       if (DDTags.SPAN_KIND.equals(key)) {
         continue;
       }
       // Zipkin tags are always string values
-      String value = truncatedString(tag.getValue().toString());
+      String value = truncatedString(tags.get(key).toString());
 
-      jsonGenerator.writeStringField(tag.getKey(), value);
+      jsonGenerator.writeStringField(key, value);
     }
 
     final String resourceName = span.getResourceName();
@@ -216,19 +217,22 @@ public class ZipkinV2Api implements Api {
     jsonGenerator.writeEndObject();
 
     jsonGenerator.writeArrayFieldStart("annotations");
-    for (AbstractMap.SimpleEntry<Long, Map<String, ?>> item : span.getLogs()) {
-      jsonGenerator.writeStartObject();
-      try {
-        final Long timestamp = item.getKey();
-        JsonNode value = OBJECT_MAPPER.valueToTree(item.getValue());
-        String encodedValue = truncatedString(OBJECT_MAPPER.writeValueAsString(value));
-        jsonGenerator.writeNumberField("timestamp", timestamp);
-        jsonGenerator.writeStringField("value", encodedValue);
-      } catch (JsonProcessingException e) {
-        log.warn("Failed creating annotation");
-        continue;
+    final List<AbstractMap.SimpleEntry<Long, Map<String, ?>>> logs = span.getLogs();
+    if (!logs.isEmpty()) {
+      for (AbstractMap.SimpleEntry<Long, Map<String, ?>> item : logs) {
+        jsonGenerator.writeStartObject();
+        try {
+          final Long timestamp = item.getKey();
+          JsonNode value = OBJECT_MAPPER.valueToTree(item.getValue());
+          String encodedValue = truncatedString(OBJECT_MAPPER.writeValueAsString(value));
+          jsonGenerator.writeNumberField("timestamp", timestamp);
+          jsonGenerator.writeStringField("value", encodedValue);
+        } catch (JsonProcessingException e) {
+          log.warn("Failed creating annotation");
+          continue;
+        }
+        jsonGenerator.writeEndObject();
       }
-      jsonGenerator.writeEndObject();
     }
     jsonGenerator.writeEndArray();
     jsonGenerator.writeEndObject();
@@ -262,10 +266,9 @@ public class ZipkinV2Api implements Api {
    * <p>If the (updated) spanNode's name doesn't match the resource name, set the resource.name tag,
    * as it likely contains worthwhile information.
    */
-  private String getSpanName(final DDSpan span) {
+  private String getSpanName(final DDSpan span, final String spanKind) {
     String resourceName = span.getResourceName();
 
-    final String spanKind = deriveKind(span);
     if (!Strings.isNullOrEmpty(resourceName)
         && !Strings.isNullOrEmpty(spanKind)
         && spanKind.equalsIgnoreCase(DDTags.SPAN_KIND_SERVER)) {

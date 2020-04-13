@@ -262,7 +262,7 @@ public class DDAgentWriter implements Writer {
 
   /** This class is intentionally not threadsafe. */
   private class TraceConsumer implements EventHandler<Event<List<DDSpan>>> {
-    private List<byte[]> serializedTraces = new ArrayList<>();
+    private List<Api.SerializedBuffer> serializedTraces = new ArrayList<>();
     private int payloadSize = 0;
 
     @Override
@@ -273,8 +273,8 @@ public class DDAgentWriter implements Writer {
       if (trace != null) {
         traceCount.incrementAndGet();
         try {
-          final byte[] serializedTrace = api.serializeTrace(trace);
-          payloadSize += serializedTrace.length;
+          final Api.SerializedBuffer serializedTrace = api.serializeTrace(trace);
+          payloadSize += serializedTrace.length();
           serializedTraces.add(serializedTrace);
 
           monitor.onSerialize(DDAgentWriter.this, trace, serializedTrace);
@@ -301,7 +301,7 @@ public class DDAgentWriter implements Writer {
           return;
           // scheduleFlush called in finally block.
         }
-        final List<byte[]> toSend = serializedTraces;
+        final List<Api.SerializedBuffer> toSend = serializedTraces;
         serializedTraces = new ArrayList<>(toSend.size());
         // ^ Initialize with similar size to reduce arraycopy churn.
 
@@ -391,7 +391,9 @@ public class DDAgentWriter implements Writer {
     void onScheduleFlush(final DDAgentWriter agentWriter, final boolean previousIncomplete);
 
     void onSerialize(
-        final DDAgentWriter agentWriter, final List<DDSpan> trace, final byte[] serializedTrace);
+        final DDAgentWriter agentWriter,
+        final List<DDSpan> trace,
+        final Api.SerializedBuffer serializedTrace);
 
     void onFailedSerialize(
         final DDAgentWriter agentWriter, final List<DDSpan> trace, final Throwable optionalCause);
@@ -428,7 +430,9 @@ public class DDAgentWriter implements Writer {
 
     @Override
     public void onSerialize(
-        final DDAgentWriter agentWriter, final List<DDSpan> trace, final byte[] serializedTrace) {}
+        final DDAgentWriter agentWriter,
+        final List<DDSpan> trace,
+        final Api.SerializedBuffer serializedTrace) {}
 
     @Override
     public void onFailedSerialize(
@@ -520,10 +524,12 @@ public class DDAgentWriter implements Writer {
 
     @Override
     public void onSerialize(
-        final DDAgentWriter agentWriter, final List<DDSpan> trace, final byte[] serializedTrace) {
+        final DDAgentWriter agentWriter,
+        final List<DDSpan> trace,
+        final Api.SerializedBuffer serializedTrace) {
       // DQH - Because of Java tracer's 2 phase acceptance and serialization scheme, this doesn't
       // map precisely
-      statsd.count("queue.accepted_size", serializedTrace.length);
+      statsd.count("queue.accepted_size", serializedTrace.length());
     }
 
     @Override

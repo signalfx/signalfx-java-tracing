@@ -30,8 +30,11 @@ public class VertxHandlerAdvice {
 
     final AgentSpan span =
         startSpan(operationName + ".handle")
-        .setTag("handler.type", event.getClass().getName())
         .setTag("component", "vertx");
+
+    if (event != null) {
+      span.setTag("handler.type", event.getClass().getName());
+    }
 
     DECORATE.afterStart(span);
 

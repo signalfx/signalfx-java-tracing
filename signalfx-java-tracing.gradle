@@ -18,7 +18,7 @@ def isCI = System.getenv("CI") != null
 allprojects {
   group = 'com.signalfx.public'
   // Don't forget to update TRACING_VERSION_VALUE in dd-trace-api/src/main/java/datadog/trace/api/Config.java
-  version = '0.36.0-sfx5'
+  version = '0.36.0-sfx6'
 
   if (isCI) {
     buildDir = "${rootDir}/workspace/${projectDir.path.replace(rootDir.path, '')}/build/"

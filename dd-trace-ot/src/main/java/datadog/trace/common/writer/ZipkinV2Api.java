@@ -282,6 +282,7 @@ public class ZipkinV2Api implements Api {
     final HttpURLConnection httpCon;
     final URL url = new URL(endpoint);
     httpCon = (HttpURLConnection) url.openConnection();
+    httpCon.setReadTimeout(30 * 1000);
     httpCon.setDoOutput(true);
     httpCon.setDoInput(true);
     httpCon.setRequestMethod("POST");

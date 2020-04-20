@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.decorator
 
 import datadog.trace.agent.test.utils.ConfigUtils

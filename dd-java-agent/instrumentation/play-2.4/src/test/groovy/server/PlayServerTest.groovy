@@ -92,7 +92,6 @@ class PlayServerTest extends HttpServerTest<Server, NettyHttpServerDecorator> {
         "$Tags.HTTP_URL" String
         "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
         "$Tags.HTTP_METHOD" String
-        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
         defaultTags()
         if (endpoint == ERROR) {
           "$Tags.ERROR" true

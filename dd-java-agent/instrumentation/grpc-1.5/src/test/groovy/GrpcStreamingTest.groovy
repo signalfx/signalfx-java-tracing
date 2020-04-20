@@ -106,7 +106,6 @@ class GrpcStreamingTest extends AgentTestRunner {
             childOf span(0)
             errored false
             tags {
-              "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
               "$Tags.COMPONENT" "grpc-server"
               "message.type" "example.Helloworld\$Response"
               defaultTags()

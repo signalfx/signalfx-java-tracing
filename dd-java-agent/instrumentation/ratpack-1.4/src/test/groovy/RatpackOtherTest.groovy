@@ -91,7 +91,6 @@ class RatpackOtherTest extends AgentTestRunner {
           errored false
           tags {
             "$Tags.COMPONENT" "ratpack"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "$Tags.HTTP_METHOD" "GET"
             "$Tags.HTTP_STATUS" 200
             "$Tags.HTTP_URL" "${app.address.resolve(path)}"

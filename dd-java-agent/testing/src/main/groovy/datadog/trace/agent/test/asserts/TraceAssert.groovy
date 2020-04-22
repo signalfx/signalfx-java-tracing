@@ -4,6 +4,7 @@ package datadog.trace.agent.test.asserts
 import datadog.opentracing.DDSpan
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
+import io.opentracing.tag.Tags
 
 import static SpanAssert.assertSpan
 
@@ -27,6 +28,7 @@ class TraceAssert {
     clone.resolveStrategy = Closure.DELEGATE_FIRST
     clone(asserter)
     asserter.assertSpansAllVerified()
+    asserter.assertNoMoreThanOneServerSpan()
   }
 
   DDSpan span(int index) {
@@ -54,6 +56,19 @@ class TraceAssert {
 
   void assertSpansAllVerified() {
     assert assertedIndexes.size() == size
+  }
+
+  void assertNoMoreThanOneServerSpan() {
+    def serverSpans = new ArrayList<DDSpan>()
+    for (DDSpan span : trace) {
+      def tags = span.getTags()
+      if (tags != null && Tags.SPAN_KIND_SERVER == tags.get(Tags.SPAN_KIND.getKey())) {
+        serverSpans.add(span)
+      }
+    }
+    if (serverSpans.size() > 1) {
+      throw new IllegalStateException("More than one server span found, server spans: " + serverSpans)
+    }
   }
 
   private int spanIndexByOperationName(String operationName) {

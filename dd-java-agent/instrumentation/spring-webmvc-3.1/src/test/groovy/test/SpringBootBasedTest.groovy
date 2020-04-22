@@ -109,7 +109,6 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
           tags {
             "component" "spring-webmvc"
             "view.type" RedirectView.name
-            "span.kind" "server"
             defaultTags()
           }
         }
@@ -133,7 +132,6 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
       childOf(parent as DDSpan)
       tags {
         "$Tags.COMPONENT" SpringWebHttpServerDecorator.DECORATE.component()
-        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
         defaultTags()
         if (spanErrored) {
           errorTags(Exception, endpoint.body)

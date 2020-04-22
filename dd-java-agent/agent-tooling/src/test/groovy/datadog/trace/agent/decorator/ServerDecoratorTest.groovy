@@ -9,19 +9,29 @@ class ServerDecoratorTest extends BaseDecoratorTest {
 
   def span = Mock(AgentSpan)
 
-  def "test afterStart"() {
+  def "test afterStart for a #spanType span"() {
     def decorator = newDecorator()
     when:
     decorator.afterStart(span)
 
     then:
     1 * span.setTag(Tags.COMPONENT.key, "test-component")
-    1 * span.setTag(Tags.SPAN_KIND.key, "server")
     1 * span.setTag(DDTags.SPAN_TYPE, decorator.spanType())
     if (decorator.traceAnalyticsEnabled) {
       1 * span.setTag(DDTags.ANALYTICS_SAMPLE_RATE, 1.0)
     }
+    if (isRoot) {
+      1 * span.getLocalRootSpan() >> span
+      1 * span.setTag(Tags.SPAN_KIND.key, "server")
+    } else {
+      1 * span.getLocalRootSpan() >> Mock(AgentSpan)
+    }
     0 * _
+
+    where:
+    spanType | isRoot
+    "leaf"   | false
+    "root"   | true
   }
 
   def "test afterStart set span kind"() {
@@ -37,6 +47,7 @@ class ServerDecoratorTest extends BaseDecoratorTest {
     if (decorator.traceAnalyticsEnabled) {
       1 * span.setTag(DDTags.ANALYTICS_SAMPLE_RATE, 1.0)
     }
+    value * span.getLocalRootSpan() >> span
     0 * _
 
     where:

@@ -37,45 +37,45 @@ the table.
 
 | Library | Versions supported | Instrumentation name(s) | Notes |
 | ---     | ---                | ---                     | ---   |
-| **Akka HTTP** | 10.0.0+ | `akka-http`, `akka-http-server`, `akka-http-client` | |
-| **Apache HTTP Client** | 4.0+ | `httpclient` | Also supports the DropWizard HTTP Client that subclasses the Apache one. |
-| **AWS SDK Client** | 1.11.0+ | `aws-sdk` | |
-| **Cassandra (DataStax client)** | 3.0+ | `cassandra` | |
-| **CouchBase Client** | 2.0.0+ | `couchbase` | |
-| **DropWizard Views** | * | `dropwizard`, `dropwizard-view` | |
-| **ElasticSearch Client** | 2+ | `elasticsearch` | Supports both REST and transport clients. |
+| Akka HTTP | 10.0.0+ | `akka-http`, `akka-http-server`, `akka-http-client` | |
+| Apache HTTP Client | 4.0+ | `httpclient` | Also supports the DropWizard HTTP Client that subclasses the Apache one. |
+| AWS SDK Client | 1.11.0+ | `aws-sdk` | |
+| Cassandra (DataStax client) | 3.0+ | `cassandra` | |
+| CouchBase Client | 2.0.0+ | `couchbase` | |
+| DropWizard Views | * | `dropwizard`, `dropwizard-view` | |
+| ElasticSearch Client | 2+ | `elasticsearch` | Supports both REST and transport clients. |
 | _Grizzly_ | 2.0+ | `grizzly` | |
-| **gRPC (Client and Server)** | 1.5.0+ | `grpc` | |
-| **java.net.HttpURLConnection** | * | `httpurlconnection` | |
-| **Hibernate** | 3.5.0+ | `hibernate` | |
-| **Hystrix** | 1.4.0+ | `hystrix` | |
-| **JAX-RS Client** | 2.0.0+ | `jaxrs` | Also supports DropWizard client 0.8.0+. Supports exceptions whitelist using `@TraceSetting`. |
-| **JDBC API** | * | `jdbc` | |
-| **Jedis (Redis client)** | 1.4.0+ | `jedis` | Prevent command arguments from being sourced in `db.statement` tag with `-Dsignalfx.instrumentation.redis.capture-command-arguments=false`. |
-| **Jersey** | 2.1+ | `jersey` | In tandem with JAX-RS Annotations. |
-| **Jetty Server** | 6.0.0+, 8.0.0+ | `jetty` | |
-| **JMS Messaging** | * | `jms` | |
-| **JSP** | 7+ | `jsp` | |
-| **Kafka Client** | 0.11.0.0+ | `kafka` | Disable trace propagation for unsupported environments with `-Dsignalfx.instrumentation.kafka.attempt-propagation=false`. |
-| **khttp** | 0.1.0+ | `khttp` | |
-| **Lettuce (Redis Client)** | 5.0.0+ | `lettuce` | Prevent command arguments from being sourced in `db.statement` tag with `-Dsignalfx.instrumentation.redis.capture-command-arguments=false`. |
+| gRPC (Client and Server) | 1.5.0+ | `grpc` | |
+| java.net.HttpURLConnection | * | `httpurlconnection` | |
+| Hibernate | 3.5.0+ | `hibernate` | |
+| Hystrix | 1.4.0+ | `hystrix` | |
+| JAX-RS Client | 2.0.0+ | `jaxrs` | Also supports DropWizard client 0.8.0+. Supports exceptions whitelist using `@TraceSetting`. |
+| JDBC API | * | `jdbc` | |
+| Jedis (Redis client) | 1.4.0+ | `jedis` | Prevent command arguments from being sourced in `db.statement` tag with `-Dsignalfx.instrumentation.redis.capture-command-arguments=false`. |
+| Jersey | 2.1+ | `jersey` | In tandem with JAX-RS Annotations. |
+| Jetty Server | 6.0.0+, 8.0.0+ | `jetty` | |
+| JMS Messaging | * | `jms` | |
+| JSP | 7+ | `jsp` | |
+| Kafka Client | 0.11.0.0+ | `kafka` | Disable trace propagation for unsupported environments with `-Dsignalfx.instrumentation.kafka.attempt-propagation=false`. |
+| khttp | 0.1.0+ | `khttp` | |
+| Lettuce (Redis Client) | 5.0.0+ | `lettuce` | Prevent command arguments from being sourced in `db.statement` tag with `-Dsignalfx.instrumentation.redis.capture-command-arguments=false`. |
 | _Java MDC_ | * | `-Dsignalfx.logs.injection=true` on Java invocation | Injects `signalfx.trace_id` and `signalfx.span_id` to MDC contexts. |
-| **Memcached (SpyMemcached)** | 2.10.0+ | `spymemcached` | |
-| **Mongo Client** | 3.1+ | `mongo` | |
-| **Mongo Async Client** | 3.3+ | `mongo` | |
-| **Netty Client and Server** | 4.0+ | `netty` | Nonstandard HTTP status code tagging w/ `-Dsignalfx.instrumentation.netty.{client,server}.nonstandard.http.status.<code>=true` to circumvent Status5xxDecorator. |
-| **OkHTTP Client** | 3.0+ | `okhttp` | |
-| **Play Web Framework** | 2.4+ | `play` | |
-| **RabbitMQ Client** | 2.7.0+ | `rabbitmq` | |
-| **Ratpack** | 1.4+ | `ratpack` | |
-| **Reactor Core** | 3.1.0+ | `reactor-core` | |
-| **RestTemplate** | 3.1.1+ | `rest-template` | |
-| **Java Servlet** | 2+ | `servlet` | |
+| Memcached (SpyMemcached) | 2.10.0+ | `spymemcached` | |
+| Mongo Client | 3.1+ | `mongo` | |
+| Mongo Async Client | 3.3+ | `mongo` | |
+| Netty Client and Server | 4.0+ | `netty` | Nonstandard HTTP status code tagging w/ `-Dsignalfx.instrumentation.netty.{client,server}.nonstandard.http.status.<code>=true` to circumvent Status5xxDecorator. |
+| OkHTTP Client | 3.0+ | `okhttp` | |
+| Play Web Framework | 2.4+ | `play` | |
+| RabbitMQ Client | 2.7.0+ | `rabbitmq` | |
+| Ratpack | 1.4+ | `ratpack` | |
+| Reactor Core | 3.1.0+ | `reactor-core` | |
+| RestTemplate | 3.1.1+ | `rest-template` | |
+| Java Servlet | 2+ | `servlet` | |
 | _Spark Java_ | 2.3+ | `sparkjava` | |
-| **Spring Data** | 1.8.0+ | `spring-data` | |
-| **Spring Web (MVC)** | 4.0+ | `spring-web` | Includes DispatcherServlet and HandlerAdapter. Supports exceptions whitelist using `@TraceSetting`. |
-| **Spring WebFlux** | 5.0.0+ | `spring-webflux` | |
-| **Vertx Web** | 3.0.0+  | `vertx` | This works through the Netty instrumentation for requests, and also includes spans for handlers. |
+| Spring Data | 1.8.0+ | `spring-data` | |
+| Spring Web (MVC) | 4.0+ | `spring-web` | Includes DispatcherServlet and HandlerAdapter. Supports exceptions whitelist using `@TraceSetting`. |
+| Spring WebFlux | 5.0.0+ | `spring-webflux` | |
+| Vertx Web | 3.0.0+  | `vertx` | This works through the Netty instrumentation for requests, and also includes spans for handlers. |
 
 ## Configure the SignalFx Java Agent
 

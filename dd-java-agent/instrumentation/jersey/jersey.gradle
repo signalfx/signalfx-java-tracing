@@ -1,5 +1,10 @@
 // Modified by SignalFx
 muzzle {
+  pass {
+    group = "org.glassfish.jersey.core"
+    module = "jersey-server"
+    versions = "[2.1,)"
+  }
 }
 
 apply from: "${rootDir}/gradle/java.gradle"

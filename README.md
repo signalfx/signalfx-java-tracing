@@ -12,12 +12,11 @@ manipulation and configures an OpenTracing-compatible tracer to capture
 and export trace spans. The agent also registers the tracer as the OpenTracing
 `GlobalTracer` so you can add custom instrumentation to your application later.
 
-By default, the tracer has constant sampling (i.e., 100% chance of tracing) and reports every span. Where
-applicable, context propagation uses
+By default, the tracer has constant sampling (i.e., 100% chance of tracing) and reports every span. Where applicable, context propagation uses
 [B3 headers](https://github.com/openzipkin/b3-propagation).
 
 For more information about configuring and using the agent, see
-our [examples](https://github.com/signalfx/tracing-examples/tree/master/signalfx-tracing/signalfx-java-tracing).
+the [examples](https://github.com/signalfx/tracing-examples/tree/master/signalfx-tracing/signalfx-java-tracing).
 
 ## Requirements and supported software
 
@@ -33,7 +32,7 @@ instrumentations.
 
 These are the supported libraries. _Italicized_ libraries are in beta. Enable
 beta libraries by setting the `-Dsignalfx.integration.<name>.enabled=true` 
-system property, where `<name>` is the instrumentatiopn name specified in
+system property, where `<name>` is the instrumentation name specified in
 the table.
 
 | Library | Versions supported | Instrumentation name(s) | Notes |

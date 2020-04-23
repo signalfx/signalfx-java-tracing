@@ -63,7 +63,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(1))
           tags {
             "$Tags.COMPONENT" "spring-webflux-controller"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             if (annotatedMethod == null) {
               // Functional API
               "request.predicate" "(GET && $urlPathWithVariables)"
@@ -137,7 +136,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(1))
           tags {
             "$Tags.COMPONENT" "spring-webflux-controller"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             if (annotatedMethod == null) {
               // Functional API
               "request.predicate" "(GET && $urlPathWithVariables)"
@@ -237,7 +235,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           errored true
           tags {
             "$Tags.COMPONENT" "spring-webflux-controller"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "handler.type" "org.springframework.web.reactive.resource.ResourceWebHandler"
             errorTags(ResponseStatusException, String)
             defaultTags()
@@ -269,7 +266,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(1))
           tags {
             "$Tags.COMPONENT" "spring-webflux-controller"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "request.predicate" "(POST && /echo)"
             "handler.type" { String tagVal ->
               return tagVal.contains(EchoHandlerFunction.getName())
@@ -353,7 +349,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           errored true
           tags {
             "$Tags.COMPONENT" "spring-webflux-controller"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             if (annotatedMethod == null) {
               // Functional API
               "request.predicate" "(GET && $urlPathWithVariables)"
@@ -418,7 +413,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(0))
           tags {
             "$Tags.COMPONENT" "spring-webflux-controller"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "request.predicate" "(GET && /double-greet-redirect)"
             "handler.type" { String tagVal ->
               return (tagVal.contains(INNER_HANDLER_FUNCTION_CLASS_TAG_PREFIX)
@@ -436,7 +430,6 @@ class SpringWebfluxTest extends AgentTestRunner {
           childOf(span(1))
           tags {
             "$Tags.COMPONENT" "spring-webflux-controller"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "request.predicate" "(GET && /double-greet)"
             "handler.type" { String tagVal ->
               return tagVal.contains(INNER_HANDLER_FUNCTION_CLASS_TAG_PREFIX)
@@ -493,7 +486,6 @@ class SpringWebfluxTest extends AgentTestRunner {
             childOf(span(1))
             tags {
               "$Tags.COMPONENT" "spring-webflux-controller"
-              "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
               if (annotatedMethod == null) {
                 // Functional API
                 "request.predicate" "(GET && $urlPathWithVariables)"

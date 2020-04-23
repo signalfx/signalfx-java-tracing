@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.decorator
 
 import datadog.trace.agent.test.utils.ConfigUtils
@@ -23,6 +24,7 @@ class BaseDecoratorTest extends DDSpecification {
     1 * span.setTag(DDTags.SPAN_TYPE, decorator.spanType())
     1 * span.setTag(Tags.COMPONENT.key, "test-component")
     _ * span.setTag(_, _) // Want to allow other calls from child implementations.
+    _ * span.getLocalRootSpan() // Want to allow other calls from child implementations.
     0 * _
   }
 

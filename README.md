@@ -10,6 +10,7 @@ and add it to your JVM path:
 ```bash
 $ java -javaagent:path/to/signalfx-tracing.jar -jar app.jar
 ```
+For more information, see [Configure the SignalFx Java Agent](#Configure-the-SignalFx-Java-Agent).
 
 The agent instruments supported libraries and frameworks with bytecode
 manipulation and configures an OpenTracing-compatible tracer to capture

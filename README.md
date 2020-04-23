@@ -12,7 +12,8 @@ manipulation and configures an OpenTracing-compatible tracer to capture
 and export trace spans. The agent also registers the tracer as the OpenTracing
 `GlobalTracer` so you can add custom instrumentation to your application later.
 
-By default, the tracer has constant sampling (i.e., 100% chance of tracing) and reports every span. Where applicable, context propagation uses
+By default, the tracer has constant sampling (i.e., 100% chance of tracing) and
+reports every span. Where applicable, context propagation uses
 [B3 headers](https://github.com/openzipkin/b3-propagation).
 
 For more information about configuring and using the agent, see
@@ -79,7 +80,8 @@ the table.
 
 ## Configure the SignalFx Java Agent
 
-Send traces from your Java application to a local or remote Smart Agent, OpenTelemetry Collector, or SignalFx ingest endpoint.
+Send traces from your Java application to a local or remote Smart Agent,
+OpenTelemetry Collector, or SignalFx ingest endpoint.
 
 ### Configuration values
 

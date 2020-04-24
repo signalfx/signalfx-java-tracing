@@ -5,7 +5,7 @@ The SignalFx Java Agent is a
 (JVM) agent that automatically instruments your Java application to capture and
 report distributed traces to SignalFx. Download the JAR for the agent's 
 [latest release](https://github.com/signalfx/signalfx-java-tracing/releases/latest)
-and add it to your JVM path:
+and add its path to your JVM startup options:
 
 ```bash
 $ java -javaagent:path/to/signalfx-tracing.jar -jar app.jar

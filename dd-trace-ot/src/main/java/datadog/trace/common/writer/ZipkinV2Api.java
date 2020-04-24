@@ -183,7 +183,10 @@ public class ZipkinV2Api implements Api {
     writeIdField(jsonGenerator, "id", span.getSpanId());
     jsonGenerator.writeStringField("name", spanName);
     writeIdField(jsonGenerator, "traceId", span.getTraceId());
-    writeIdField(jsonGenerator, "parentId", span.getParentId());
+    final String parentId = span.getParentId();
+    if (!parentId.equals("0")) {
+      writeIdField(jsonGenerator, "parentId", span.getParentId());
+    }
 
     if (!Strings.isNullOrEmpty(spanKind)) {
       jsonGenerator.writeStringField("kind", spanKind);

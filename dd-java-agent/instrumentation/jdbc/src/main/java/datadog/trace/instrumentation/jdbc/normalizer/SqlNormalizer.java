@@ -4,13 +4,20 @@ package datadog.trace.instrumentation.jdbc.normalizer;
 import java.io.StringReader;
 
 public class SqlNormalizer implements SqlNormalizerConstants {
+  public static final int LIMIT = 32 * 1024;
+
   public static String normalize(String s) throws ParseException {
     SqlNormalizer parser = new SqlNormalizer(new StringReader(s));
-    return parser.Input().toString();
+    StringBuffer answer = parser.Input();
+    if (answer.length() <= LIMIT) {
+      return answer.toString();
+    } else {
+      answer.delete(LIMIT, answer.length());
+      return answer.toString();
+    }
   }
 
   public final StringBuffer Input() throws ParseException {
-    final int LIMIT = 32 * 1024;
     StringBuffer sb = new StringBuffer();
     Token t;
     label_1:

@@ -29,7 +29,7 @@ class SqlNormalizerTest extends DDSpecification {
     "-7"                                                                       | "?"
     "+7"                                                                       | "?"
     "SELECT 0x0af764"                                                          | "SELECT ?"
-    "SELECT 0xdeadbeef"                                                        | "SELECT ?"
+    "SELECT 0xdeadBEEF"                                                        | "SELECT ?"
 
     // Not numbers but could be confused as such
     "SELECT A + B"                                                             | "SELECT A + B"
@@ -61,6 +61,28 @@ class SqlNormalizerTest extends DDSpecification {
     "SELECT * FROM TABLE WHERE FIELD = \"''\""                                 | "SELECT * FROM TABLE WHERE FIELD = ?"
     "SELECT * FROM TABLE WHERE FIELD = \"a single ' singlequote inside\""      | "SELECT * FROM TABLE WHERE FIELD = ?"
 
-
+    // Unicode, including a unicode identifier with a trailing number
+    "SELECT * FROM TABLE\u09137 WHERE FIELD = '\u0194'"                        | "SELECT * FROM TABLE\u09137 WHERE FIELD = ?"
   }
+
+  def "lots and lots of ticks don't cause stack overflow or long runtimes"() {
+    setup:
+    String s = "'";
+    for (int i = 0; i < 10000; i++) {
+      assert JDBCUtils.normalizeSql(s) != null
+      s += "'"
+    }
+  }
+
+  def "very long numbers don't cause a problem even in a table name"() {
+    setup:
+    String s = ""
+    for (int i = 0; i < 10000; i++) {
+      s += String.valueOf(i)
+    }
+    assert "?" == JDBCUtils.normalizeSql(s)
+    s = "A" + s
+    assert s == JDBCUtils.normalizeSql(s)
+  }
+
 }

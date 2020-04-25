@@ -48,8 +48,8 @@ public abstract class DatabaseClientDecorator<CONNECTION> extends ClientDecorato
     String outStatement = statement;
     if (outStatement != null) {
       outStatement = outStatement.substring(0, Math.min(outStatement.length(), dbStatMaxLength));
+      span.setTag(Tags.DB_STATEMENT.getKey(), outStatement);
     }
-    span.setTag(Tags.DB_STATEMENT.getKey(), outStatement);
     return span;
   }
 }

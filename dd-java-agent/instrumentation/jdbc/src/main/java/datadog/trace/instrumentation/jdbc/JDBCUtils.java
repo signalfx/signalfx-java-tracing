@@ -2,31 +2,13 @@
 package datadog.trace.instrumentation.jdbc;
 
 import datadog.trace.bootstrap.ExceptionLogger;
+import datadog.trace.instrumentation.jdbc.normalizer.SqlNormalizer;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.regex.Pattern;
 
 public abstract class JDBCUtils {
   private static Field c3poField = null;
-  private static final String[] SqlNormalizeClauses = {
-    // Numerics
-    "0x[0-9a-fA-F]+", // hex
-    "(?<![\\p{LC}_0-9])[+.-]*[0-9]+[0-9xEe.+-]*", // regular numeric literal
-    // Quoted strings
-    "'((?:''|[^'])*)'", // '-quoted
-    "\"((?:\"\"|[^\"])*)\"", // "-quoted (some sql flavors support this)
-  };
-  private static final Pattern SqlNormalizePattern;
-
-  static {
-    final String[] clauses = SqlNormalizeClauses;
-    // FIXME peformance benchmark and expirment with, e.g., non-capturing grouping
-    final String pattern =
-        "(" + clauses[0] + ")|(" + clauses[1] + ")|(" + clauses[2] + ")|(" + clauses[3] + ")";
-    SqlNormalizePattern = Pattern.compile(pattern);
-  }
-
   /**
    * @param statement
    * @return the unwrapped connection or null if exception was thrown.
@@ -71,8 +53,12 @@ public abstract class JDBCUtils {
     return connection;
   }
 
+  /** @return null if the sql can't be normalized properly (should be quite rare) */
   public static String normalizeSql(String sql) {
-    // FIXME performance could be replaced by a much more efficient lexer.
-    return SqlNormalizePattern.matcher(sql).replaceAll("?");
+    try {
+      return SqlNormalizer.normalize(sql);
+    } catch (Exception e) {
+      return null;
+    }
   }
 }

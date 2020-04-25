@@ -71,7 +71,7 @@ class SqlNormalizerTest extends DDSpecification {
 
   def "lots and lots of ticks don't cause stack overflow or long runtimes"() {
     setup:
-    String s = "'";
+    String s = "'"
     for (int i = 0; i < 10000; i++) {
       assert JDBCUtils.normalizeSql(s) != null
       s += "'"

@@ -86,6 +86,7 @@ class SqlNormalizerTest extends DDSpecification {
     }
     assert "?" == JDBCUtils.normalizeSql(s)
   }
+
   def "very long numbers at end of table name don't cause problem"() {
     String s = "A"
     for (int i = 0; i < 10000; i++) {
@@ -97,7 +98,7 @@ class SqlNormalizerTest extends DDSpecification {
   def "test 32k truncation"() {
     setup:
     StringBuffer s = new StringBuffer()
-    for(int i=0; i < 10000; i++) {
+    for (int i = 0; i < 10000; i++) {
       s.append("SELECT * FROM TABLE WHERE FIELD = 1234 AND ")
     }
     String normalized = JDBCUtils.normalizeSql(s.toString())

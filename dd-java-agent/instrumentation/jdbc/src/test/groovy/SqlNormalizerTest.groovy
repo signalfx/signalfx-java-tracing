@@ -1,7 +1,9 @@
 import datadog.trace.instrumentation.jdbc.JDBCUtils
 import datadog.trace.instrumentation.jdbc.normalizer.SqlNormalizer
 import datadog.trace.util.test.DDSpecification
+import spock.lang.Timeout
 
+@Timeout(20)
 class SqlNormalizerTest extends DDSpecification {
 
   def "normalize #originalSql"() {
@@ -88,6 +90,7 @@ class SqlNormalizerTest extends DDSpecification {
   }
 
   def "very long numbers at end of table name don't cause problem"() {
+    setup:
     String s = "A"
     for (int i = 0; i < 10000; i++) {
       s += String.valueOf(i)
@@ -105,6 +108,18 @@ class SqlNormalizerTest extends DDSpecification {
     System.out.println(normalized.length())
     assert normalized.length() <= SqlNormalizer.LIMIT
     assert !normalized.contains("1234")
+  }
+
+  def "random bytes don't cause exceptions or timeouts"() {
+    setup:
+    Random r = new Random(0)
+    for (int i = 0; i < 1000; i++) {
+      StringBuffer sb = new StringBuffer()
+      for (int c = 0; c < 1000; c++) {
+        sb.append((char) r.nextInt((int)Character.MAX_VALUE))
+      }
+      JDBCUtils.normalizeSql(sb.toString())
+    }
   }
 
 }

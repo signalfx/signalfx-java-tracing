@@ -116,7 +116,7 @@ class SqlNormalizerTest extends DDSpecification {
     for (int i = 0; i < 1000; i++) {
       StringBuffer sb = new StringBuffer()
       for (int c = 0; c < 1000; c++) {
-        sb.append((char) r.nextInt((int)Character.MAX_VALUE))
+        sb.append((char) r.nextInt((int) Character.MAX_VALUE))
       }
       JDBCUtils.normalizeSql(sb.toString())
     }

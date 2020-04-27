@@ -1,12 +1,16 @@
 // Modified by SignalFx
 
-// This file is compiled with java -cp javacc.jar javacc SqlNormalizer.jj
+// This file is compiled with "java -cp javacc.jar javacc SqlNormalizer.jj"
 // I used javacc 7.0.5 the last time I ran it.
 // You might ask why I decided to simply check in the generated files rather than
 // integrate this step into the build system.
 // This is because the IDE usage gets awkward in that scenario without some build
 // adjustments which are complex; these can be revisited at any point in the future
 // Additionally note that I googleJavaFormat-ed the generated source
+// A simple series of steps would then be (from this directory)
+// rm *.java
+// java -cp /path/to/javacc.jar javacc SqlNormalizer.jj
+// gradlew goJF
 options {
 	IGNORE_CASE = true;
 	UNICODE_INPUT = true;
@@ -91,7 +95,11 @@ StringBuffer Input() :
 
 TOKEN :
 {
-// Javacc doesn't support unicode character categories like {Letter}, so here's my approximation of that.  No, I didn't type this by hand.
+// We want to use the unicode character category/class {Letter} as part of supporting unicode identifiers (e.g., a
+// table name containing unicode).  Javacc supports unicode but not this concept.  So, I generated this table by
+// iterating through characters and asking Character.isLetter(c), keeping track of ranges so that
+// this table would be much more compact than a simple list of allowed characters.  Without proper support
+// for parsing out identifiers this way this lexer might naively transform "SELECT * FROM TABLE_V2" to "SELECT * FROM TABLE_V?"
 
   // Keyword (like SELECT) or identifier (like MY_AWESOME_TABLE_V2)
 	< KeywordOrIdentifier: [

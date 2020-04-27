@@ -23,7 +23,7 @@ public class SqlNormalizer implements SqlNormalizerConstants {
     label_1:
     while (true) {
       switch ((jj_ntk == -1) ? jj_ntk() : jj_ntk) {
-        case Id:
+        case KeywordOrIdentifier:
         case BasicNum:
         case HexNum:
         case QuotedStr:
@@ -36,8 +36,8 @@ public class SqlNormalizer implements SqlNormalizerConstants {
           break label_1;
       }
       switch ((jj_ntk == -1) ? jj_ntk() : jj_ntk) {
-        case Id:
-          t = jj_consume_token(Id);
+        case KeywordOrIdentifier:
+          t = jj_consume_token(KeywordOrIdentifier);
           sb.append(t.image);
           if (sb.length() > LIMIT) {
             {

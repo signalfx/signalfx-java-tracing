@@ -7,7 +7,7 @@ public interface SqlNormalizerConstants {
   /** End of File. */
   int EOF = 0;
   /** RegularExpression Id. */
-  int Id = 1;
+  int KeywordOrIdentifier = 1;
   /** RegularExpression Id. */
   int BasicNum = 2;
   /** RegularExpression Id. */
@@ -27,7 +27,7 @@ public interface SqlNormalizerConstants {
   /** Literal token values. */
   String[] tokenImage = {
     "<EOF>",
-    "<Id>",
+    "<KeywordOrIdentifier>",
     "<BasicNum>",
     "<HexNum>",
     "<QuotedStr>",

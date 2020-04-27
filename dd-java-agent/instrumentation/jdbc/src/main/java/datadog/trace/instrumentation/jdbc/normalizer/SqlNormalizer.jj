@@ -41,7 +41,7 @@ StringBuffer Input() :
 }
 {
 	(
-	t = <Id>
+	t = <KeywordOrIdentifier>
 		{
 		sb.append(t.image);
 		if (sb.length() > LIMIT) { return sb; }
@@ -93,7 +93,8 @@ TOKEN :
 {
 // Javacc doesn't support unicode character categories like {Letter}, so here's my approximation of that.  No, I didn't type this by hand.
 
-	< Id: [
+  // Keyword (like SELECT) or identifier (like MY_AWESOME_TABLE_V2)
+	< KeywordOrIdentifier: [
 		"\u0041"-"\u005a","\u0061"-"\u007a","\u00aa"-"\u00aa","\u00b5"-"\u00b5","\u00ba"-"\u00ba","\u00c0"-"\u00d6","\u00d8"-"\u00f6","\u00f8"-"\u02c1","\u02c6"-"\u02d1","\u02e0"-"\u02e4",
 		"\u02ec"-"\u02ec","\u02ee"-"\u02ee","\u0370"-"\u0374","\u0376"-"\u0377","\u037a"-"\u037d","\u0386"-"\u0386","\u0388"-"\u038a","\u038c"-"\u038c","\u038e"-"\u03a1","\u03a3"-"\u03f5",
 		"\u03f7"-"\u0481","\u048a"-"\u0527","\u0531"-"\u0556","\u0559"-"\u0559","\u0561"-"\u0587","\u05d0"-"\u05ea","\u05f0"-"\u05f2","\u0620"-"\u064a","\u066e"-"\u066f","\u0671"-"\u06d3",

@@ -58,6 +58,8 @@ public abstract class JDBCUtils {
     try {
       return SqlNormalizer.normalize(sql);
     } catch (Exception e) {
+      // Given how permissive the grammar is, this should be quite rare.
+      ExceptionLogger.LOGGER.debug("Could not normalizeSql", e);
       return null;
     }
   }

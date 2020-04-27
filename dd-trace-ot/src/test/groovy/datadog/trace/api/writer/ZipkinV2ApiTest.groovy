@@ -84,7 +84,6 @@ class ZipkinV2ApiTest extends DDSpecification {
     [[SpanFactory.newSpanOf(1L).setTag("service", "my-service").log(1000L, "some event")]]     | [new TreeMap<>([
       "traceId" : "0000000000000001",
       "id"  :     "0000000000000001",
-      "parentId": "0000000000000000",
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
@@ -97,7 +96,6 @@ class ZipkinV2ApiTest extends DDSpecification {
     [[SpanFactory.newSpanOf(100L).setTag("resource.name", "my-resource")]] | [new TreeMap<>([
       "traceId" : "0000000000000001",
       "id"  :     "0000000000000001",
-      "parentId": "0000000000000000",
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
@@ -110,7 +108,6 @@ class ZipkinV2ApiTest extends DDSpecification {
     [[SpanFactory.newSpanOf(100L).setTag("span.kind", "CliEnt").log(1000L, "some event").log(2000L, Collections.singletonMap("another event", 1))]] | [new TreeMap<>([
       "traceId" : "0000000000000001",
       "id"  :     "0000000000000001",
-      "parentId": "0000000000000000",
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}",
@@ -124,7 +121,6 @@ class ZipkinV2ApiTest extends DDSpecification {
     [[SpanFactory.newSpanOf(100L).setTag("span.kind", "SerVeR")]] | [new TreeMap<>([
       "traceId" : "0000000000000001",
       "id"  :     "0000000000000001",
-      "parentId": "0000000000000000",
       "duration" : 0,
       "tags"     : ["thread.name": Thread.currentThread().getName(),
                     "thread.id": "${Thread.currentThread().id}"],

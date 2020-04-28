@@ -1,6 +1,9 @@
 import datadog.trace.instrumentation.jdbc.JDBCUtils
+import datadog.trace.instrumentation.jdbc.normalizer.SqlNormalizer
 import datadog.trace.util.test.DDSpecification
+import spock.lang.Timeout
 
+@Timeout(20)
 class SqlNormalizerTest extends DDSpecification {
 
   def "normalize #originalSql"() {
@@ -29,7 +32,7 @@ class SqlNormalizerTest extends DDSpecification {
     "-7"                                                                       | "?"
     "+7"                                                                       | "?"
     "SELECT 0x0af764"                                                          | "SELECT ?"
-    "SELECT 0xdeadbeef"                                                        | "SELECT ?"
+    "SELECT 0xdeadBEEF"                                                        | "SELECT ?"
 
     // Not numbers but could be confused as such
     "SELECT A + B"                                                             | "SELECT A + B"
@@ -61,6 +64,62 @@ class SqlNormalizerTest extends DDSpecification {
     "SELECT * FROM TABLE WHERE FIELD = \"''\""                                 | "SELECT * FROM TABLE WHERE FIELD = ?"
     "SELECT * FROM TABLE WHERE FIELD = \"a single ' singlequote inside\""      | "SELECT * FROM TABLE WHERE FIELD = ?"
 
+    // Unicode, including a unicode identifier with a trailing number
+    "SELECT * FROM TABLE\u09137 WHERE FIELD = '\u0194'"                        | "SELECT * FROM TABLE\u09137 WHERE FIELD = ?"
 
+    // whitespace normalization
+    "SELECT    *    \t\r\nFROM  TABLE WHERE FIELD1 = 12344 AND FIELD2 = 5678"  | "SELECT * FROM TABLE WHERE FIELD1 = ? AND FIELD2 = ?"
   }
+
+  def "lots and lots of ticks don't cause stack overflow or long runtimes"() {
+    setup:
+    String s = "'"
+    for (int i = 0; i < 10000; i++) {
+      assert JDBCUtils.normalizeSql(s) != null
+      s += "'"
+    }
+  }
+
+  def "very long numbers don't cause a problem"() {
+    setup:
+    String s = ""
+    for (int i = 0; i < 10000; i++) {
+      s += String.valueOf(i)
+    }
+    assert "?" == JDBCUtils.normalizeSql(s)
+  }
+
+  def "very long numbers at end of table name don't cause problem"() {
+    setup:
+    String s = "A"
+    for (int i = 0; i < 10000; i++) {
+      s += String.valueOf(i)
+    }
+    assert s.substring(0, SqlNormalizer.LIMIT) == JDBCUtils.normalizeSql(s)
+  }
+
+  def "test 32k truncation"() {
+    setup:
+    StringBuffer s = new StringBuffer()
+    for (int i = 0; i < 10000; i++) {
+      s.append("SELECT * FROM TABLE WHERE FIELD = 1234 AND ")
+    }
+    String normalized = JDBCUtils.normalizeSql(s.toString())
+    System.out.println(normalized.length())
+    assert normalized.length() <= SqlNormalizer.LIMIT
+    assert !normalized.contains("1234")
+  }
+
+  def "random bytes don't cause exceptions or timeouts"() {
+    setup:
+    Random r = new Random(0)
+    for (int i = 0; i < 1000; i++) {
+      StringBuffer sb = new StringBuffer()
+      for (int c = 0; c < 1000; c++) {
+        sb.append((char) r.nextInt((int) Character.MAX_VALUE))
+      }
+      JDBCUtils.normalizeSql(sb.toString())
+    }
+  }
+
 }

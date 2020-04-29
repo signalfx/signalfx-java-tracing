@@ -1,3 +1,4 @@
+// Modified by SignalFx
 // Set properties before any plugins get loaded
 ext {
   minJavaVersionForTests = JavaVersion.VERSION_1_8
@@ -8,13 +9,10 @@ muzzle {
   pass {
     group = "io.ratpack"
     module = 'ratpack-core'
-    versions = "[1.4.0,)"
-  }
-  // Some maven dependencies are missing for pre 1.0 ratpack, so we can't assertInverse.
-  fail {
-    group = "io.ratpack"
-    module = 'ratpack-core'
-    versions = "[1.0,1.4.0)"
+    versions = "[1.4.0,1.8.0)"
+    // TODO: 1.8.0 partially passes so cannot be asserted against.  Source upstream ratpack-1.5 updates.
+    skipVersions += ["0.9.12", "0.9.13", "0.9.14", "1.8.0"]
+    assertInverse = true
   }
 }
 
@@ -34,5 +32,5 @@ dependencies {
   testCompile project(':dd-java-agent:instrumentation:java-concurrent')
   testCompile project(':dd-java-agent:instrumentation:netty-4.1')
   testCompile group: 'io.ratpack', name: 'ratpack-groovy-test', version: '1.4.0'
-  latestDepTestCompile group: 'io.ratpack', name: 'ratpack-groovy-test', version: '+'
+  latestDepTestCompile group: 'io.ratpack', name: 'ratpack-groovy-test', version: '1.7.+'
 }

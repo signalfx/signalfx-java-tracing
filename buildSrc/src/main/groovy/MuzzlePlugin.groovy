@@ -1,3 +1,4 @@
+// Modified by SignalFx
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils
 import org.eclipse.aether.DefaultRepositorySystemSession
 import org.eclipse.aether.RepositorySystem
@@ -24,6 +25,7 @@ import org.gradle.api.model.ObjectFactory
 import java.lang.reflect.Method
 import java.security.SecureClassLoader
 import java.util.concurrent.atomic.AtomicReference
+import java.util.regex.Pattern
 
 /**
  * muzzle task plugin which runs muzzle validation against a range of dependencies.
@@ -36,7 +38,9 @@ class MuzzlePlugin implements Plugin<Project> {
   private static final AtomicReference<ClassLoader> TOOLING_LOADER = new AtomicReference<>()
   static {
     RemoteRepository central = new RemoteRepository.Builder("central", "default", "https://repo1.maven.org/maven2/").build()
-    MUZZLE_REPOS = new ArrayList<RemoteRepository>(Arrays.asList(central))
+    RemoteRepository jcenter = new RemoteRepository.Builder("jcenter", "default", "https://jcenter.bintray.com/").build()
+    RemoteRepository typesafe = new RemoteRepository.Builder("typesafe", "default", "https://repo.typesafe.com/typesafe/releases").build()
+    MUZZLE_REPOS = new ArrayList<RemoteRepository>(Arrays.asList(central, jcenter, typesafe))
   }
 
   @Override
@@ -103,15 +107,19 @@ class MuzzlePlugin implements Plugin<Project> {
       Task runAfter = project.tasks.muzzle
 
       for (MuzzleDirective muzzleDirective : project.muzzle.directives) {
-        project.getLogger().info("configured ${muzzleDirective.assertPass ? 'pass' : 'fail'} directive: ${muzzleDirective.group}:${muzzleDirective.module}:${muzzleDirective.versions}")
+        project.getLogger().info("configured $muzzleDirective")
 
-        muzzleDirectiveToArtifacts(muzzleDirective, system, session).collect() { Artifact singleVersion ->
-          runAfter = addMuzzleTask(muzzleDirective, singleVersion, project, runAfter, bootstrapProject, toolingProject)
-        }
-        if (muzzleDirective.assertInverse) {
-          inverseOf(muzzleDirective, system, session).collect() { MuzzleDirective inverseDirective ->
-            muzzleDirectiveToArtifacts(inverseDirective, system, session).collect() { Artifact singleVersion ->
-              runAfter = addMuzzleTask(inverseDirective, singleVersion, project, runAfter, bootstrapProject, toolingProject)
+        if (muzzleDirective.coreJdk) {
+          runAfter = addMuzzleTask(muzzleDirective, null, project, runAfter, bootstrapProject, toolingProject)
+        } else {
+          muzzleDirectiveToArtifacts(muzzleDirective, system, session).collect() { Artifact singleVersion ->
+            runAfter = addMuzzleTask(muzzleDirective, singleVersion, project, runAfter, bootstrapProject, toolingProject)
+          }
+          if (muzzleDirective.assertInverse) {
+            inverseOf(muzzleDirective, system, session).collect() { MuzzleDirective inverseDirective ->
+              muzzleDirectiveToArtifacts(inverseDirective, system, session).collect() { Artifact singleVersion ->
+                runAfter = addMuzzleTask(inverseDirective, singleVersion, project, runAfter, bootstrapProject, toolingProject)
+              }
             }
           }
         }
@@ -131,7 +139,6 @@ class MuzzlePlugin implements Plugin<Project> {
         }
         def loader = new URLClassLoader(ddUrls.toArray(new URL[0]), (ClassLoader) null)
         assert TOOLING_LOADER.compareAndSet(null, loader)
-        loader.loadClass("datadog.trace.agent.tooling.AgentTooling").getMethod("init").invoke(null)
         return TOOLING_LOADER.get()
       } else {
         return toolingLoader
@@ -200,7 +207,7 @@ class MuzzlePlugin implements Plugin<Project> {
     rangeRequest.setArtifact(directiveArtifact)
     final VersionRangeResult rangeResult = system.resolveVersionRange(session, rangeRequest)
 
-    final List<Artifact> allVersionArtifacts = filterVersion(rangeResult.versions).collect { version ->
+    final List<Artifact> allVersionArtifacts = filterVersion(rangeResult.versions, muzzleDirective.skipVersions).collect { version ->
       new DefaultArtifact(muzzleDirective.group, muzzleDirective.module, "jar", version.toString())
     }
 
@@ -231,7 +238,7 @@ class MuzzlePlugin implements Plugin<Project> {
     rangeRequest.setArtifact(directiveArtifact)
     final VersionRangeResult rangeResult = system.resolveVersionRange(session, rangeRequest)
 
-    filterVersion(allRangeResult.versions).collect { version ->
+    filterVersion(allRangeResult.versions, muzzleDirective.skipVersions).collect { version ->
       if (!rangeResult.versions.contains(version)) {
         final MuzzleDirective inverseDirective = new MuzzleDirective()
         inverseDirective.group = muzzleDirective.group
@@ -258,17 +265,25 @@ class MuzzlePlugin implements Plugin<Project> {
    * @return The created muzzle task.
    */
   private static Task addMuzzleTask(MuzzleDirective muzzleDirective, Artifact versionArtifact, Project instrumentationProject, Task runAfter, Project bootstrapProject, Project toolingProject) {
-    def taskName = "muzzle-Assert${muzzleDirective.assertPass ? "Pass" : "Fail"}-$versionArtifact.groupId-$versionArtifact.artifactId-$versionArtifact.version${muzzleDirective.name ? "-${muzzleDirective.getNameSlug()}" : ""}"
-    def config = instrumentationProject.configurations.create(taskName)
-    def dep = instrumentationProject.dependencies.create("$versionArtifact.groupId:$versionArtifact.artifactId:$versionArtifact.version") {
-      transitive = true
+    def taskName
+    if (muzzleDirective.coreJdk) {
+      taskName = "muzzle-Assert$muzzleDirective"
+    } else {
+      taskName = "muzzle-Assert${muzzleDirective.assertPass ? "Pass" : "Fail"}-$versionArtifact.groupId-$versionArtifact.artifactId-$versionArtifact.version${muzzleDirective.name ? "-${muzzleDirective.getNameSlug()}" : ""}"
     }
-    // The following optional transitive dependencies are brought in by some legacy module such as log4j 1.x but are no
-    // longer bundled with the JVM and have to be excluded for the muzzle tests to be able to run.
-    dep.exclude group: 'com.sun.jdmk', module: 'jmxtools'
-    dep.exclude group: 'com.sun.jmx', module: 'jmxri'
+    def config = instrumentationProject.configurations.create(taskName)
 
-    config.dependencies.add(dep)
+    if (!muzzleDirective.coreJdk) {
+      def dep = instrumentationProject.dependencies.create("$versionArtifact.groupId:$versionArtifact.artifactId:$versionArtifact.version") {
+        transitive = true
+      }
+      // The following optional transitive dependencies are brought in by some legacy module such as log4j 1.x but are no
+      // longer bundled with the JVM and have to be excluded for the muzzle tests to be able to run.
+      dep.exclude group: 'com.sun.jdmk', module: 'jmxtools'
+      dep.exclude group: 'com.sun.jmx', module: 'jmxri'
+
+      config.dependencies.add(dep)
+    }
     for (String additionalDependency : muzzleDirective.additionalDependencies) {
       config.dependencies.add(instrumentationProject.dependencies.create(additionalDependency) {
         transitive = true
@@ -279,7 +294,12 @@ class MuzzlePlugin implements Plugin<Project> {
       doLast {
         final ClassLoader instrumentationCL = createInstrumentationClassloader(instrumentationProject, toolingProject)
         def ccl = Thread.currentThread().contextClassLoader
-        def bogusLoader = new SecureClassLoader()
+        def bogusLoader = new SecureClassLoader() {
+          @Override
+          String toString() {
+            return "bogus"
+          }
+        }
         Thread.currentThread().contextClassLoader = bogusLoader
         final ClassLoader userCL = createClassLoaderForTask(instrumentationProject, bootstrapProject, taskName)
         try {
@@ -327,10 +347,12 @@ class MuzzlePlugin implements Plugin<Project> {
     return session
   }
 
+  private static final Pattern GIT_SHA_PATTERN = Pattern.compile('^.*-[0-9a-f]{7,}$')
+
   /**
    * Filter out snapshot-type builds from versions list.
    */
-  private static filterVersion(List<Version> list) {
+  private static filterVersion(List<Version> list, Set<String> skipVersions) {
     list.removeIf {
       def version = it.toString().toLowerCase()
       return version.contains("rc") ||
@@ -341,7 +363,11 @@ class MuzzlePlugin implements Plugin<Project> {
         version.contains(".m") ||
         version.contains("-m") ||
         version.contains("-dev") ||
-        version.contains("public_draft")
+        version.contains("-ea") ||
+        version.contains("-atlassian-") ||
+        version.contains("public_draft") ||
+        skipVersions.contains(version) ||
+        version.matches(GIT_SHA_PATTERN)
     }
     return list
   }
@@ -366,9 +392,15 @@ class MuzzleDirective {
   String group
   String module
   String versions
+  Set<String> skipVersions = new HashSet<>()
   List<String> additionalDependencies = new ArrayList<>()
   boolean assertPass
   boolean assertInverse = false
+  boolean coreJdk = false
+
+  void coreJdk() {
+    coreJdk = true
+  }
 
   /**
    * Adds extra dependencies to the current muzzle test.
@@ -391,6 +423,14 @@ class MuzzleDirective {
 
     return name.trim().replaceAll("[^a-zA-Z0-9]+", "-")
   }
+
+  String toString() {
+    if (coreJdk) {
+      return "${assertPass ? 'Pass' : 'Fail'}-core-jdk"
+    } else {
+      return "${assertPass ? 'pass' : 'fail'} $group:$module:$versions"
+    }
+  }
 }
 
 /**
@@ -408,6 +448,7 @@ class MuzzleExtension {
   void pass(Action<? super MuzzleDirective> action) {
     final MuzzleDirective pass = objectFactory.newInstance(MuzzleDirective)
     action.execute(pass)
+    postConstruct(pass)
     pass.assertPass = true
     directives.add(pass)
   }
@@ -415,7 +456,15 @@ class MuzzleExtension {
   void fail(Action<? super MuzzleDirective> action) {
     final MuzzleDirective fail = objectFactory.newInstance(MuzzleDirective)
     action.execute(fail)
+    postConstruct(fail)
     fail.assertPass = false
     directives.add(fail)
+  }
+
+  private postConstruct(MuzzleDirective directive) {
+    // Make skipVersions case insensitive.
+    directive.skipVersions = directive.skipVersions.collect {
+      it.toLowerCase()
+    }
   }
 }

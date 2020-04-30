@@ -242,6 +242,42 @@ public String getFoo() {
 }
 ```
 
+### Track span context across threads
+
+Use the Java Agent to track span context across thread boundaries. Provide explicit marker for spans to automatically propagate them when using Java's standard concurrency tools.  If you already have access to the current scope (e.g., from an ``activate()`` call), set the `async propagation` flag on the span like this:
+
+```java
+import com.signalfx.tracing.context.TraceScope;
+
+// ...
+
+    Span span = GlobalTracer.get().buildSpan("my-operation").start();
+    try (Scope sc = GlobalTracer.get().scopeManager().activate(span, true)) {
+        // The below cast will always work as long as you haven't set a custom tracer.
+        ((TraceScope) scope).setAsyncPropagation(true);
+        // ... Dispatch work to a Java thread.
+        // Any methods calls in the new thread will have their active scope set to the current one.
+    }
+```
+
+If you don't have access to the scope that determines whether the operation should be continued across threads, you can get it from the `GlobalTracer` like this:
+
+```java
+import com.signalfx.tracing.context.TraceScope;
+
+// ...
+
+    Span span = GlobalTracer.get().buildSpan("my-operation").start();
+    try (Scope sc = GlobalTracer.get().scopeManager().activate(span, true)) {
+        // The below cast will always work as long as you haven't set a custom tracer.
+        ((TraceScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(true);
+        // ... Dispatch work to a Java thread.
+        // Any methods calls in the new thread will have their active scope set to the current one.
+    }
+```
+
+If you don't set the `async propagation` flag, spans generated in different threads will be considered part of a different trace. You can pass the ``Span`` instance across thread boundaries via parameters or closures and reactivate it manually in the thread with ``GlobalTracer.get().scopeManager().activate(Span span, boolean closeOnFinish)``.  Just note that ``Scope`` instances aren't thread-safe and shouldn't be passed between threads, even if externally synchronized.
+
 # License and versioning
 
 The SignalFx Java Agent for Tracing is released under the terms of the Apache

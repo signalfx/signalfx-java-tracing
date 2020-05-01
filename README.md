@@ -37,7 +37,7 @@ instrumentations.
 These are the supported libraries. _Italicized_ libraries are in beta. Enable
 beta libraries by setting this system property:
 
-```-Dsignalfx.integration.<name>.enabled=true ```
+`-Dsignalfx.integration.<name>.enabled=true`
 
 where `<name>` is the instrumentation name specified in
 the table.
@@ -122,10 +122,9 @@ application.
 2. Set the required environment variables or system properties for your
 application. For more information about the required environment variables,
 see the [Configuration values](#configuration-values).
-Set these environment variables from the command line:
+Set this environment variable from the command line:
     ```bash
     $ export SIGNALFX_SERVICE_NAME="your_app"
-    $ export SIGNALFX_SPAN_TAGS="key1:val1,key2:val2"
     ```
 1. Include the agent in your Java application: 
     ```bash
@@ -134,10 +133,13 @@ Set these environment variables from the command line:
 
 ## Troubleshoot the SignalFx Java Agent
 
-Enable debug logging for troubleshooting assistance. Set the
-`datadog.slf4j.simpleLogger.defaultLogLevel=debug` property at runtime. These
-logs are extremely verbose. Enable debug logging only when needed. Debug
-logging negatively impacts the performance of your application.
+Enable debug logging for troubleshooting assistance. Set this property at
+runtime:
+
+`-Ddatadog.slf4j.simpleLogger.defaultLogLevel=debug`
+
+These logs are extremely verbose. Enable debug logging only when needed.
+Debug logging negatively impacts the performance of your application.
 
 ## Manually instrument a Java application
 

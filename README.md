@@ -14,19 +14,17 @@ For more information, see [Configure the SignalFx Java Agent](#Configure-the-Sig
 
 The agent instruments supported libraries and frameworks with bytecode
 manipulation and configures an OpenTracing-compatible tracer to capture
-and export trace spans. The agent also registers the tracer as the OpenTracing
-`GlobalTracer` so you can add custom instrumentation to your application later.
+and export trace spans. The agent also registers an OpenTracing `GlobalTracer`
+so you can add custom instrumentation to your application later.
 
-By default, the tracer has constant sampling (i.e., 100% chance of tracing) and
-reports every span. Where applicable, context propagation uses
+By default, the tracer has constant sampling (i.e., 100% of spans) and
+reports every span. Context propagation uses
 [B3 headers](https://github.com/openzipkin/b3-propagation).
 
 For more information about configuring and using the agent, see
 the [examples](https://github.com/signalfx/tracing-examples/tree/master/signalfx-tracing/signalfx-java-tracing).
 
 ## Requirements and supported software
-
-These are the requirements and supported software for the agent.
 
 Specify the SignalFx Java Agent as the only JVM agent for your application.
 If you specify multiple agents, you may encounter issues with at least one
@@ -37,18 +35,21 @@ languages like Scala and Kotlin are also supported, but may not work with all
 instrumentations.
 
 These are the supported libraries. _Italicized_ libraries are in beta. Enable
-beta libraries by setting the `-Dsignalfx.integration.<name>.enabled=true` 
-system property, where `<name>` is the instrumentation name specified in
+beta libraries by setting this system property:
+
+```-Dsignalfx.integration.<name>.enabled=true ```
+
+where `<name>` is the instrumentation name specified in
 the table.
 
 | Library | Versions supported | Instrumentation name(s) | Notes |
 | ---     | ---                | ---                     | ---   |
-| Akka HTTP | 10.0.0+ | `akka-http`, `akka-http-server`, `akka-http-client` | |
+| Akka HTTP | 10.0.0+ | `akka-http`,<br>`akka-http-server`,<br>`akka-http-client` | |
 | Apache HTTP Client | 4.0+ | `httpclient` | Also supports the DropWizard HTTP Client that subclasses the Apache one. |
 | AWS SDK Client | 1.11.0+ | `aws-sdk` | |
 | Cassandra (DataStax client) | 3.0+ | `cassandra` | |
 | CouchBase Client | 2.0.0+ | `couchbase` | |
-| DropWizard Views | * | `dropwizard`, `dropwizard-view` | |
+| DropWizard Views | * | `dropwizard`,<br>`dropwizard-view` | |
 | ElasticSearch Client | 2+ | `elasticsearch` | Supports both REST and transport clients. |
 | _Grizzly_ | 2.0+ | `grizzly` | |
 | gRPC (Client and Server) | 1.5.0+ | `grpc` | |
@@ -110,37 +111,21 @@ over corresponding environment variables.
 
 ### Steps
 
-To send traces to a local or remote Smart Agent or OpenTelemetry Collector, specify
-the `signalfx.agent.host` system property or `SIGNALFX_AGENT_HOST` environment
-variable before you include the agent in your application. If you send traces
-to a Smart Agent, specify a `v1` endpoint. If you send traces to an
-OpenTelemetry Collector, specify a `v2` endpoint.
-
-To send traces to a SignalFx ingest endpoint, specify the `signalfx.endpoint.url`
-system property or `SIGNALFX_ENDPOINT_URL` environment variable before you
-include the agent in your application. If you're using µAPM PM, specify a `v1`
-endpoint in the URL. If you're using the latest µAPM, specify a `v2` endpoint
-in the URL.
-
 Follow these steps to configure the agent to send traces for `your_app` to a
-local Smart Agent available on `localhost`.
+Smart Agent available on `localhost`. To send traces to a remote Smart
+Agent, instead specify the `signalfx.agent.host` system property or
+`SIGNALFX_AGENT_HOST` environment variable before you include the Java Agent in your
+application.
 
 1. Download the latest version of the agent from the
 [releases](https://github.com/signalfx/signalfx-java-tracing/releases) page.
 2. Set the required environment variables or system properties for your
 application. For more information about the required environment variables,
 see the [Configuration values](#configuration-values).
-This is how you can set the proper environment variables from the command line:
+Set these environment variables from the command line:
     ```bash
     $ export SIGNALFX_SERVICE_NAME="your_app"
-    $ export SIGNALFX_AGENT_HOST="localhost"
-    $ export SIGNALFX_TRACING_ENABLED="true"
     $ export SIGNALFX_SPAN_TAGS="key1:val1,key2:val2"
-    $ export SIGNALFX_DB_STATEMENT_MAX_LENGTH=1024
-    $ export SIGNALFX_RECORDED_VALUE_MAX_LENGTH=12288
-    $ export SIGNALFX_TRACE_ANNOTATED_METHOD_BLACKLIST=null
-    $ export SIGNALFX_MAX_SPANS_PER_TRACE=0
-    $ export SIGNALFX_MAX_CONTINUATION_DEPTH=100
     ```
 1. Include the agent in your Java application: 
     ```bash
@@ -150,12 +135,13 @@ This is how you can set the proper environment variables from the command line:
 ## Troubleshoot the SignalFx Java Agent
 
 Enable debug logging for troubleshooting assistance. Set the
-`datadog.slf4j.simpleLogger.defaultLogLevel=debug` property at runtime.  These logs
-are extremely verbose.
+`datadog.slf4j.simpleLogger.defaultLogLevel=debug` property at runtime. These
+logs are extremely verbose. Enable debug logging only when needed. Debug
+logging negatively impacts the performance of your application.
 
 ## Manually instrument a Java application
 
-You can use the OpenTracing `GlobalTracer` or a `Trace` annotation to manually
+You can use the OpenTracing `GlobalTracer` or a `@Trace` annotation to manually
 instrument your Java application.
 
 ### Configure the OpenTracing `GlobalTracer`

@@ -380,4 +380,16 @@ class VertxServerTest extends AgentTestRunner {
       }
     }
   }
+
+  def "test timer does not cause traces/spans"() {
+    when:
+    Vertx vertx = Vertx.vertx()
+    long timerId = vertx.setPeriodic 50, { t -> /*nop*/ }
+    Thread.sleep(1000)
+    vertx.cancelTimer(timerId)
+    then:
+    assertTraces(0) {
+    }
+
+  }
 }

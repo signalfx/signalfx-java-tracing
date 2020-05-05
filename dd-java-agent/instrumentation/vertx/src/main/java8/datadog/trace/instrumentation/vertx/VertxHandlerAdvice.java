@@ -1,6 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
+import static datadog.trace.instrumentation.api.AgentTracer.activeSpan;
 import static datadog.trace.instrumentation.vertx.RoutingContextDecorator.DECORATE;
 import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
@@ -17,6 +18,14 @@ public class VertxHandlerAdvice {
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static AgentScope onEnter(
       @Advice.This final Object source, @Advice.Argument(0) final Object event) {
+
+    // Vertx timers (periodic or one-shot), when created outside any trace context,
+    // should not create a trace.
+    if (source.getClass().getName().startsWith("io.vertx.core")
+        && source.getClass().getName().endsWith("InternalTimerHandler")
+        && activeSpan() == null) {
+      return null;
+    }
 
     String operationName = source.getClass().getName();
 

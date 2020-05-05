@@ -308,46 +308,41 @@ public class DDAgentWriter implements Writer {
         final int representativeCount = traceCount.getAndSet(0);
         final int sizeInBytes = payloadSize;
 
-        // Run the actual IO task on a different thread to avoid blocking the consumer.
-        scheduledWriterExecutor.execute(
-            new Runnable() {
-              @Override
-              public void run() {
-                try {
-                  final DDApi.Response response =
-                      api.sendSerializedTraces(representativeCount, sizeInBytes, toSend);
+        new Runnable() {
+          @Override
+          public void run() {
+            try {
+              final DDApi.Response response =
+                  api.sendSerializedTraces(representativeCount, sizeInBytes, toSend);
 
-                  if (response.success()) {
-                    log.debug("Successfully sent {} traces to the API", toSend.size());
+              if (response.success()) {
+                log.debug("Successfully sent {} traces to the API", toSend.size());
 
-                    monitor.onSend(DDAgentWriter.this, representativeCount, sizeInBytes, response);
-                  } else {
-                    log.debug(
-                        "Failed to send {} traces (representing {}) of size {} bytes to the API",
-                        toSend.size(),
-                        representativeCount,
-                        sizeInBytes);
+                monitor.onSend(DDAgentWriter.this, representativeCount, sizeInBytes, response);
+              } else {
+                log.debug(
+                    "Failed to send {} traces (representing {}) of size {} bytes to the API",
+                    toSend.size(),
+                    representativeCount,
+                    sizeInBytes);
 
-                    monitor.onFailedSend(
-                        DDAgentWriter.this, representativeCount, sizeInBytes, response);
-                  }
-                } catch (final Throwable e) {
-                  log.debug("Failed to send traces to the API: {}", e.getMessage());
-
-                  // DQH - 10/2019 - DDApi should wrap most exceptions itself, so this really
-                  // shouldn't occur.
-                  // However, just to be safe to start, create a failed Response to handle any
-                  // spurious Throwable-s.
-                  monitor.onFailedSend(
-                      DDAgentWriter.this,
-                      representativeCount,
-                      sizeInBytes,
-                      DDApi.Response.failed(e));
-                } finally {
-                  apiPhaser.arrive(); // Flush completed.
-                }
+                monitor.onFailedSend(
+                    DDAgentWriter.this, representativeCount, sizeInBytes, response);
               }
-            });
+            } catch (final Throwable e) {
+              log.debug("Failed to send traces to the API: {}", e.getMessage());
+
+              // DQH - 10/2019 - DDApi should wrap most exceptions itself, so this really
+              // shouldn't occur.
+              // However, just to be safe to start, create a failed Response to handle any
+              // spurious Throwable-s.
+              monitor.onFailedSend(
+                  DDAgentWriter.this, representativeCount, sizeInBytes, DDApi.Response.failed(e));
+            } finally {
+              apiPhaser.arrive(); // Flush completed.
+            }
+          }
+        }.run();
       } finally {
         payloadSize = 0;
         scheduleFlush();

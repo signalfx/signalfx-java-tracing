@@ -336,7 +336,7 @@ public class DDAgentWriter implements Writer {
       } finally {
         payloadSize = 0;
         scheduleFlush(); // this is meaningless except for the tests since the
-                         // scheduledWriterExecutor isn't really used
+        // scheduledWriterExecutor isn't really used
         apiPhaser.arrive(); // Flush completed.
       }
     }

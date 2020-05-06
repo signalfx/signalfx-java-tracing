@@ -295,62 +295,49 @@ public class DDAgentWriter implements Writer {
     }
 
     private void reportTraces() {
+      if (serializedTraces.isEmpty()) {
+        scheduleFlush(); // meaningless
+        apiPhaser.arrive(); // Allow flush to return
+        return;
+      }
+      final List<Api.SerializedBuffer> toSend = serializedTraces;
+      serializedTraces = new ArrayList<>(toSend.size());
+      // ^ Initialize with similar size to reduce arraycopy churn.
+
+      final int representativeCount = traceCount.getAndSet(0);
+      final int sizeInBytes = payloadSize;
+
       try {
-        if (serializedTraces.isEmpty()) {
-          apiPhaser.arrive(); // Allow flush to return
-          return;
-          // scheduleFlush called in finally block.
+        final DDApi.Response response =
+            api.sendSerializedTraces(representativeCount, sizeInBytes, toSend);
+
+        if (response.success()) {
+          log.debug("Successfully sent {} traces to the API", toSend.size());
+
+          monitor.onSend(DDAgentWriter.this, representativeCount, sizeInBytes, response);
+        } else {
+          log.debug(
+              "Failed to send {} traces (representing {}) of size {} bytes to the API",
+              toSend.size(),
+              representativeCount,
+              sizeInBytes);
+
+          monitor.onFailedSend(DDAgentWriter.this, representativeCount, sizeInBytes, response);
         }
-        final List<Api.SerializedBuffer> toSend = serializedTraces;
-        serializedTraces = new ArrayList<>(toSend.size());
-        // ^ Initialize with similar size to reduce arraycopy churn.
+      } catch (final Throwable e) {
+        log.debug("Failed to send traces to the API: {}", e.getMessage());
 
-        final int representativeCount = traceCount.getAndSet(0);
-        final int sizeInBytes = payloadSize;
-
-        // Run the actual IO task on a different thread to avoid blocking the consumer.
-        scheduledWriterExecutor.execute(
-            new Runnable() {
-              @Override
-              public void run() {
-                try {
-                  final DDApi.Response response =
-                      api.sendSerializedTraces(representativeCount, sizeInBytes, toSend);
-
-                  if (response.success()) {
-                    log.debug("Successfully sent {} traces to the API", toSend.size());
-
-                    monitor.onSend(DDAgentWriter.this, representativeCount, sizeInBytes, response);
-                  } else {
-                    log.debug(
-                        "Failed to send {} traces (representing {}) of size {} bytes to the API",
-                        toSend.size(),
-                        representativeCount,
-                        sizeInBytes);
-
-                    monitor.onFailedSend(
-                        DDAgentWriter.this, representativeCount, sizeInBytes, response);
-                  }
-                } catch (final Throwable e) {
-                  log.debug("Failed to send traces to the API: {}", e.getMessage());
-
-                  // DQH - 10/2019 - DDApi should wrap most exceptions itself, so this really
-                  // shouldn't occur.
-                  // However, just to be safe to start, create a failed Response to handle any
-                  // spurious Throwable-s.
-                  monitor.onFailedSend(
-                      DDAgentWriter.this,
-                      representativeCount,
-                      sizeInBytes,
-                      DDApi.Response.failed(e));
-                } finally {
-                  apiPhaser.arrive(); // Flush completed.
-                }
-              }
-            });
+        // DQH - 10/2019 - DDApi should wrap most exceptions itself, so this really
+        // shouldn't occur.
+        // However, just to be safe to start, create a failed Response to handle any
+        // spurious Throwable-s.
+        monitor.onFailedSend(
+            DDAgentWriter.this, representativeCount, sizeInBytes, DDApi.Response.failed(e));
       } finally {
         payloadSize = 0;
-        scheduleFlush();
+        scheduleFlush(); // this is meaningless except for the tests since the
+        // scheduledWriterExecutor isn't really used
+        apiPhaser.arrive(); // Flush completed.
       }
     }
   }

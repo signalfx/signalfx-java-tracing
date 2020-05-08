@@ -1,13 +1,14 @@
 # SignalFx Java Agent
 
 The SignalFx Java Agent is a
-[Java Virtual Machine](https://docs.oracle.com/javase/7/docs/api/java/lang/instrument/package-summary.html)
-(JVM) agent that automatically instruments your Java application to capture and
+[Java Virtual Machine (JVM) agent](https://docs.oracle.com/javase/7/docs/api/java/lang/instrument/package-summary.html)
+that automatically instruments your Java application to capture and
 report distributed traces to SignalFx. Download the JAR for the agent's 
 [latest release](https://github.com/signalfx/signalfx-java-tracing/releases/latest)
 and add its path to your JVM startup options:
 
 ```bash
+$ curl -L https://github.com/signalfx/signalfx-java-tracing/releases/latest/download/signalfx-tracing.jar -o signalfx-tracing.jar
 $ java -javaagent:path/to/signalfx-tracing.jar -jar app.jar
 ```
 For more information, see [Configure the SignalFx Java Agent](#Configure-the-SignalFx-Java-Agent).
@@ -15,14 +16,15 @@ For more information, see [Configure the SignalFx Java Agent](#Configure-the-Sig
 The agent instruments supported libraries and frameworks with bytecode
 manipulation and configures an OpenTracing-compatible tracer to capture
 and export trace spans. The agent also registers an OpenTracing `GlobalTracer`
-so you can add custom instrumentation to your application later.
+so you can support existing custom instrumentation or add custom
+instrumentation to your application later.
 
 By default, the tracer has constant sampling (i.e., 100% of spans) and
 reports every span. Context propagation uses
 [B3 headers](https://github.com/openzipkin/b3-propagation).
 
-For more information about configuring and using the agent, see
-the [examples](https://github.com/signalfx/tracing-examples/tree/master/signalfx-tracing/signalfx-java-tracing).
+To see the SignalFx Agent in action with sample applications, see
+our [examples](https://github.com/signalfx/tracing-examples/tree/master/signalfx-tracing/signalfx-java-tracing).
 
 ## Requirements and supported software
 
@@ -180,7 +182,8 @@ If you want to configure custom instrumentation and don't want to use the
 OpenTracing `GlobalTracer` and API directly, configure a `@Trace` annotation.
 
 You can disable the annotation at runtime with the `signalfx.trace.annotated.method.blacklist`
-system property or associated environment variable.
+system property or associated environment variable. For more information,
+see [Configuration values](#Configuration-values).
 
 1. Add the `signalfx-trace-api`
 dependency matching the version of the agent:
@@ -232,9 +235,10 @@ public String getFoo() {
 
 ### Track span context across threads
 
-Use the Java Agent to track span context across thread boundaries. Provide
-explicit marker for spans to automatically propagate them when using Java's
-standard concurrency tools.  If you already have access to the current scope
+Use the Java Agent to track span context across thread boundaries, assuming
+your asynchronous or concurrent workers are supported. Provide explicit
+marker for spans to automatically propagate them when using Java's standard
+concurrency tools. If you already have access to the current scope
 (e.g., from an ``activate()`` call), set the `async propagation` flag on the
 span like this:
 

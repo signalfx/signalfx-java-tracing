@@ -101,7 +101,7 @@ over corresponding environment variables.
 | ---             | ---                  | ---           | ---   |
 | `signalfx.service.name` | `SIGNALFX_SERVICE_NAME` | `"unnamed-java-app"` | The name of the service. |
 | `signalfx.agent.host` | `SIGNALFX_AGENT_HOST` | `"localhost"` | The endpoint for a SignalFx Smart Agent or OpenTelemetry Collector. |
-| `signalfx.endpoint.url` | `SIGNALFX_ENDPOINT_URL` | `"http://localhost:9080/v1/trace"` | Takes priority over constituent Agent properties. If you're sending traces directly to SignalFx, specify the SignalFx endpoint here. |
+| `signalfx.endpoint.url` | `SIGNALFX_ENDPOINT_URL` | `"http://localhost:9080/v1/trace"` | Takes priority over constituent Agent properties. |
 | `signalfx.tracing.enabled` | `SIGNALFX_TRACING_ENABLED` | `"true"` | Globally enables tracer creation and auto-instrumentation.  Any value not matching `"true"` is treated as false (`Boolean.valueOf()`). |
 | `signalfx.integration.<name>.enabled=true` | none | Varies per instrumentation | `<name>` is the instrumentation name detailed in the supported libraries. |
 | `signalfx.span.tags` | `SIGNALFX_SPAN_TAGS` | `null` | Comma-separated list of tags included in every reported span. For example, `"key1:val1,key2:val2"`. |

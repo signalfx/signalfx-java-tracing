@@ -9,7 +9,7 @@ and add its path to your JVM startup options:
 
 ```bash
 $ curl -L https://github.com/signalfx/signalfx-java-tracing/releases/latest/download/signalfx-tracing.jar -o signalfx-tracing.jar
-$ java -javaagent:path/to/signalfx-tracing.jar -jar app.jar
+$ java -javaagent:./signalfx-tracing.jar
 ```
 For more information, see [Configure the SignalFx Java Agent](#Configure-the-SignalFx-Java-Agent).
 

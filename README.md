@@ -265,13 +265,10 @@ import com.signalfx.tracing.context.TraceScope;
 
 // ...
 
-    Span span = GlobalTracer.get().buildSpan("my-operation").start();
-    try (Scope sc = GlobalTracer.get().scopeManager().activate(span, true)) {
-        // The below cast will always work as long as you haven't set a custom tracer.
-        ((TraceScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(true);
-        // ... Dispatch work to a Java thread.
-        // Any methods calls in the new thread will have their active scope set to the current one.
-    }
+    // The below cast will always work as long as you haven't set a custom tracer.
+    ((TraceScope) GlobalTracer.get().scopeManager().active()).setAsyncPropagation(true);
+    // ... Dispatch work to a Java thread.
+    // Any methods calls in the new thread will have their active scope set to the current one.
 ```
 
 If you don't set the `async propagation` flag, spans generated in different

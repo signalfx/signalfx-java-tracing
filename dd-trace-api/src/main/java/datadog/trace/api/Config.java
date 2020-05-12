@@ -129,10 +129,6 @@ public class Config {
   public static final String TRACING_LIBRARY_VALUE = "java-tracing";
   public static final String TRACING_VERSION_KEY = "signalfx.tracing.version";
   public static final String TRACING_VERSION_VALUE = "0.36.0-sfx8";
-  public static final String DEFAULT_GLOBAL_TAGS =
-      String.format(
-          "%s:%s,%s:%s",
-          TRACING_LIBRARY_KEY, TRACING_LIBRARY_VALUE, TRACING_VERSION_KEY, TRACING_VERSION_VALUE);
 
   private static final boolean DEFAULT_TRACE_ENABLED = true;
   public static final boolean DEFAULT_INTEGRATIONS_ENABLED = true;
@@ -307,7 +303,7 @@ public class Config {
         getBooleanSettingFromEnvironment(TRACE_RESOLVER_ENABLED, DEFAULT_TRACE_RESOLVER_ENABLED);
     serviceMapping = getMapSettingFromEnvironment(SERVICE_MAPPING, null);
 
-    globalTags = getMapSettingFromEnvironment(GLOBAL_TAGS, DEFAULT_GLOBAL_TAGS);
+    globalTags = getMapSettingFromEnvironment(GLOBAL_TAGS, null);
     spanTags = getMapSettingFromEnvironment(SPAN_TAGS, null);
     jmxTags = getMapSettingFromEnvironment(JMX_TAGS, null);
 
@@ -579,6 +575,8 @@ public class Config {
   public Map<String, String> getLocalRootSpanTags() {
     final Map<String, String> runtimeTags = getRuntimeTags();
     final Map<String, String> result = new HashMap<>(runtimeTags);
+    result.put(TRACING_LIBRARY_KEY, TRACING_LIBRARY_VALUE);
+    result.put(TRACING_VERSION_KEY, TRACING_VERSION_VALUE);
 
     if (reportHostName) {
       final String hostName = getHostName();

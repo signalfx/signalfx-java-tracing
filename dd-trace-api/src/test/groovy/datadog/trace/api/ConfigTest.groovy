@@ -102,9 +102,9 @@ class ConfigTest extends DDSpecification {
     config.prioritySamplingEnabled == false
     config.traceResolverEnabled == true
     config.serviceMapping == [:]
-    config.mergedSpanTags == [(TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE, (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
-    config.mergedJmxTags == [(SERVICE): config.serviceName, (TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE,
-                             (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
+    config.mergedSpanTags == [:]
+    config.mergedJmxTags == [(SERVICE): config.serviceName]
+    config.getLocalRootSpanTags() == [(TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE, (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
     config.headerTags == [:]
     config.httpServerErrorStatuses == (500..599).toSet()
     config.httpClientErrorStatuses == (500..599).toSet()
@@ -427,7 +427,7 @@ class ConfigTest extends DDSpecification {
     config.prioritySamplingEnabled == false
     config.traceResolverEnabled == true
     config.serviceMapping == [:]
-    config.mergedSpanTags == [(TRACING_LIBRARY_KEY):TRACING_LIBRARY_VALUE, (TRACING_VERSION_KEY):TRACING_VERSION_VALUE]
+    config.mergedSpanTags == [:]
     config.headerTags == [:]
     config.httpServerErrorStatuses == (500..599).toSet()
     config.httpClientErrorStatuses == (500..599).toSet()

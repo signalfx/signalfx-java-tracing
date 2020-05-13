@@ -156,6 +156,7 @@ to capture and export trace spans. It registers this tracer as the OpenTracing
 application:
 ```java
 import io.opentracing.util.GlobalTracer;
+import io.opentracing.*;
 
 public class MyClass {
   public void MyLogic() {

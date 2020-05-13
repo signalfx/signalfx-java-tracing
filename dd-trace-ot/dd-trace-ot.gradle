@@ -27,6 +27,7 @@ testSets {
   ot31CompatabilityTest
   ot33CompatabilityTest
   traceAgentTest
+  zipkinApiNonGzipTest { dirName = 'test' }
 }
 
 dependencies {
@@ -81,6 +82,12 @@ dependencies {
 
 test.finalizedBy ot31CompatabilityTest
 test.finalizedBy ot33CompatabilityTest
+
+tasks.getByName('zipkinApiNonGzipTest').configure {
+  include 'datadog/trace/api/writer/ZipkinV2ApiTest.class'
+  jvmArgs "-Dsignalfx.zipkin.gzip.content.encoding=false"
+}
+test.dependsOn(zipkinApiNonGzipTest)
 
 jmh {
 //  include = [".*URLAsResourceNameBenchmark"]

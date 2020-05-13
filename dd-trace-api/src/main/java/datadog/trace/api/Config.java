@@ -94,6 +94,8 @@ public class Config {
   public static final String REDIS_CAPTURE_COMMAND_ARGUMENTS =
       "instrumentation.redis.capture-command-arguments";
 
+  public static final String ZIPKIN_GZIP_CONTENT_ENCODING = "zipkin.gzip.content.encoding";
+
   public static final String JMX_FETCH_ENABLED = "jmxfetch.enabled";
   public static final String JMX_FETCH_CONFIG_DIR = "jmxfetch.config.dir";
   public static final String JMX_FETCH_CONFIG = "jmxfetch.config";
@@ -191,6 +193,8 @@ public class Config {
   public static final int DEFAULT_DB_STATEMENT_MAX_LENGTH = 1024;
   public static final int DEFAULT_RECORDED_VALUE_MAX_LENGTH = 12288;
 
+  public static final boolean DEFAULT_ZIPKIN_GZIP_CONTENT_ENCODING = true;
+
   /** A tag intended for internal use only, hence not added to the public api DDTags class. */
   private static final String INTERNAL_HOST_NAME = "_dd.hostname";
 
@@ -234,6 +238,8 @@ public class Config {
 
   @Getter private final boolean kafkaAttemptPropagation;
   @Getter private final boolean redisCaptureCommandArguments;
+
+  @Getter private final boolean zipkinGZIPContentEncoding;
 
   @Getter private final boolean jmxFetchEnabled;
   @Getter private final String jmxFetchConfigDir;
@@ -365,6 +371,10 @@ public class Config {
     redisCaptureCommandArguments =
         getBooleanSettingFromEnvironment(
             REDIS_CAPTURE_COMMAND_ARGUMENTS, DEFAULT_REDIS_CAPTURE_COMMAND_ARGUMENTS);
+
+    zipkinGZIPContentEncoding =
+        getBooleanSettingFromEnvironment(
+            ZIPKIN_GZIP_CONTENT_ENCODING, DEFAULT_ZIPKIN_GZIP_CONTENT_ENCODING);
 
     jmxFetchEnabled =
         getBooleanSettingFromEnvironment(JMX_FETCH_ENABLED, DEFAULT_JMX_FETCH_ENABLED);
@@ -513,6 +523,10 @@ public class Config {
     redisCaptureCommandArguments =
         getPropertyBooleanValue(
             properties, REDIS_CAPTURE_COMMAND_ARGUMENTS, parent.redisCaptureCommandArguments);
+
+    zipkinGZIPContentEncoding =
+        getPropertyBooleanValue(
+            properties, ZIPKIN_GZIP_CONTENT_ENCODING, parent.zipkinGZIPContentEncoding);
 
     jmxFetchEnabled =
         getPropertyBooleanValue(properties, JMX_FETCH_ENABLED, parent.jmxFetchEnabled);

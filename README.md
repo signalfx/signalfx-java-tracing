@@ -88,8 +88,8 @@ the table.
 
 ## Configure the SignalFx Java Agent
 
-Send traces from your Java application to a local or remote Smart Agent,
-OpenTelemetry Collector, or SignalFx ingest endpoint.
+Send traces from your Java application to a local or remote Smart Agent or
+OpenTelemetry Collector.
 
 ### Configuration values
 

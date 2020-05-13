@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPOutputStream;
 import lombok.extern.slf4j.Slf4j;
 
 /** Zipkin V2 JSON HTTP encoder/sender. Follows a similar pattern to DDApi. */
@@ -35,6 +36,7 @@ public class ZipkinV2Api implements Api {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final String traceEndpoint;
   private static final int recordedValueMaxLength = Config.get().getRecordedValueMaxLength();
+  private static final boolean gzipContentEncoding = Config.get().isZipkinGZIPContentEncoding();
 
   // Used to throttle logging when spans can't be sent
   private volatile long nextAllowedLogTime = 0;
@@ -87,7 +89,10 @@ public class ZipkinV2Api implements Api {
     try {
       final HttpURLConnection httpCon = getHttpURLConnection(traceEndpoint);
 
-      try (OutputStream out = httpCon.getOutputStream()) {
+      try (OutputStream out =
+          gzipContentEncoding
+              ? new GZIPOutputStream(httpCon.getOutputStream())
+              : httpCon.getOutputStream()) {
 
         int traceCount = 0;
 
@@ -291,6 +296,9 @@ public class ZipkinV2Api implements Api {
     httpCon.setDoInput(true);
     httpCon.setRequestMethod("POST");
     httpCon.setRequestProperty("Content-Type", "application/json");
+    if (gzipContentEncoding) {
+      httpCon.setRequestProperty("Content-Encoding", "gzip");
+    }
 
     return httpCon;
   }

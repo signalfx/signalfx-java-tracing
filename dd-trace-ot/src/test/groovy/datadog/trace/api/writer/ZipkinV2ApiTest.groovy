@@ -4,13 +4,18 @@ package datadog.trace.api.writer
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import datadog.opentracing.SpanFactory
+import datadog.trace.api.Config
 import datadog.trace.common.writer.ZipkinV2Api
 import datadog.trace.util.test.DDSpecification
+import org.eclipse.jetty.http.HttpHeaders
+
+import java.util.zip.GZIPInputStream
 
 import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
 
 class ZipkinV2ApiTest extends DDSpecification {
   static mapper = new ObjectMapper()
+  static final GZIP = Config.get().isZipkinGZIPContentEncoding()
 
   def "sending an empty list of traces returns no errors"() {
     setup:
@@ -71,6 +76,7 @@ class ZipkinV2ApiTest extends DDSpecification {
     client.traceEndpoint == "http://localhost:${agent.address.port}/v1/trace"
     client.sendTraces(traces)
     agent.lastRequest.contentType == "application/json"
+    agent.lastRequest.getHeader(HttpHeaders.CONTENT_ENCODING) == (GZIP ? "gzip" : null)
     agent.lastRequest.contentLength == agent.lastRequest.body.length
     convertList(agent.lastRequest.body) == expectedRequestBody
 
@@ -164,6 +170,7 @@ class ZipkinV2ApiTest extends DDSpecification {
   }
 
   static List<TreeMap<String, Object>> convertList(byte[] bytes) {
-    return mapper.readValue(bytes, new TypeReference<List<TreeMap<String, Object>>>() {})
+    def container = GZIP ? new GZIPInputStream(new ByteArrayInputStream(bytes)) : bytes
+    return mapper.readValue(container, new TypeReference<List<TreeMap<String, Object>>>() {})
   }
 }

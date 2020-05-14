@@ -76,7 +76,7 @@ the table.
 | OkHTTP Client | 3.0+ | `okhttp` | |
 | Play Web Framework | 2.4+ | `play` | |
 | RabbitMQ Client | 2.7.0+ | `rabbitmq` | |
-| Ratpack | 1.4+ | `ratpack` | |
+| Ratpack | 1.4.0 - 1.7.x | `ratpack` | |
 | Reactor Core | 3.1.0+ | `reactor-core` | |
 | RestTemplate | 3.1.1+ | `rest-template` | |
 | Java Servlet | 2+ | `servlet` | |

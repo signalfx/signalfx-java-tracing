@@ -42,8 +42,10 @@ class TagsAssert {
 
     assert tags["thread.name"] != null
     assert tags["thread.id"] != null
-    assert tags[Config.TRACING_LIBRARY_KEY] == Config.TRACING_LIBRARY_VALUE
-    assert tags[Config.TRACING_VERSION_KEY] == Config.TRACING_VERSION_VALUE
+    if (distributedRootSpan) {
+      assert tags[Config.TRACING_LIBRARY_KEY] == Config.TRACING_LIBRARY_VALUE
+      assert tags[Config.TRACING_VERSION_KEY] == Config.TRACING_VERSION_VALUE
+    }
     assert tags[Config.RUNTIME_ID_TAG] == null
     assert tags[Config.LANGUAGE_TAG_KEY] == null
   }

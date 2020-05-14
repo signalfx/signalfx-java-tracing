@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPOutputStream;
 import lombok.extern.slf4j.Slf4j;
 
 /** Zipkin V2 JSON HTTP encoder/sender. Follows a similar pattern to DDApi. */
@@ -35,6 +36,7 @@ public class ZipkinV2Api implements Api {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final String traceEndpoint;
   private static final int recordedValueMaxLength = Config.get().getRecordedValueMaxLength();
+  private static final boolean gzipContentEncoding = Config.get().isZipkinGZIPContentEncoding();
 
   // Used to throttle logging when spans can't be sent
   private volatile long nextAllowedLogTime = 0;
@@ -87,7 +89,10 @@ public class ZipkinV2Api implements Api {
     try {
       final HttpURLConnection httpCon = getHttpURLConnection(traceEndpoint);
 
-      try (OutputStream out = httpCon.getOutputStream()) {
+      try (OutputStream out =
+          gzipContentEncoding
+              ? new GZIPOutputStream(httpCon.getOutputStream())
+              : httpCon.getOutputStream()) {
 
         int traceCount = 0;
 
@@ -183,7 +188,10 @@ public class ZipkinV2Api implements Api {
     writeIdField(jsonGenerator, "id", span.getSpanId());
     jsonGenerator.writeStringField("name", spanName);
     writeIdField(jsonGenerator, "traceId", span.getTraceId());
-    writeIdField(jsonGenerator, "parentId", span.getParentId());
+    final String parentId = span.getParentId();
+    if (!parentId.equals("0")) {
+      writeIdField(jsonGenerator, "parentId", span.getParentId());
+    }
 
     if (!Strings.isNullOrEmpty(spanKind)) {
       jsonGenerator.writeStringField("kind", spanKind);
@@ -283,10 +291,14 @@ public class ZipkinV2Api implements Api {
     final URL url = new URL(endpoint);
     httpCon = (HttpURLConnection) url.openConnection();
     httpCon.setReadTimeout(30 * 1000);
+    httpCon.setConnectTimeout(30 * 1000);
     httpCon.setDoOutput(true);
     httpCon.setDoInput(true);
     httpCon.setRequestMethod("POST");
     httpCon.setRequestProperty("Content-Type", "application/json");
+    if (gzipContentEncoding) {
+      httpCon.setRequestProperty("Content-Encoding", "gzip");
+    }
 
     return httpCon;
   }

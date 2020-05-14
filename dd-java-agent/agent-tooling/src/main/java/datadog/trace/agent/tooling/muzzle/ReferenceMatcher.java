@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.tooling.muzzle;
 
 import static datadog.trace.bootstrap.WeakMap.Provider.newWeakMap;
@@ -183,15 +184,31 @@ public class ReferenceMatcher {
     return mismatches;
   }
 
+  private static boolean matchesPrimitive(String longName, String shortName) {
+    // The two meta type systems in use here differ in their treatment of primitive type names....
+    return shortName.equals("I") && longName.equals(int.class.getName())
+        || shortName.equals("C") && longName.equals(char.class.getName())
+        || shortName.equals("Z") && longName.equals(boolean.class.getName())
+        || shortName.equals("J") && longName.equals(long.class.getName())
+        || shortName.equals("S") && longName.equals(short.class.getName())
+        || shortName.equals("F") && longName.equals(float.class.getName())
+        || shortName.equals("D") && longName.equals(double.class.getName())
+        || shortName.equals("B") && longName.equals(byte.class.getName());
+  }
+
   private static FieldDescription.InDefinedShape findField(
       Reference.Field fieldRef, TypeDescription typeOnClasspath) {
     for (FieldDescription.InDefinedShape fieldType : typeOnClasspath.getDeclaredFields()) {
       if (fieldType.getName().equals(fieldRef.getName())
-          && fieldType
-              .getType()
-              .asErasure()
-              .getInternalName()
-              .equals(fieldRef.getType().getInternalName())) {
+          && ((fieldType
+                  .getType()
+                  .asErasure()
+                  .getInternalName()
+                  .equals(fieldRef.getType().getInternalName()))
+              || (fieldType.getType().asErasure().isPrimitive()
+                  && matchesPrimitive(
+                      fieldType.getType().asErasure().getInternalName(),
+                      fieldRef.getType().getInternalName())))) {
         return fieldType;
       }
     }

@@ -44,6 +44,14 @@ public final class PreparedStatementInstrumentation extends Instrumenter.Default
   public String[] helperClassNames() {
     final List<String> helpers = new ArrayList<>(JDBCConnectionUrlParser.values().length + 9);
 
+    helpers.add(packageName + ".normalizer.Token");
+    helpers.add(packageName + ".normalizer.ParseException");
+    helpers.add(packageName + ".normalizer.SimpleCharStream");
+    helpers.add(packageName + ".normalizer.SqlNormalizerConstants");
+    helpers.add(packageName + ".normalizer.TokenMgrError");
+    helpers.add(packageName + ".normalizer.SqlNormalizerTokenManager");
+    helpers.add(packageName + ".normalizer.SqlNormalizer");
+
     helpers.add(packageName + ".DBInfo");
     helpers.add(packageName + ".DBInfo$Builder");
     helpers.add(packageName + ".JDBCUtils");

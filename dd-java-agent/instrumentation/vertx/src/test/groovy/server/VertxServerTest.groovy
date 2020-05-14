@@ -66,7 +66,7 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "handler.type" "io.vertx.ext.web.impl.RoutingContextImpl"
-            defaultTags(true)
+            defaultTags()
           }
         }
         span(1) {
@@ -84,7 +84,7 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
-            defaultTags()
+            defaultTags(true)
           }
         }
         span(2) {
@@ -328,7 +328,7 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "handler.type" "io.vertx.ext.web.impl.RoutingContextImpl"
-            defaultTags(true)
+            defaultTags()
           }
         }
         span(1) {
@@ -379,5 +379,17 @@ class VertxServerTest extends AgentTestRunner {
         }
       }
     }
+  }
+
+  def "test timer does not cause traces/spans"() {
+    when:
+    Vertx vertx = Vertx.vertx()
+    long timerId = vertx.setPeriodic 50, { t -> /*nop*/ }
+    Thread.sleep(1000)
+    vertx.cancelTimer(timerId)
+    then:
+    assertTraces(0) {
+    }
+
   }
 }

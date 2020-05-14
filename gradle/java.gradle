@@ -120,6 +120,10 @@ repositories {
   mavenLocal()
   jcenter()
   mavenCentral()
+  // Legacy play versions pulled from maven central and jcenter
+  maven {
+    url "https://dl.bintray.com/typesafe/maven-releases/"
+  }
 }
 
 dependencies {

@@ -133,16 +133,6 @@ Set this environment variable from the command line:
     $ java -javaagent:path/to/signalfx-tracing.jar -jar app.jar
     ```
 
-## Troubleshoot the SignalFx Java Agent
-
-Enable debug logging for troubleshooting assistance. Set this property at
-runtime:
-
-`-Ddatadog.slf4j.simpleLogger.defaultLogLevel=debug`
-
-These logs are extremely verbose. Enable debug logging only when needed.
-Debug logging negatively impacts the performance of your application.
-
 ## Manually instrument a Java application
 
 You can use the OpenTracing `GlobalTracer` or a `@Trace` annotation to manually
@@ -278,6 +268,16 @@ instance across thread boundaries via parameters or closures and reactivate it
 manually in the thread with ``GlobalTracer.get().scopeManager().activate(Span span, boolean closeOnFinish)``.
 Just note that ``Scope`` instances aren't thread-safe and shouldn't be passed
 between threads, even if externally synchronized.
+
+## Troubleshoot the SignalFx Java Agent
+
+Enable debug logging for troubleshooting assistance. Set this property at
+runtime:
+
+`-Ddatadog.slf4j.simpleLogger.defaultLogLevel=debug`
+
+These logs are extremely verbose. Enable debug logging only when needed.
+Debug logging negatively impacts the performance of your application.
 
 # License and versioning
 

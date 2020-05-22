@@ -133,6 +133,47 @@ Set this environment variable from the command line:
     $ java -javaagent:path/to/signalfx-tracing.jar -jar app.jar
     ```
 
+## Inject trace IDs in logs
+
+Link individual log entries with trace IDs and span IDs associated with
+corresponding events. The SignalFx Java Agent uses a
+[Mapped Diagnostic Context](http://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html)
+(MDC), an open standard for identifying interleaved log outputs from multiple
+sources.
+
+The MDC adds the `signalfx.trace_id` and `signalfx.span_id` fields to log events.
+
+Trace ID injection uses `java.util.logging` with a `logback`, `log4j`, or
+`slf4j` logging framework. 
+
+`java.util.logging` doesn't support MDC on its own. If you aren't using one of
+these frameworks, use a [jul-to-slf4j bridge](http://www.slf4j.org/legacy.html#jul-to-slf4j).
+The bridge can substantially impact performance.
+
+Follow these steps to inject trace IDs in logs with a `logback`, `log4j`, or
+`slf4j` logging framework.
+
+1. Enable trace ID injection. Add this to your JVM's command line flags:
+   ```
+   -Dsignalfx.logs.injection=true
+   ```
+2. Find your logging pattern. This is also known as a logging format or layout.
+   Depending on your environment, this could be in a system property, a
+   configuration file specific to your application, or a configuration file your
+   logging framework generates. The logging pattern generally looks something
+   like this:
+   ```
+   logging.pattern.console= %d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg %n
+   ```
+3. Add a `%X` placeholder value to your logging pattern:
+   ```
+   logging.pattern.console= %d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg %X %n
+   ```
+   The MDC replaces `%X` with the `signalfx.trace_id` and `signalfx.span_id`
+   associated with the log event.
+4. Update any other services that use the logging pattern to be aware of the
+   placeholder as necessary.
+
 ## Manually instrument a Java application
 
 You can use the OpenTracing `GlobalTracer` or a `@Trace` annotation to manually

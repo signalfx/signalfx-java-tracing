@@ -153,7 +153,26 @@ instrument your Java application.
 The SignalFx Java Agent configures an OpenTracing-compatible tracer
 to capture and export trace spans. It registers this tracer as the OpenTracing
 `GlobalTracer` to easily enable custom instrumentation throughout your
-application:
+application. Simply add the following to your Maven POM:
+
+      ```
+      Maven:
+      <dependency>
+        <groupId>io.opentracing</groupId>
+        <artifactId>opentracing-util</artifactId>
+        <version>0.32.0</version>
+        <scope>provided</scope>
+      </dependency>
+      ```
+Or to your Gradle config:
+
+      ```
+      Gradle:
+      compileOnly group: 'io.opentracing', name: 'opentracing-util', version: '0.32.0'
+      ```
+The scope is `provided` in Maven and `compileOnly` in Gradle because that artifact 
+is included in the Java agent and will be available to your application classes 
+at runtime:
 ```java
 import io.opentracing.util.GlobalTracer;
 import io.opentracing.*;

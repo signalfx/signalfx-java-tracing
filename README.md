@@ -172,7 +172,7 @@ Follow these steps to inject trace IDs in logs with a `logback`, `log4j`, or
    The MDC replaces `%X` with the `signalfx.trace_id` and `signalfx.span_id`
    associated with the log event.
 4. Update any other services that use the logging pattern to be aware of the
-   placeholder as necessary.
+   new logging pattern format as necessary.
 
 ## Manually instrument a Java application
 

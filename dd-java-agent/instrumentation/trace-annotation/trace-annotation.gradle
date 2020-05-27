@@ -1,4 +1,13 @@
 // Modified by SignalFx
+muzzle {
+  pass {
+    group = "com.datadoghq"
+    module = "dd-trace-api"
+    versions = "[0.31.0,]"
+    assertInverse = true
+  }
+}
+
 apply from: "${rootDir}/gradle/java.gradle"
 apply plugin: 'org.unbroken-dome.test-sets'
 

@@ -4,31 +4,22 @@ plugins {
 apply from: "${rootDir}/gradle/java.gradle"
 
 dependencies {
-  compile('com.datadoghq:jmxfetch:0.32.1') {
-    exclude group: 'org.slf4j', module: 'slf4j-log4j12'
-    exclude group: 'log4j', module: 'log4j'
+  compile('com.datadoghq:jmxfetch:0.35.0') {
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-core'
+    exclude group: 'org.slf4j', module: 'slf4j-api'
   }
   compile deps.slf4j
   compile project(':dd-trace-api')
 }
 
-configurations {
-  // exclude bootstrap dependencies from shadowJar
-  runtime.exclude module: deps.opentracing
-  runtime.exclude module: deps.slf4j
-  runtime.exclude group: 'org.slf4j'
-  runtime.exclude group: 'io.opentracing'
-}
-
 shadowJar {
+  dependencies deps.sharedInverse
   dependencies {
     exclude(project(':dd-java-agent:agent-bootstrap'))
     exclude(project(':dd-trace-api'))
+    exclude(dependency('org.slf4j::'))
   }
-}
-
-jar {
-  classifier = 'unbundled'
 }
 
 tasks.register("submodulesUpdate", Exec) {

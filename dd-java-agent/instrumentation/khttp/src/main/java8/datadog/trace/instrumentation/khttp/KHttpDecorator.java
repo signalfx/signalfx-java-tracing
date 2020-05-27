@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.khttp;
 
-import datadog.trace.agent.decorator.HttpClientDecorator;
+import datadog.trace.bootstrap.instrumentation.decorator.HttpClientDecorator;
 import java.net.URI;
 import java.net.URISyntaxException;
 import khttp.requests.Request;
@@ -38,18 +38,6 @@ public class KHttpDecorator extends HttpClientDecorator<Request, Response> {
     } catch (URISyntaxException e) {
       return null;
     }
-  }
-
-  @Override
-  protected String hostname(final Request httpRequest) {
-    URI uri = this.getURI(httpRequest);
-    return uri == null ? null : uri.getHost();
-  }
-
-  @Override
-  protected Integer port(final Request httpRequest) {
-    URI uri = this.getURI(httpRequest);
-    return uri == null ? null : uri.getPort();
   }
 
   @Override

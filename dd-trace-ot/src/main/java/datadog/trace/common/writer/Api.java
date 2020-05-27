@@ -1,12 +1,12 @@
 // Modified by SignalFx
 package datadog.trace.common.writer;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import datadog.opentracing.DDSpan;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Map;
 import okhttp3.Response;
 
 /** Common interface between the DDApi and ZipkinV2Api senders. */
@@ -57,6 +57,8 @@ public interface Api {
     }
   }
 
+  void addResponseListener(final ResponseListener listener);
+
   Response sendTraces(List<List<DDSpan>> traces);
 
   SerializedBuffer serializeTrace(final List<DDSpan> trace) throws IOException;
@@ -79,93 +81,53 @@ public interface Api {
    * parsing the response from the Datadog agent.
    */
   public static final class Response {
-    private static final String nullString = null;
-
     /** Factory method for a successful request with a trivial response body */
     public static final Response success(final int status) {
-      return new Response(true, status, nullString, null);
-    }
-
-    /** Factory method for a successful request with a well-formed JSON response body */
-    public static final Response success(final int status, final JsonNode json) {
-      return new Response(true, status, json, null);
-    }
-
-    /** Factory method for a successful request with a well-formed JSON response body */
-    public static final Response success(final int status, final String string) {
-      return new Response(true, status, string, null);
+      return new Response(true, status, null);
     }
 
     /** Factory method for a successful request will a malformed response body */
     public static final Response success(final int status, final Throwable exception) {
-      return new Response(true, status, nullString, exception);
+      return new Response(true, status, exception);
     }
 
     /** Factory method for a request that receive an error status in response */
     public static final Response failed(final int status) {
-      return new Response(false, status, nullString, null);
+      return new Response(false, status, null);
     }
 
     /** Factory method for a failed communication attempt */
     public static final Response failed(final Throwable exception) {
-      return new Response(false, null, nullString, exception);
+      return new Response(false, null, exception);
     }
 
     private final boolean success;
     private final Integer status;
-    private final JsonNode json;
-    private final String content;
     private final Throwable exception;
 
-    private Response(
-        final boolean success,
-        final Integer status,
-        final String content,
-        final Throwable exception) {
+    private Response(final boolean success, final Integer status, final Throwable exception) {
       this.success = success;
       this.status = status;
-      this.content = content;
-      this.json = null;
-      this.exception = exception;
-    }
-
-    private Response(
-        final boolean success,
-        final Integer status,
-        final JsonNode json,
-        final Throwable exception) {
-      this.success = success;
-      this.status = status;
-      this.json = json;
-      this.content = null;
       this.exception = exception;
     }
 
     public final boolean success() {
-      return this.success;
+      return success;
     }
 
     // TODO: DQH - In Java 8, switch to OptionalInteger
     public final Integer status() {
-      return this.status;
-    }
-
-    public final JsonNode json() {
-      return this.json;
-    }
-
-    public final String content() {
-      return this.content;
+      return status;
     }
 
     // TODO: DQH - In Java 8, switch to Optional<Throwable>?
     public final Throwable exception() {
-      return this.exception;
+      return exception;
     }
   }
 
   public interface ResponseListener {
     /** Invoked after the api receives a response from the core agent. */
-    void onResponse(String endpoint, JsonNode responseJson);
+    void onResponse(String endpoint, Map<String, Map<String, Number>> responseJson);
   }
 }

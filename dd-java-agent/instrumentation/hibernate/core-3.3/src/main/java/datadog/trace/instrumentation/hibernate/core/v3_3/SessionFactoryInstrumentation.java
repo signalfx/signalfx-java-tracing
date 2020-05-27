@@ -1,13 +1,12 @@
 package datadog.trace.instrumentation.hibernate.core.v3_3;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.hasInterface;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.implementsInterface;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.hibernate.HibernateDecorator.DECORATOR;
 import static java.util.Collections.singletonMap;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
@@ -15,7 +14,7 @@ import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.instrumentation.hibernate.SessionState;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,7 +39,7 @@ public class SessionFactoryInstrumentation extends AbstractHibernateInstrumentat
 
   @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return not(isInterface()).and(safeHasSuperType(named("org.hibernate.SessionFactory")));
+    return implementsInterface(named("org.hibernate.SessionFactory"));
   }
 
   @Override
@@ -53,8 +52,8 @@ public class SessionFactoryInstrumentation extends AbstractHibernateInstrumentat
                 returns(
                     named("org.hibernate.Session")
                         .or(named("org.hibernate.StatelessSession"))
-                        .or(safeHasSuperType(named("org.hibernate.Session"))))),
-        SessionFactoryAdvice.class.getName());
+                        .or(hasInterface(named("org.hibernate.Session"))))),
+        SessionFactoryInstrumentation.class.getName() + "$SessionFactoryAdvice");
   }
 
   public static class SessionFactoryAdvice extends V3Advice {

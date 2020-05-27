@@ -3,7 +3,7 @@ import datadog.opentracing.decorators.ErrorFlag
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.ConfigUtils
 import datadog.trace.api.Trace
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import dd.test.trace.annotation.SayTracedHello
 
 import spock.lang.Shared
@@ -414,6 +414,10 @@ class TraceAnnotationsTest extends AgentTestRunner {
         span(0) {
           resourceName "SayTracedHello\$1.call"
           operationName "SayTracedHello\$1.call"
+          tags {
+            "$Tags.COMPONENT" "trace"
+            defaultTags()
+          }
         }
       }
     }
@@ -435,11 +439,19 @@ class TraceAnnotationsTest extends AgentTestRunner {
         span(0) {
           resourceName "SayTracedHello\$1.call"
           operationName "SayTracedHello\$1.call"
+          tags {
+            "$Tags.COMPONENT" "trace"
+            defaultTags()
+          }
         }
         trace(1, 1) {
           span(0) {
             resourceName "TraceAnnotationsTest\$1.call"
             operationName "trace.annotation"
+            tags {
+              "$Tags.COMPONENT" "trace"
+              defaultTags()
+            }
           }
         }
       }

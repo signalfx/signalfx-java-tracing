@@ -5,9 +5,11 @@ import static net.bytebuddy.matcher.ElementMatchers.declaresField;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
+import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.handlers.RequestHandler2;
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.bootstrap.InstrumentationContext;
 import java.util.List;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
@@ -35,17 +37,21 @@ public final class AWSClientInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
-      "datadog.trace.agent.decorator.HttpClientDecorator",
       packageName + ".AwsSdkClientDecorator",
+      packageName + ".RequestMeta",
       packageName + ".TracingRequestHandler",
     };
   }
 
   @Override
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
-    return singletonMap(isConstructor(), AWSClientAdvice.class.getName());
+    return singletonMap(
+        isConstructor(), AWSClientInstrumentation.class.getName() + "$AWSClientAdvice");
+  }
+
+  @Override
+  public Map<String, String> contextStore() {
+    return singletonMap("com.amazonaws.AmazonWebServiceRequest", packageName + ".RequestMeta");
   }
 
   public static class AWSClientAdvice {
@@ -61,7 +67,9 @@ public final class AWSClientInstrumentation extends Instrumenter.Default {
         }
       }
       if (!hasDDHandler) {
-        handlers.add(TracingRequestHandler.INSTANCE);
+        handlers.add(
+            new TracingRequestHandler(
+                InstrumentationContext.get(AmazonWebServiceRequest.class, RequestMeta.class)));
       }
     }
   }

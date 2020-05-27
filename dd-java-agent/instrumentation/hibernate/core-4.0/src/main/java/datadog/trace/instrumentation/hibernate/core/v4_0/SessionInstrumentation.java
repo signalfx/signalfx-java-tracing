@@ -1,12 +1,11 @@
 package datadog.trace.instrumentation.hibernate.core.v4_0;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.hasInterface;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.implementsInterface;
 import static datadog.trace.instrumentation.hibernate.HibernateDecorator.DECORATOR;
 import static datadog.trace.instrumentation.hibernate.SessionMethodUtils.SCOPE_ONLY_METHODS;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -15,7 +14,7 @@ import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.instrumentation.hibernate.SessionMethodUtils;
 import datadog.trace.instrumentation.hibernate.SessionState;
 import java.util.Collections;
@@ -46,14 +45,15 @@ public class SessionInstrumentation extends AbstractHibernateInstrumentation {
 
   @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return not(isInterface()).and(safeHasSuperType(named("org.hibernate.SharedSessionContract")));
+    return implementsInterface(named("org.hibernate.SharedSessionContract"));
   }
 
   @Override
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
     final Map<ElementMatcher<? super MethodDescription>, String> transformers = new HashMap<>();
     transformers.put(
-        isMethod().and(named("close")).and(takesArguments(0)), SessionCloseAdvice.class.getName());
+        isMethod().and(named("close")).and(takesArguments(0)),
+        SessionInstrumentation.class.getName() + "$SessionCloseAdvice");
 
     // Session synchronous methods we want to instrument.
     transformers.put(
@@ -74,14 +74,14 @@ public class SessionInstrumentation extends AbstractHibernateInstrumentation {
                     // Lazy-load methods.
                     .or(named("immediateLoad"))
                     .or(named("internalLoad"))),
-        SessionMethodAdvice.class.getName());
+        SessionInstrumentation.class.getName() + "$SessionMethodAdvice");
     // Handle the non-generic 'get' separately.
     transformers.put(
         isMethod()
             .and(named("get"))
             .and(returns(named("java.lang.Object")))
             .and(takesArgument(0, named("java.lang.String"))),
-        SessionMethodAdvice.class.getName());
+        SessionInstrumentation.class.getName() + "$SessionMethodAdvice");
 
     // These methods return some object that we want to instrument, and so the Advice will pin the
     // current Span to the returned object using a ContextStore.
@@ -89,15 +89,15 @@ public class SessionInstrumentation extends AbstractHibernateInstrumentation {
         isMethod()
             .and(named("beginTransaction").or(named("getTransaction")))
             .and(returns(named("org.hibernate.Transaction"))),
-        GetTransactionAdvice.class.getName());
+        SessionInstrumentation.class.getName() + "$GetTransactionAdvice");
 
     transformers.put(
-        isMethod().and(returns(safeHasSuperType(named("org.hibernate.Query")))),
-        GetQueryAdvice.class.getName());
+        isMethod().and(returns(hasInterface(named("org.hibernate.Query")))),
+        SessionInstrumentation.class.getName() + "$GetQueryAdvice");
 
     transformers.put(
-        isMethod().and(returns(safeHasSuperType(named("org.hibernate.Criteria")))),
-        GetCriteriaAdvice.class.getName());
+        isMethod().and(returns(hasInterface(named("org.hibernate.Criteria")))),
+        SessionInstrumentation.class.getName() + "$GetCriteriaAdvice");
 
     return transformers;
   }

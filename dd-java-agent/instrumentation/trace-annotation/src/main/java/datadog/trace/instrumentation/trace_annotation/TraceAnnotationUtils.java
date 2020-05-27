@@ -27,14 +27,23 @@ public class TraceAnnotationUtils {
           + PACKAGE_CLASS_NAME_REGEX
           + "\\["
           + METHOD_LIST_REGEX
-          + "\\]\\s*;?\\s*";
+          + "\\]";
+
+  private static boolean validateConfigString(final String configString) {
+    for (final String segment : configString.split(";")) {
+      if (!segment.trim().matches(CONFIG_FORMAT)) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   public static Map<String, Set<String>> getClassMethodMap(final String configString) {
     if (configString == null || configString.trim().isEmpty()) {
       return Collections.emptyMap();
-    } else if (!configString.matches(CONFIG_FORMAT)) {
+    } else if (!validateConfigString(configString)) {
       log.warn(
-          "Invalid trace method config '{}'. Must match 'package.Class$Name[method1,method2];package.Class[*];'.",
+          "Invalid trace method config '{}'. Must match 'package.Class$Name[method1,method2];*'.",
           configString);
       return Collections.emptyMap();
     } else {

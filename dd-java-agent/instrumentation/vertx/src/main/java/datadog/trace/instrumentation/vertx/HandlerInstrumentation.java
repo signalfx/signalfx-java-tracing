@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.safeHasSuperType;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -31,11 +31,7 @@ public final class HandlerInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ServerDecorator",
-      "datadog.trace.agent.decorator.HttpServerDecorator",
-      packageName + ".RoutingContextDecorator",
-      packageName + ".RoutingContextHandlerWrapper",
+      packageName + ".RoutingContextDecorator", packageName + ".RoutingContextHandlerWrapper",
     };
   }
 

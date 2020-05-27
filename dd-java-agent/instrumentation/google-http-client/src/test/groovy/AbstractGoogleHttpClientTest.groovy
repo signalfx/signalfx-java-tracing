@@ -5,10 +5,12 @@ import com.google.api.client.http.HttpResponse
 import com.google.api.client.http.javanet.NetHttpTransport
 import datadog.trace.agent.test.base.HttpClientTest
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.api.DDTags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.googlehttpclient.GoogleHttpClientDecorator
 import spock.lang.Shared
 
-abstract class AbstractGoogleHttpClientTest extends HttpClientTest<GoogleHttpClientDecorator> {
+abstract class AbstractGoogleHttpClientTest extends HttpClientTest {
 
   @Shared
   def requestFactory = new NetHttpTransport().createRequestFactory()
@@ -22,6 +24,8 @@ abstract class AbstractGoogleHttpClientTest extends HttpClientTest<GoogleHttpCli
     GenericUrl genericUrl = new GenericUrl(uri)
 
     HttpRequest request = requestFactory.buildRequest(method, genericUrl, null)
+    request.connectTimeout = CONNECT_TIMEOUT_MS
+    request.readTimeout = READ_TIMEOUT_MS
     request.getHeaders().putAll(headers)
     request.setThrowExceptionOnExecuteError(throwExceptionOnError)
 
@@ -34,12 +38,12 @@ abstract class AbstractGoogleHttpClientTest extends HttpClientTest<GoogleHttpCli
   abstract HttpResponse executeRequest(HttpRequest request)
 
   @Override
-  GoogleHttpClientDecorator decorator() {
-    return GoogleHttpClientDecorator.DECORATE
+  String component() {
+    return GoogleHttpClientDecorator.DECORATE.component()
   }
 
   @Override
-  boolean testRedirects() {
+  boolean testCircularRedirects() {
     // Circular redirects don't throw an exception with Google Http Client
     return false
   }
@@ -60,6 +64,18 @@ abstract class AbstractGoogleHttpClientTest extends HttpClientTest<GoogleHttpCli
           resourceName "$uri.path"
           spanType DDSpanTypes.HTTP_CLIENT
           errored true
+          tags {
+            "$Tags.COMPONENT" "google-http-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" String
+            "$Tags.HTTP_METHOD" String
+            "$Tags.HTTP_STATUS" Integer
+            "$Tags.ERROR" true
+            "$DDTags.ERROR_MSG" "Server Error"
+            defaultTags()
+          }
         }
       }
     }

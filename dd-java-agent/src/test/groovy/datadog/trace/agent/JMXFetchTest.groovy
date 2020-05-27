@@ -2,12 +2,15 @@ package datadog.trace.agent
 
 import datadog.trace.agent.test.IntegrationTestUtils
 import datadog.trace.api.Config
+import jvmbootstraptest.AgentLoadedChecker
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.RestoreSystemProperties
 import spock.lang.Specification
+import spock.lang.Timeout
 
 import java.lang.reflect.Method
 
+@Timeout(30)
 class JMXFetchTest extends Specification {
 
   @Rule
@@ -47,6 +50,16 @@ class JMXFetchTest extends Specification {
     jmxFetchInstallerMethod.setAccessible(false)
     socket.close()
     Thread.currentThread().setContextClassLoader(currentContextLoader)
+  }
+
+  def "Agent loads when JmxFetch is misconfigured"() {
+    // verify the agent starts up correctly with a bogus address.
+    expect:
+    IntegrationTestUtils.runOnSeparateJvm(AgentLoadedChecker.getName()
+      , ["-Ddd.jmxfetch.enabled=true", "-Ddd.jmxfetch.statsd.host=example.local"] as String[]
+      , "" as String[]
+      , [:]
+      , true) == 0
   }
 
   def "test jmxfetch config"() {

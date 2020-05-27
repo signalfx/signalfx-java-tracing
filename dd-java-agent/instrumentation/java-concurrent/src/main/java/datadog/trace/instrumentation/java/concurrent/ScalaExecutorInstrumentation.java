@@ -1,6 +1,6 @@
 package datadog.trace.instrumentation.java.concurrent;
 
-import static datadog.trace.instrumentation.api.AgentTracer.activeScope;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeScope;
 import static net.bytebuddy.matcher.ElementMatchers.nameMatches;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -9,6 +9,7 @@ import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
+import datadog.trace.bootstrap.instrumentation.java.concurrent.ExecutorInstrumentationUtils;
 import datadog.trace.bootstrap.instrumentation.java.concurrent.State;
 import datadog.trace.context.TraceScope;
 import java.util.Collections;
@@ -41,15 +42,15 @@ public final class ScalaExecutorInstrumentation extends AbstractExecutorInstrume
     transformers.put(
         named("execute")
             .and(takesArgument(0, named(ScalaForkJoinTaskInstrumentation.TASK_CLASS_NAME))),
-        SetScalaForkJoinStateAdvice.class.getName());
+        ScalaExecutorInstrumentation.class.getName() + "$SetScalaForkJoinStateAdvice");
     transformers.put(
         named("submit")
             .and(takesArgument(0, named(ScalaForkJoinTaskInstrumentation.TASK_CLASS_NAME))),
-        SetScalaForkJoinStateAdvice.class.getName());
+        ScalaExecutorInstrumentation.class.getName() + "$SetScalaForkJoinStateAdvice");
     transformers.put(
         nameMatches("invoke")
             .and(takesArgument(0, named(ScalaForkJoinTaskInstrumentation.TASK_CLASS_NAME))),
-        SetScalaForkJoinStateAdvice.class.getName());
+        ScalaExecutorInstrumentation.class.getName() + "$SetScalaForkJoinStateAdvice");
     return transformers;
   }
 

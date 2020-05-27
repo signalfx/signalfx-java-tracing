@@ -1,23 +1,27 @@
 // Modified by SignalFx
 package datadog.trace.agent.test.base
 
+import ch.qos.logback.classic.Level
 import datadog.opentracing.DDSpan
-import datadog.trace.agent.decorator.HttpServerDecorator
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.ListWriterAssert
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.api.DDTags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import spock.lang.Shared
 import spock.lang.Unroll
+import spock.lang.Ignore
 
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -25,16 +29,23 @@ import static datadog.trace.agent.test.asserts.TraceAssert.assertTrace
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.ERROR
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.NOT_FOUND
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.QUERY_PARAM
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.REDIRECT
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
+import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
 import static datadog.trace.agent.test.utils.TraceUtils.basicSpan
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
-import static datadog.trace.instrumentation.api.AgentTracer.activeScope
-import static datadog.trace.instrumentation.api.AgentTracer.activeSpan
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeScope
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeSpan
 import static org.junit.Assume.assumeTrue
 
 @Unroll
-abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> extends AgentTestRunner {
+abstract class HttpServerTest<SERVER> extends AgentTestRunner {
+
+  public static final Logger SERVER_LOGGER = LoggerFactory.getLogger("http-server")
+  static {
+    ((ch.qos.logback.classic.Logger) SERVER_LOGGER).setLevel(Level.DEBUG)
+  }
 
   @Shared
   SERVER server
@@ -50,7 +61,7 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
   }
 
   @Shared
-  DECORATOR serverDecorator = decorator()
+  String component = component()
 
   def setupSpec() {
     server = startServer(port)
@@ -71,10 +82,10 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
 
   abstract void stopServer(SERVER server)
 
-  abstract DECORATOR decorator()
+  abstract String component()
 
   String expectedServiceName() {
-    "unnamed-java-app"
+    "unnamed-java-service"
   }
 
   abstract String expectedOperationName()
@@ -115,21 +126,30 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
     UNAVAILABLE("unavailable", 503, "service unavailable"),
 
     // TODO: add tests for the following cases:
+    QUERY_PARAM("query?some=query", 200, "some=query"),
+    // OkHttp never sends the fragment in the request, so these cases don't work.
+//    FRAGMENT_PARAM("fragment#some-fragment", 200, "some-fragment"),
+//    QUERY_FRAGMENT_PARAM("query/fragment?some=query#some-fragment", 200, "some=query#some-fragment"),
     PATH_PARAM("path/123/param", 200, "123"),
     AUTH_REQUIRED("authRequired", 200, null),
 
     private final String path
+    final String query
+    final String fragment
     final int status
     final String body
     final Boolean errored
     final Class<? extends Exception> exceptionClass
 
-    ServerEndpoint(String path, int status, String body) {
-      this(path, status, body, null)
+    ServerEndpoint(String uri, int status, String body) {
+      this(uri, status, body, null)
     }
 
-    ServerEndpoint(String path, int status, String body, Class<? extends Exception> exceptionClass) {
-      this.path = path
+    ServerEndpoint(String uri, int status, String body, Class<? extends Exception> exceptionClass) {
+      def uriObj = URI.create(uri)
+      this.path = uriObj.path
+      this.query = uriObj.query
+      this.fragment = uriObj.fragment
       this.status = status
       this.body = body
       this.errored = status >= 500
@@ -151,6 +171,7 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
     Class<? extends Exception> getExceptionClass() {
       return exceptionClass
     }
+
     private static final Map<String, ServerEndpoint> PATH_MAP = values().collectEntries {
       [it.path, it]
     }
@@ -160,19 +181,25 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
     }
   }
 
-
   Request.Builder request(ServerEndpoint uri, String method, String body,
-                          Map<String, String> params = null) {
-
+                          Map<String, String> params) {
     HttpUrl.Builder httpBuilder = HttpUrl.get(uri.resolve(address)).newBuilder()
-    if (params != null) {
-      for (Map.Entry<String, String> param : params.entrySet()) {
-        httpBuilder.addQueryParameter(param.getKey(), param.getValue())
-      }
+    for (Map.Entry<String, String> param : params.entrySet()) {
+      httpBuilder.addQueryParameter(param.getKey(), param.getValue())
     }
 
     return new Request.Builder()
       .url(httpBuilder.build())
+      .method(method, body)
+  }
+
+  Request.Builder request(ServerEndpoint uri, String method, String body) {
+    def url = HttpUrl.get(uri.resolve(address)).newBuilder()
+      .query(uri.query)
+      .fragment(uri.fragment)
+      .build()
+    return new Request.Builder()
+      .url(url)
       .method(method, body)
   }
 
@@ -224,11 +251,81 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
 
   def "test success with parent"() {
     setup:
-    def traceId = "123"
-    def parentId = "456"
+    def traceId = 123G
+    def parentId = 456G
     def request = request(SUCCESS, method, body)
       .header("x-b3-traceid", "7b")
       .header("x-b3-spanid", "1c8")
+      .build()
+    def response = client.newCall(request).execute()
+
+    expect:
+    response.code() == SUCCESS.status
+    response.body().string() == SUCCESS.body
+
+    and:
+    cleanAndAssertTraces(1) {
+      if (hasHandlerSpan()) {
+        trace(0, 3) {
+          serverSpan(it, 0, traceId, parentId)
+          handlerSpan(it, 1, span(0))
+          controllerSpan(it, 2, span(1))
+        }
+      } else {
+        trace(0, 2) {
+          serverSpan(it, 0, traceId, parentId)
+          controllerSpan(it, 1, span(0))
+        }
+      }
+    }
+
+    where:
+    method = "GET"
+    body = null
+  }
+
+  def "test tag query string for #endpoint"() {
+    setup:
+    def request = request(endpoint, method, body).build()
+    Response response = withConfigOverride("http.server.tag.query-string", "true") {
+      client.newCall(request).execute()
+    }
+
+    expect:
+    response.code() == endpoint.status
+    response.body().string() == endpoint.body
+
+    and:
+    cleanAndAssertTraces(1) {
+      if (hasHandlerSpan()) {
+        trace(0, 3) {
+          serverSpan(it, 0, null, null, "GET", endpoint)
+          handlerSpan(it, 1, span(0), endpoint)
+          controllerSpan(it, 2, span(1))
+        }
+      } else {
+        trace(0, 2) {
+          serverSpan(it, 0, null, null, "GET", endpoint)
+          controllerSpan(it, 1, span(0))
+        }
+      }
+    }
+
+    where:
+    method = "GET"
+    body = null
+    endpoint << [SUCCESS, QUERY_PARAM]
+  }
+
+  @Ignore  // B3 doesn't support these cases
+  def "test success with multiple header attached parent"() {
+    setup:
+    def traceId = 123G
+    def parentId = 456G
+    def request = request(SUCCESS, method, body)
+      .header("x-datadog-trace-id", traceId.toString() + ", " + traceId.toString())
+      .header("x-datadog-parent-id", parentId.toString() + ", " + parentId.toString())
+      .header("x-datadog-sampling-priority", "1, 1")
       .build()
     def response = client.newCall(request).execute()
 
@@ -437,10 +534,10 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
       errored errorMessage != null
       childOf(parent as DDSpan)
       tags {
-        defaultTags()
         if (errorMessage) {
           errorTags(Exception, errorMessage)
         }
+        defaultTags()
       }
     }
   }
@@ -450,7 +547,7 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
   }
 
   // parent span must be cast otherwise it breaks debugging classloading (junit loads it early)
-  void serverSpan(TraceAssert trace, int index, String traceID = null, String parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
+  void serverSpan(TraceAssert trace, int index, BigInteger traceID = null, BigInteger parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
     trace.span(index) {
       serviceName expectedServiceName()
       operationName expectedOperationName()
@@ -464,22 +561,24 @@ abstract class HttpServerTest<SERVER, DECORATOR extends HttpServerDecorator> ext
         parent()
       }
       tags {
-        defaultTags(true)
-        "$Tags.COMPONENT" serverDecorator.component()
+        "$Tags.COMPONENT" component
+        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        "$Tags.PEER_PORT" Integer
+        "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
+        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
+        "$Tags.HTTP_METHOD" method
+        "$Tags.HTTP_STATUS" endpoint.status
         if (endpoint.errored) {
           "$Tags.ERROR" endpoint.errored
         }
-        "$Tags.HTTP_STATUS" endpoint.status
-        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
-//        if (tagQueryString) {
-//          "$DDTags.HTTP_QUERY" uri.query
-//          "$DDTags.HTTP_FRAGMENT" { it == null || it == uri.fragment } // Optional
+        if (endpoint.query) {
+          "$DDTags.HTTP_QUERY" endpoint.query
+        }
+        // OkHttp never sends the fragment in the request.
+//        if (endpoint.fragment) {
+//          "$DDTags.HTTP_FRAGMENT" endpoint.fragment
 //        }
-        "$Tags.PEER_HOSTNAME" { it == "localhost" || it == "127.0.0.1" }
-        "$Tags.PEER_PORT" Integer
-        "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
-        "$Tags.HTTP_METHOD" method
-        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        defaultTags(true)
       }
     }
   }

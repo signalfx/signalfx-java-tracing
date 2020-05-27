@@ -18,7 +18,7 @@ class OT31ApiTest extends DDSpecification {
   static final WRITER = new ListWriter()
 
   @Subject
-  Tracer tracer = new DDTracer(WRITER)
+  Tracer tracer = DDTracer.builder().writer(WRITER).build()
 
   def "test startActive"() {
     when:
@@ -71,9 +71,9 @@ class OT31ApiTest extends DDSpecification {
 
     then:
     textMap == [
-      "x-b3-traceid" : new BigInteger(context.traceId).toString(16).toLowerCase(),
-      "x-b3-spanid" : new BigInteger(context.spanId).toString(16).toLowerCase(),
-      "x-b3-parentspanid" : "0",
+      "x-b3-traceid" : String.format("%016x", context.traceId),
+      "x-b3-spanid" : String.format("%016x", context.spanId),
+      "x-b3-parentspanid" : '0' * 16,
       "x-b3-sampled" : "$context.samplingPriority"
     ]
 

@@ -1,6 +1,5 @@
 package datadog.trace.agent.tooling.muzzle;
 
-import datadog.trace.agent.tooling.AgentTooling;
 import datadog.trace.agent.tooling.HelperInjector;
 import datadog.trace.agent.tooling.Instrumenter;
 import java.io.IOException;
@@ -20,9 +19,6 @@ import net.bytebuddy.dynamic.ClassFileLocator;
  * <p>Additionally, after a successful muzzle validation run each instrumenter's helper injector.
  */
 public class MuzzleVersionScanPlugin {
-  static {
-    AgentTooling.init();
-  }
 
   public static void assertInstrumentationMuzzled(
       final ClassLoader instrumentationLoader,
@@ -53,8 +49,11 @@ public class MuzzleVersionScanPlugin {
         final ReferenceMatcher muzzle = (ReferenceMatcher) m.invoke(instrumenter);
         final List<Reference.Mismatch> mismatches =
             muzzle.getMismatchedReferenceSources(userClassLoader);
-        final boolean passed = mismatches.size() == 0;
-        if (mismatches.size() > 0) {}
+
+        final boolean classLoaderMatch =
+            ((Instrumenter.Default) instrumenter).classLoaderMatcher().matches(userClassLoader);
+        final boolean passed = mismatches.isEmpty() && classLoaderMatch;
+
         if (passed && !assertPass) {
           System.err.println(
               "MUZZLE PASSED "
@@ -64,6 +63,11 @@ public class MuzzleVersionScanPlugin {
         } else if (!passed && assertPass) {
           System.err.println(
               "FAILED MUZZLE VALIDATION: " + instrumenter.getClass().getName() + " mismatches:");
+
+          if (!classLoaderMatch) {
+            System.err.println("-- classloader mismatch");
+          }
+
           for (final Reference.Mismatch mismatch : mismatches) {
             System.err.println("-- " + mismatch);
           }
@@ -98,7 +102,9 @@ public class MuzzleVersionScanPlugin {
           // verify helper injector works
           final String[] helperClassNames = defaultInstrumenter.helperClassNames();
           if (helperClassNames.length > 0) {
-            new HelperInjector(createHelperMap(defaultInstrumenter))
+            new HelperInjector(
+                    MuzzleVersionScanPlugin.class.getSimpleName(),
+                    createHelperMap(defaultInstrumenter))
                 .transform(null, null, userClassLoader, null);
           }
         } catch (final Exception e) {

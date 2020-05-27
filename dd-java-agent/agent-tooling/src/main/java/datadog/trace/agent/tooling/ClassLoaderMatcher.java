@@ -1,19 +1,13 @@
 package datadog.trace.agent.tooling;
 
-import static datadog.trace.bootstrap.WeakMap.Provider.newWeakMap;
-
-import datadog.trace.bootstrap.DatadogClassLoader;
 import datadog.trace.bootstrap.PatchLogger;
-import datadog.trace.bootstrap.WeakMap;
+import datadog.trace.bootstrap.WeakCache;
 import io.opentracing.util.GlobalTracer;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.matcher.ElementMatcher;
 
 @Slf4j
-public class ClassLoaderMatcher {
+public final class ClassLoaderMatcher {
   public static final ClassLoader BOOTSTRAP_CLASSLOADER = null;
 
   /** A private constructor that must not be invoked. */
@@ -25,72 +19,63 @@ public class ClassLoaderMatcher {
     return SkipClassLoaderMatcher.INSTANCE;
   }
 
-  public static ElementMatcher.Junction.AbstractBase<ClassLoader> classLoaderHasClasses(
-      final String... names) {
-    return new ClassLoaderHasClassMatcher(names);
+  /**
+   * NOTICE: Does not match the bootstrap classpath. Don't use with classes expected to be on the
+   * bootstrap.
+   *
+   * @param classNames list of names to match. returns true if empty.
+   * @return true if class is available as a resource and not the bootstrap classloader.
+   */
+  public static ElementMatcher.Junction.AbstractBase<ClassLoader> hasClassesNamed(
+      final String... classNames) {
+    return new ClassLoaderHasClassesNamedMatcher(classNames);
   }
 
-  public static ElementMatcher.Junction.AbstractBase<ClassLoader> classLoaderHasClassWithField(
-      final String className, final String fieldName) {
-    return new ClassLoaderHasClassWithFieldMatcher(className, fieldName);
-  }
-
-  public static ElementMatcher.Junction.AbstractBase<ClassLoader> classLoaderHasClassWithMethod(
-      final String className, final String methodName, final String... methodArgs) {
-    return new ClassLoaderHasClassWithMethodMatcher(className, methodName, methodArgs);
-  }
-
-  private static class SkipClassLoaderMatcher
+  private static final class SkipClassLoaderMatcher
       extends ElementMatcher.Junction.AbstractBase<ClassLoader> {
     public static final SkipClassLoaderMatcher INSTANCE = new SkipClassLoaderMatcher();
     /* Cache of classloader-instance -> (true|false). True = skip instrumentation. False = safe to instrument. */
-    private static final WeakMap<ClassLoader, Boolean> SKIP_CACHE = newWeakMap();
-    private static final Set<String> CLASSLOADER_CLASSES_TO_SKIP;
-
-    static {
-      final Set<String> classesToSkip = new HashSet<>();
-      classesToSkip.add("org.codehaus.groovy.runtime.callsite.CallSiteClassLoader");
-      classesToSkip.add("sun.reflect.DelegatingClassLoader");
-      classesToSkip.add("jdk.internal.reflect.DelegatingClassLoader");
-      classesToSkip.add("clojure.lang.DynamicClassLoader");
-      classesToSkip.add("org.apache.cxf.common.util.ASMHelper$TypeHelperClassLoader");
-      classesToSkip.add(DatadogClassLoader.class.getName());
-      CLASSLOADER_CLASSES_TO_SKIP = Collections.unmodifiableSet(classesToSkip);
-    }
+    private static final String DATADOG_CLASSLOADER_NAME =
+        "datadog.trace.bootstrap.DatadogClassLoader";
+    private static final WeakCache<ClassLoader, Boolean> skipCache = AgentTooling.newWeakCache();
 
     private SkipClassLoaderMatcher() {}
 
     @Override
-    public boolean matches(final ClassLoader target) {
-      if (target == BOOTSTRAP_CLASSLOADER) {
+    public boolean matches(final ClassLoader cl) {
+      if (cl == BOOTSTRAP_CLASSLOADER) {
         // Don't skip bootstrap loader
         return false;
       }
-      return shouldSkipClass(target) || shouldSkipInstance(target);
+      Boolean v = skipCache.getIfPresent(cl);
+      if (v != null) {
+        return v;
+      }
+      // when ClassloadingInstrumentation is active, checking delegatesToBootstrap() below is not
+      // required, because ClassloadingInstrumentation forces all class loaders to load all of the
+      // classes in Constants.BOOTSTRAP_PACKAGE_PREFIXES directly from the bootstrap class loader
+      //
+      // however, at this time we don't want to introduce the concept of a required instrumentation,
+      // and we don't want to introduce the concept of the tooling code depending on whether or not
+      // a particular instrumentation is active (mainly because this particular use case doesn't
+      // seem to justify introducing either of these new concepts)
+      v = shouldSkipClass(cl) || !delegatesToBootstrap(cl);
+      skipCache.put(cl, v);
+      return v;
     }
 
-    private boolean shouldSkipClass(final ClassLoader loader) {
-      return CLASSLOADER_CLASSES_TO_SKIP.contains(loader.getClass().getName());
-    }
-
-    private boolean shouldSkipInstance(final ClassLoader loader) {
-      Boolean cached = SKIP_CACHE.get(loader);
-      if (null != cached) {
-        return cached.booleanValue();
+    private static boolean shouldSkipClass(final ClassLoader loader) {
+      switch (loader.getClass().getName()) {
+        case "org.codehaus.groovy.runtime.callsite.CallSiteClassLoader":
+        case "sun.reflect.DelegatingClassLoader":
+        case "jdk.internal.reflect.DelegatingClassLoader":
+        case "clojure.lang.DynamicClassLoader":
+        case "org.apache.cxf.common.util.ASMHelper$TypeHelperClassLoader":
+        case "sun.misc.Launcher$ExtClassLoader":
+        case DATADOG_CLASSLOADER_NAME:
+          return true;
       }
-      synchronized (this) {
-        cached = SKIP_CACHE.get(loader);
-        if (null != cached) {
-          return cached.booleanValue();
-        }
-        final boolean skip = !delegatesToBootstrap(loader);
-        if (skip) {
-          log.debug(
-              "skipping classloader instance {} of type {}", loader, loader.getClass().getName());
-        }
-        SKIP_CACHE.put(loader, skip);
-        return skip;
-      }
+      return false;
     }
 
     /**
@@ -99,7 +84,7 @@ public class ClassLoaderMatcher {
      * class loading is issued from this check and {@code false} for 'real' class loads. We should
      * come up with some sort of hack to avoid this problem.
      */
-    private boolean delegatesToBootstrap(final ClassLoader loader) {
+    private static boolean delegatesToBootstrap(final ClassLoader loader) {
       boolean delegates = true;
       if (!loadsExpectedClass(loader, GlobalTracer.class)) {
         log.debug("loader {} failed to delegate bootstrap opentracing class", loader);
@@ -112,7 +97,8 @@ public class ClassLoaderMatcher {
       return delegates;
     }
 
-    private boolean loadsExpectedClass(final ClassLoader loader, final Class<?> expectedClass) {
+    private static boolean loadsExpectedClass(
+        final ClassLoader loader, final Class<?> expectedClass) {
       try {
         return loader.loadClass(expectedClass.getName()) == expectedClass;
       } catch (final ClassNotFoundException e) {
@@ -121,152 +107,42 @@ public class ClassLoaderMatcher {
     }
   }
 
-  private static class ClassLoaderNameMatcher
+  private static class ClassLoaderHasClassesNamedMatcher
       extends ElementMatcher.Junction.AbstractBase<ClassLoader> {
 
-    private final String name;
+    private final WeakCache<ClassLoader, Boolean> cache = AgentTooling.newWeakCache(25);
 
-    private ClassLoaderNameMatcher(final String name) {
-      this.name = name;
+    private final String[] resources;
+
+    private ClassLoaderHasClassesNamedMatcher(final String... classNames) {
+      resources = classNames;
+      for (int i = 0; i < resources.length; i++) {
+        resources[i] = resources[i].replace(".", "/") + ".class";
+      }
     }
 
-    @Override
-    public boolean matches(final ClassLoader target) {
-      return target != null && name.equals(target.getClass().getName());
-    }
-  }
-
-  public static class ClassLoaderHasClassMatcher
-      extends ElementMatcher.Junction.AbstractBase<ClassLoader> {
-
-    private final WeakMap<ClassLoader, Boolean> cache = newWeakMap();
-
-    private final String[] names;
-
-    private ClassLoaderHasClassMatcher(final String... names) {
-      this.names = names;
-    }
-
-    @Override
-    public boolean matches(final ClassLoader target) {
-      if (target != null) {
-        Boolean result = cache.get(target);
-        if (result != null) {
-          return result;
-        }
-        synchronized (target) {
-          result = cache.get(target);
-          if (result != null) {
-            return result;
-          }
-          for (final String name : names) {
-            if (target.getResource(Utils.getResourceName(name)) == null) {
-              cache.put(target, false);
-              return false;
-            }
-          }
-          cache.put(target, true);
-          return true;
+    private boolean hasResources(final ClassLoader cl) {
+      for (final String resource : resources) {
+        if (cl.getResource(resource) == null) {
+          return false;
         }
       }
-      return false;
-    }
-  }
-
-  public static class ClassLoaderHasClassWithFieldMatcher
-      extends ElementMatcher.Junction.AbstractBase<ClassLoader> {
-
-    private final WeakMap<ClassLoader, Boolean> cache = newWeakMap();
-
-    private final String className;
-    private final String fieldName;
-
-    private ClassLoaderHasClassWithFieldMatcher(final String className, final String fieldName) {
-      this.className = className;
-      this.fieldName = fieldName;
+      return true;
     }
 
     @Override
-    public boolean matches(final ClassLoader target) {
-      if (target != null) {
-        Boolean result = cache.get(target);
-        if (result != null) {
-          return result;
-        }
-        synchronized (target) {
-          result = cache.get(target);
-          if (result != null) {
-            return result;
-          }
-          try {
-            final Class<?> aClass = Class.forName(className, false, target);
-            aClass.getDeclaredField(fieldName);
-            cache.put(target, true);
-            return true;
-          } catch (final ClassNotFoundException e) {
-            cache.put(target, false);
-            return false;
-          } catch (final NoSuchFieldException e) {
-            cache.put(target, false);
-            return false;
-          }
-        }
+    public boolean matches(final ClassLoader cl) {
+      if (cl == BOOTSTRAP_CLASSLOADER) {
+        // Can't match the bootstrap classloader.
+        return false;
       }
-      return false;
-    }
-  }
-
-  public static class ClassLoaderHasClassWithMethodMatcher
-      extends ElementMatcher.Junction.AbstractBase<ClassLoader> {
-
-    private final WeakMap<ClassLoader, Boolean> cache = newWeakMap();
-
-    private final String className;
-    private final String methodName;
-    private final String[] methodArgs;
-
-    private ClassLoaderHasClassWithMethodMatcher(
-        final String className, final String methodName, final String... methodArgs) {
-      this.className = className;
-      this.methodName = methodName;
-      this.methodArgs = methodArgs;
-    }
-
-    @Override
-    public boolean matches(final ClassLoader target) {
-      if (target != null) {
-        Boolean result = cache.get(target);
-        if (result != null) {
-          return result;
-        }
-        synchronized (target) {
-          result = cache.get(target);
-          if (result != null) {
-            return result;
-          }
-          try {
-            final Class<?> aClass = Class.forName(className, false, target);
-            final Class[] methodArgsClasses = new Class[methodArgs.length];
-            for (int i = 0; i < methodArgs.length; ++i) {
-              methodArgsClasses[i] = target.loadClass(methodArgs[i]);
-            }
-            if (aClass.isInterface()) {
-              aClass.getMethod(methodName, methodArgsClasses);
-            } else {
-              aClass.getDeclaredMethod(methodName, methodArgsClasses);
-            }
-            cache.put(target, true);
-            return true;
-          } catch (final ClassNotFoundException e) {
-            cache.put(target, false);
-            return false;
-          } catch (final NoSuchMethodException e) {
-            cache.put(target, false);
-            return false;
-          }
-        }
+      final Boolean cached;
+      if ((cached = cache.getIfPresent(cl)) != null) {
+        return cached;
       }
-      return false;
+      final boolean value = hasResources(cl);
+      cache.put(cl, value);
+      return value;
     }
   }
 }

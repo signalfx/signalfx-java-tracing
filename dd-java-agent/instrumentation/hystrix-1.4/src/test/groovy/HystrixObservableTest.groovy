@@ -3,7 +3,7 @@ import com.netflix.hystrix.HystrixObservableCommand
 import com.netflix.hystrix.exception.HystrixRuntimeException
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Trace
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import rx.Observable
 import rx.schedulers.Schedulers
 import spock.lang.Retry
@@ -16,7 +16,7 @@ import static com.netflix.hystrix.HystrixCommandGroupKey.Factory.asKey
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 
 @Retry
-@Timeout(5)
+@Timeout(10)
 class HystrixObservableTest extends AgentTestRunner {
   static {
     // Disable so failure testing below doesn't inadvertently change the behavior.
@@ -58,13 +58,13 @@ class HystrixObservableTest extends AgentTestRunner {
     }
 
     expect:
-    TRANSFORMED_CLASSES.contains("HystrixObservableTest\$1")
+    TRANSFORMED_CLASSES_NAMES.contains("HystrixObservableTest\$1")
     result == "Hello!"
 
     assertTraces(1) {
       trace(0, 3) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "parent"
           resourceName "parent"
           spanType null
@@ -75,22 +75,22 @@ class HystrixObservableTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "hystrix.cmd"
           resourceName "ExampleGroup.HystrixObservableTest\$1.execute"
           spanType null
           childOf span(0)
           errored false
           tags {
+            "$Tags.COMPONENT" "hystrix"
             "hystrix.command" "HystrixObservableTest\$1"
             "hystrix.group" "ExampleGroup"
             "hystrix.circuit-open" false
-            "$Tags.COMPONENT" "hystrix"
             defaultTags()
           }
         }
         span(2) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "trace.annotation"
           resourceName "HystrixObservableTest\$1.tracedMethod"
           spanType null
@@ -168,13 +168,13 @@ class HystrixObservableTest extends AgentTestRunner {
     }
 
     expect:
-    TRANSFORMED_CLASSES.contains("HystrixObservableTest\$2")
+    TRANSFORMED_CLASSES_NAMES.contains("HystrixObservableTest\$2")
     result == "Fallback!"
 
     assertTraces(1) {
       trace(0, 3) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "parent"
           resourceName "parent"
           spanType null
@@ -185,33 +185,33 @@ class HystrixObservableTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "hystrix.cmd"
           resourceName "ExampleGroup.HystrixObservableTest\$2.execute"
           spanType null
           childOf span(0)
           errored true
           tags {
+            "$Tags.COMPONENT" "hystrix"
             "hystrix.command" "HystrixObservableTest\$2"
             "hystrix.group" "ExampleGroup"
             "hystrix.circuit-open" false
-            "$Tags.COMPONENT" "hystrix"
             errorTags(IllegalArgumentException)
             defaultTags()
           }
         }
         span(2) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "hystrix.cmd"
           resourceName "ExampleGroup.HystrixObservableTest\$2.fallback"
           spanType null
           childOf span(1)
           errored false
           tags {
+            "$Tags.COMPONENT" "hystrix"
             "hystrix.command" "HystrixObservableTest\$2"
             "hystrix.group" "ExampleGroup"
             "hystrix.circuit-open" false
-            "$Tags.COMPONENT" "hystrix"
             defaultTags()
           }
         }
@@ -286,14 +286,14 @@ class HystrixObservableTest extends AgentTestRunner {
     }
 
     then:
-    TRANSFORMED_CLASSES.contains("HystrixObservableTest\$3")
+    TRANSFORMED_CLASSES_NAMES.contains("HystrixObservableTest\$3")
     def err = thrown HystrixRuntimeException
     err.cause instanceof IllegalArgumentException
 
     assertTraces(1) {
       trace(0, 3) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "parent"
           resourceName "parent"
           spanType null
@@ -305,33 +305,33 @@ class HystrixObservableTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "hystrix.cmd"
           resourceName "FailingGroup.HystrixObservableTest\$3.execute"
           spanType null
           childOf span(0)
           errored true
           tags {
+            "$Tags.COMPONENT" "hystrix"
             "hystrix.command" "HystrixObservableTest\$3"
             "hystrix.group" "FailingGroup"
             "hystrix.circuit-open" false
-            "$Tags.COMPONENT" "hystrix"
             errorTags(IllegalArgumentException)
             defaultTags()
           }
         }
         span(2) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "hystrix.cmd"
           resourceName "FailingGroup.HystrixObservableTest\$3.fallback"
           spanType null
           childOf span(1)
           errored true
           tags {
+            "$Tags.COMPONENT" "hystrix"
             "hystrix.command" "HystrixObservableTest\$3"
             "hystrix.group" "FailingGroup"
             "hystrix.circuit-open" false
-            "$Tags.COMPONENT" "hystrix"
             errorTags(UnsupportedOperationException, "No fallback available.")
             defaultTags()
           }

@@ -18,7 +18,7 @@ import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 import spock.lang.Shared
@@ -149,8 +149,8 @@ abstract class AbstractCouchbaseTest extends AgentTestRunner {
       }
       tags {
         "$Tags.COMPONENT" "couchbase-client"
-        "$Tags.DB_TYPE" "couchbase"
         "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+        "$Tags.DB_TYPE" "couchbase"
         if (bucketName != null) {
           "$Tags.DB_INSTANCE" bucketName
         }

@@ -1,3 +1,4 @@
+// Modified by SignalFx
 tasks.register("artifacts") {
   group = "Help"
   description = "Displays the artifacts associated with each configuration of " + project
@@ -24,4 +25,18 @@ ext.randomOpenPort = { ->
     ioe.printStackTrace()
     return -1
   }
+}
+
+// Some instrumentations require JAVA_11_HOME to be set, which we don't want to
+// require by default to avoid the associated integration test run.
+// Providing this fallback instead.
+def lib_exec = '/usr/libexec/java_home'
+if (file(lib_exec).exists()) {
+  def stdout = new ByteArrayOutputStream()
+  exec {
+    executable = lib_exec
+    args = ["-v", 11]
+    standardOutput = stdout
+  }
+  ext.java11Home = "$stdout".replaceAll('\\s+', '')
 }

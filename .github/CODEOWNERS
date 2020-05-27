@@ -1,4 +1,5 @@
+# Modified by SignalFx
 # Automatically assign the team as a reviewer.
 # https://help.github.com/en/articles/about-code-owners
 
-* @DataDog/apm-java
+* @signalfx/instrumentation

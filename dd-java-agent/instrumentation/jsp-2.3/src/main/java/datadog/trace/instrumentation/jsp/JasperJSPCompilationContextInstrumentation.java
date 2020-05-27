@@ -1,7 +1,7 @@
 package datadog.trace.instrumentation.jsp;
 
-import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.jsp.JSPDecorator.DECORATE;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -10,8 +10,8 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.instrumentation.api.AgentScope;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -34,7 +34,7 @@ public final class JasperJSPCompilationContextInstrumentation extends Instrument
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator", packageName + ".JSPDecorator",
+      packageName + ".JSPDecorator",
     };
   }
 
@@ -42,7 +42,8 @@ public final class JasperJSPCompilationContextInstrumentation extends Instrument
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
     return singletonMap(
         named("compile").and(takesArguments(0)).and(isPublic()),
-        JasperJspCompilationContext.class.getName());
+        JasperJSPCompilationContextInstrumentation.class.getName()
+            + "$JasperJspCompilationContext");
   }
 
   public static class JasperJspCompilationContext {

@@ -1,7 +1,7 @@
 package datadog.trace.instrumentation.couchbase.client;
 
-import static datadog.trace.instrumentation.api.AgentTracer.activeScope;
-import static datadog.trace.instrumentation.api.AgentTracer.activeSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeScope;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeSpan;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -13,8 +13,8 @@ import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.context.TraceScope;
-import datadog.trace.instrumentation.api.AgentSpan;
 import java.util.Collections;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
@@ -47,7 +47,7 @@ public class CouchbaseCoreInstrumentation extends Instrumenter.Default {
             .and(isPublic())
             .and(takesArgument(0, named("com.couchbase.client.core.message.CouchbaseRequest")))
             .and(named("send")),
-        CouchbaseCoreAdvice.class.getName());
+        CouchbaseCoreInstrumentation.class.getName() + "$CouchbaseCoreAdvice");
   }
 
   public static class CouchbaseCoreAdvice {

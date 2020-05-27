@@ -1,13 +1,15 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.trace_annotation;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.safeHasSuperType;
 import static datadog.trace.instrumentation.trace_annotation.TraceAnnotationUtils.getClassMethodMap;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.api.Config;
+import datadog.trace.api.Trace;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +35,7 @@ public class TraceConfigInstrumentation implements Instrumenter {
 
   private final Map<String, Set<String>> classMethodsToTrace;
 
+  // Any upstream updates to this need to be adopted in ~TraceAnnotationUtils.getClassMethodMap()
   public TraceConfigInstrumentation() {
     final String configString = Config.get().getTraceMethods();
     classMethodsToTrace = getClassMethodMap(configString);
@@ -59,13 +62,19 @@ public class TraceConfigInstrumentation implements Instrumenter {
 
     /** No-arg constructor only used by muzzle and tests. */
     public TracerClassInstrumentation() {
-      this("noop", Collections.singleton("noop"));
+      this(Trace.class.getName(), Collections.singleton("noop"));
     }
 
     public TracerClassInstrumentation(final String className, final Set<String> methodNames) {
       super("trace", "trace-config");
       this.className = className;
       this.methodNames = methodNames;
+    }
+
+    @Override
+    public ElementMatcher<ClassLoader> classLoaderMatcher() {
+      // Optimization for expensive typeMatcher.
+      return hasClassesNamed(className);
     }
 
     @Override
@@ -76,7 +85,6 @@ public class TraceConfigInstrumentation implements Instrumenter {
     @Override
     public String[] helperClassNames() {
       return new String[] {
-        "datadog.trace.agent.decorator.BaseDecorator",
         packageName + ".TraceAnnotationUtils",
         packageName + ".TraceAnnotationUtils$ContainsEverythingSet",
         packageName + ".TraceDecorator",
@@ -95,7 +103,7 @@ public class TraceConfigInstrumentation implements Instrumenter {
       }
 
       final Map<ElementMatcher<? super MethodDescription>, String> transformers = new HashMap<>();
-      transformers.put(methodMatchers, TraceAdvice.class.getName());
+      transformers.put(methodMatchers, packageName + ".TraceAdvice");
       return transformers;
     }
   }

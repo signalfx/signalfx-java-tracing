@@ -5,7 +5,7 @@ import com.anotherchrisberry.spock.extensions.retry.RetryOnFailure
 import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import spock.lang.Shared
 
@@ -15,7 +15,7 @@ import java.lang.reflect.Proxy
 
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 
-@RetryOnFailure(times = 3, delaySeconds = 1)
+@RetryOnFailure(times = 10, delaySeconds = 1)
 class Elasticsearch53SpringRepositoryTest extends AgentTestRunner {
   // Setting up appContext & repo with @Shared doesn't allow
   // spring-data instrumentation to applied.

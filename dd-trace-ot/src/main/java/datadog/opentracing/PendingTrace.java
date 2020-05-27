@@ -1,22 +1,20 @@
 package datadog.opentracing;
 
+import datadog.common.exec.CommonTaskExecutor;
 import datadog.opentracing.scopemanager.ContinuableScope;
 import datadog.trace.common.util.Clock;
 import java.io.Closeable;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,8 +26,7 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
   private static final AtomicReference<SpanCleaner> SPAN_CLEANER = new AtomicReference<>();
 
   private final DDTracer tracer;
-  private final String traceId;
-  private final Map<String, String> serviceNameMappings;
+  private final BigInteger traceId;
 
   // TODO: consider moving these time fields into DDTracer to ensure that traces have precise
   // relative time
@@ -63,11 +60,9 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
   /** Ensure a trace is never written multiple times */
   private final AtomicBoolean isWritten = new AtomicBoolean(false);
 
-  PendingTrace(
-      final DDTracer tracer, final String traceId, final Map<String, String> serviceNameMappings) {
+  PendingTrace(final DDTracer tracer, final BigInteger traceId) {
     this.tracer = tracer;
     this.traceId = traceId;
-    this.serviceNameMappings = serviceNameMappings;
 
     startTimeNano = Clock.currentNanoTime();
     startNanoTicks = Clock.currentNanoTicks();
@@ -151,10 +146,6 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
     }
 
     if (!isWritten.get()) {
-      if (serviceNameMappings.containsKey(span.getServiceName())) {
-        span.setServiceName(serviceNameMappings.get(span.getServiceName()));
-      }
-
       addFirst(span);
     } else {
       log.debug("{} - finished after trace reported.", span);
@@ -272,6 +263,7 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
       expireReference();
     }
     if (count > 0) {
+      // TODO attempt to flatten and report if top level spans are finished. (for accurate metrics)
       log.debug(
           "trace {} : {} unfinished spans garbage collected. Trace will not report.",
           traceId,
@@ -321,24 +313,12 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
 
   private static class SpanCleaner implements Runnable, Closeable {
     private static final long CLEAN_FREQUENCY = 1;
-    private static final ThreadFactory FACTORY =
-        new ThreadFactory() {
-          @Override
-          public Thread newThread(final Runnable r) {
-            final Thread thread = new Thread(r, "dd-span-cleaner");
-            thread.setDaemon(true);
-            return thread;
-          }
-        };
-
-    private final ScheduledExecutorService executorService =
-        Executors.newScheduledThreadPool(1, FACTORY);
 
     private final Set<PendingTrace> pendingTraces =
         Collections.newSetFromMap(new ConcurrentHashMap<PendingTrace, Boolean>());
 
     public SpanCleaner() {
-      executorService.scheduleAtFixedRate(this, 0, CLEAN_FREQUENCY, TimeUnit.SECONDS);
+      CommonTaskExecutor.INSTANCE.scheduleAtFixedRate(this, 0, CLEAN_FREQUENCY, TimeUnit.SECONDS);
     }
 
     @Override
@@ -350,13 +330,6 @@ public class PendingTrace extends ConcurrentLinkedDeque<DDSpan> {
 
     @Override
     public void close() {
-      executorService.shutdownNow();
-      try {
-        executorService.awaitTermination(500, TimeUnit.MILLISECONDS);
-      } catch (final InterruptedException e) {
-        log.info("Writer properly closed and async writer interrupted.");
-      }
-
       // Make sure that whatever was left over gets cleaned up
       run();
     }

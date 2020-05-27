@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing.decorators;
 
 import datadog.opentracing.DDSpanContext;
@@ -11,7 +12,8 @@ public class PeerServiceDecorator extends AbstractDecorator {
 
   @Override
   public boolean shouldSetTag(final DDSpanContext context, final String tag, final Object value) {
-    context.setServiceName(String.valueOf(value));
+    // SFx doesn't support per-span service names
+    // context.setServiceName(String.valueOf(value));
     return false;
   }
 }

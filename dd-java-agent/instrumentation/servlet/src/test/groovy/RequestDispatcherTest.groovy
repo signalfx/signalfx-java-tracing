@@ -1,17 +1,26 @@
+// Modified by SignalFx
+import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.AgentTestRunner
+
 import javax.servlet.ServletException
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
+import static datadog.opentracing.propagation.B3HttpCodec.PARENT_SPAN_ID_KEY
+import static datadog.opentracing.propagation.B3HttpCodec.SAMPLING_PRIORITY_KEY
+import static datadog.opentracing.propagation.B3HttpCodec.SPAN_ID_KEY
+import static datadog.opentracing.propagation.B3HttpCodec.TRACE_ID_KEY
 import static datadog.trace.agent.test.utils.TraceUtils.basicSpan
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
+import static datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecorator.DD_SPAN_ATTRIBUTE
+
 
 class RequestDispatcherTest extends AgentTestRunner {
-  static {
-    System.setProperty("dd.integration.servlet.enabled", "true")
-  }
 
-  def dispatcher = new RequestDispatcherUtils(Mock(HttpServletRequest), Mock(HttpServletResponse))
+  def request = Mock(HttpServletRequest)
+  def response = Mock(HttpServletResponse)
+  def mockSpan = Mock(DDSpan)
+  def dispatcher = new RequestDispatcherUtils(request, response)
 
   def "test dispatch no-parent"() {
     when:
@@ -19,7 +28,17 @@ class RequestDispatcherTest extends AgentTestRunner {
     dispatcher.include("")
 
     then:
-    assertTraces(0) {}
+    assertTraces(2) {
+      trace(0, 1) {
+        basicSpan(it, 0, "forward-child")
+      }
+      trace(1, 1) {
+        basicSpan(it, 0, "include-child")
+      }
+    }
+
+    and:
+    0 * _
   }
 
   def "test dispatcher #method with parent"() {
@@ -30,7 +49,7 @@ class RequestDispatcherTest extends AgentTestRunner {
 
     then:
     assertTraces(1) {
-      trace(0, 2) {
+      trace(0, 3) {
         basicSpan(it, 0, "parent")
         span(1) {
           operationName "servlet.$operation"
@@ -41,8 +60,22 @@ class RequestDispatcherTest extends AgentTestRunner {
             defaultTags()
           }
         }
+        basicSpan(it, 2, "$operation-child", span(1))
       }
     }
+
+    then:
+    1 * request.setAttribute(TRACE_ID_KEY, _)
+    1 * request.setAttribute(SPAN_ID_KEY, _)
+    1 * request.setAttribute(SAMPLING_PRIORITY_KEY, _)
+    1 * request.setAttribute(PARENT_SPAN_ID_KEY, _)
+    then:
+    1 * request.getAttribute(DD_SPAN_ATTRIBUTE) >> mockSpan
+    then:
+    1 * request.setAttribute(DD_SPAN_ATTRIBUTE, { it.spanName == "servlet.$operation" })
+    then:
+    1 * request.setAttribute(DD_SPAN_ATTRIBUTE, mockSpan)
+    0 * _
 
     where:
     operation | method
@@ -57,7 +90,7 @@ class RequestDispatcherTest extends AgentTestRunner {
   def "test dispatcher #method exception"() {
     setup:
     def ex = new ServletException("some error")
-    def dispatcher = new RequestDispatcherUtils(Mock(HttpServletRequest), Mock(HttpServletResponse), ex)
+    def dispatcher = new RequestDispatcherUtils(request, response, ex)
 
     when:
     runUnderTrace("parent") {
@@ -69,7 +102,7 @@ class RequestDispatcherTest extends AgentTestRunner {
     th == ex
 
     assertTraces(1) {
-      trace(0, 2) {
+      trace(0, 3) {
         basicSpan(it, 0, "parent", null, ex)
         span(1) {
           operationName "servlet.$operation"
@@ -82,8 +115,22 @@ class RequestDispatcherTest extends AgentTestRunner {
             errorTags(ex.class, ex.message)
           }
         }
+        basicSpan(it, 2, "$operation-child", span(1))
       }
     }
+
+    then:
+    1 * request.setAttribute(TRACE_ID_KEY, _)
+    1 * request.setAttribute(SPAN_ID_KEY, _)
+    1 * request.setAttribute(SAMPLING_PRIORITY_KEY, _)
+    1 * request.setAttribute(PARENT_SPAN_ID_KEY, _)
+    then:
+    1 * request.getAttribute(DD_SPAN_ATTRIBUTE) >> mockSpan
+    then:
+    1 * request.setAttribute(DD_SPAN_ATTRIBUTE, { it.spanName == "servlet.$operation" })
+    then:
+    1 * request.setAttribute(DD_SPAN_ATTRIBUTE, mockSpan)
+    0 * _
 
     where:
     operation | method

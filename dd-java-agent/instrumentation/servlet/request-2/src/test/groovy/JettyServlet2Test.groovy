@@ -2,7 +2,8 @@
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpServerTest
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.api.DDTags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.servlet2.Servlet2Decorator
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.handler.ErrorHandler
@@ -13,10 +14,11 @@ import javax.servlet.http.HttpServletRequest
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.AUTH_REQUIRED
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.ERROR
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.QUERY_PARAM
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.REDIRECT
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
 
-class JettyServlet2Test extends HttpServerTest<Server, Servlet2Decorator> {
+class JettyServlet2Test extends HttpServerTest<Server> {
 
   private static final CONTEXT = "ctx"
 
@@ -37,9 +39,10 @@ class JettyServlet2Test extends HttpServerTest<Server, Servlet2Decorator> {
 //    servletContext.setSecurityHandler(security)
 
     servletContext.addServlet(TestServlet2.Sync, SUCCESS.path)
+    servletContext.addServlet(TestServlet2.Sync, QUERY_PARAM.path)
+    servletContext.addServlet(TestServlet2.Sync, REDIRECT.path)
     servletContext.addServlet(TestServlet2.Sync, ERROR.path)
     servletContext.addServlet(TestServlet2.Sync, EXCEPTION.path)
-    servletContext.addServlet(TestServlet2.Sync, REDIRECT.path)
     servletContext.addServlet(TestServlet2.Sync, AUTH_REQUIRED.path)
 
     jettyServer.setHandler(servletContext)
@@ -60,8 +63,8 @@ class JettyServlet2Test extends HttpServerTest<Server, Servlet2Decorator> {
   }
 
   @Override
-  Servlet2Decorator decorator() {
-    return Servlet2Decorator.DECORATE
+  String component() {
+    return Servlet2Decorator.DECORATE.component()
   }
 
   @Override
@@ -80,7 +83,7 @@ class JettyServlet2Test extends HttpServerTest<Server, Servlet2Decorator> {
   }
 
   // parent span must be cast otherwise it breaks debugging classloading (junit loads it early)
-  void serverSpan(TraceAssert trace, int index, String traceID = null, String parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
+  void serverSpan(TraceAssert trace, int index, BigInteger traceID = null, BigInteger parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
     trace.span(index) {
       serviceName expectedServiceName()
       operationName expectedOperationName()
@@ -94,11 +97,16 @@ class JettyServlet2Test extends HttpServerTest<Server, Servlet2Decorator> {
         parent()
       }
       tags {
+        "$Tags.COMPONENT" component
+        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+        // No peer port
+        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
+        "$Tags.HTTP_METHOD" method
+        "$Tags.HTTP_STATUS" endpoint.status
         "servlet.context" "/$CONTEXT"
+        "servlet.path" endpoint.path
         "span.origin.type" TestServlet2.Sync.name
-
-        defaultTags(true)
-        "$Tags.COMPONENT" serverDecorator.component()
         if (endpoint.errored) {
           "$Tags.ERROR" endpoint.errored
           "sfx.error.message" { it == null || it == EXCEPTION.body }
@@ -106,13 +114,10 @@ class JettyServlet2Test extends HttpServerTest<Server, Servlet2Decorator> {
           "sfx.error.kind" { it == null || it instanceof String }
           "sfx.error.stack" { it == null || it instanceof String }
         }
-        "$Tags.HTTP_STATUS" endpoint.status
-        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
-        "$Tags.PEER_HOSTNAME" "localhost"
-        // No peer port
-        "$Tags.PEER_HOST_IPV4" "127.0.0.1"
-        "$Tags.HTTP_METHOD" method
-        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        if (endpoint.query) {
+          "$DDTags.HTTP_QUERY" endpoint.query
+        }
+        defaultTags(true)
       }
     }
   }

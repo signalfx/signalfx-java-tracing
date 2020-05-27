@@ -1,19 +1,17 @@
 package datadog.trace.instrumentation.jdbc;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.implementsInterface;
 import static java.util.Collections.singletonMap;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.bootstrap.instrumentation.jdbc.DBInfo;
+import datadog.trace.bootstrap.instrumentation.jdbc.JDBCConnectionUrlParser;
 import java.sql.Connection;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import net.bytebuddy.asm.Advice;
@@ -30,22 +28,14 @@ public final class DriverInstrumentation extends Instrumenter.Default {
 
   @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return not(isInterface()).and(safeHasSuperType(named("java.sql.Driver")));
+    return implementsInterface(named("java.sql.Driver"));
   }
 
   @Override
   public String[] helperClassNames() {
-    final List<String> helpers = new ArrayList<>(JDBCConnectionUrlParser.values().length + 4);
-
-    helpers.add(packageName + ".DBInfo");
-    helpers.add(packageName + ".DBInfo$Builder");
-    helpers.add(packageName + ".JDBCMaps");
-    helpers.add(packageName + ".JDBCConnectionUrlParser");
-
-    for (final JDBCConnectionUrlParser parser : JDBCConnectionUrlParser.values()) {
-      helpers.add(parser.getClass().getName());
-    }
-    return helpers.toArray(new String[0]);
+    return new String[] {
+      packageName + ".JDBCMaps",
+    };
   }
 
   @Override
@@ -55,7 +45,7 @@ public final class DriverInstrumentation extends Instrumenter.Default {
             .and(takesArgument(0, String.class))
             .and(takesArgument(1, Properties.class))
             .and(returns(named("java.sql.Connection"))),
-        DriverAdvice.class.getName());
+        DriverInstrumentation.class.getName() + "$DriverAdvice");
   }
 
   public static class DriverAdvice {

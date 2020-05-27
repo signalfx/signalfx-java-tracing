@@ -2,7 +2,7 @@
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.instrumentation.netty40.NettyUtils
 import datadog.trace.agent.test.base.HttpClientTest
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.netty40.client.NettyHttpClientDecorator
 import org.asynchttpclient.AsyncCompletionHandler
 import org.asynchttpclient.AsyncHttpClient
@@ -10,6 +10,7 @@ import org.asynchttpclient.DefaultAsyncHttpClientConfig
 import org.asynchttpclient.Response
 import spock.lang.AutoCleanup
 import spock.lang.Shared
+import spock.lang.Timeout
 
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
@@ -20,7 +21,8 @@ import static datadog.trace.agent.test.utils.TraceUtils.basicSpan
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 import static org.asynchttpclient.Dsl.asyncHttpClient
 
-class Netty40ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
+@Timeout(5)
+class Netty40ClientTest extends HttpClientTest {
 
   @Shared
   def clientConfig = DefaultAsyncHttpClientConfig.Builder.newInstance().setRequestTimeout(TimeUnit.SECONDS.toMillis(10).toInteger())
@@ -45,8 +47,8 @@ class Netty40ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
   }
 
   @Override
-  NettyHttpClientDecorator decorator() {
-    return NettyHttpClientDecorator.DECORATE
+  String component() {
+    return NettyHttpClientDecorator.DECORATE.component()
   }
 
   @Override
@@ -62,6 +64,11 @@ class Netty40ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
   @Override
   boolean testConnectionFailure() {
     false
+  }
+
+  @Override
+  boolean testRemoteConnection() {
+    return false
   }
 
   def "connection error (unopened port)"() {
@@ -136,7 +143,7 @@ class Netty40ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
           parent()
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "netty.client.request"
           resourceName "/post"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -166,8 +173,8 @@ class Netty40ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
     }
 
     and:
-    server.lastRequest.headers.get("x-b3-traceid") == new BigInteger(TEST_WRITER.get(0).get(1).traceId).toString(16).toLowerCase()
-    server.lastRequest.headers.get("x-b3-spanid") == new BigInteger(TEST_WRITER.get(0).get(1).spanId).toString(16).toLowerCase()
+    server.lastRequest.headers.get("x-b3-traceid") == String.format("%016x", TEST_WRITER.get(0).get(1).traceId)
+    server.lastRequest.headers.get("x-b3-spanid") == String.format("%016x", TEST_WRITER.get(0).get(1).spanId)
 
     where:
     statusCode | error | rewrite

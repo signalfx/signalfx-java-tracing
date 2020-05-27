@@ -2,8 +2,8 @@
 package datadog.trace.instrumentation.netty41;
 
 import datadog.trace.api.Config;
-import datadog.trace.instrumentation.api.AgentSpan;
-import datadog.trace.instrumentation.api.Tags;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.Tags;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

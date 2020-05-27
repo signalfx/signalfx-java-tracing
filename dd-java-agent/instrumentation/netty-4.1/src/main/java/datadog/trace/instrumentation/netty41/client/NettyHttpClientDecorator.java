@@ -3,9 +3,9 @@ package datadog.trace.instrumentation.netty41.client;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.HOST;
 
-import datadog.trace.agent.decorator.HttpClientDecorator;
 import datadog.trace.api.Config;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.decorator.HttpClientDecorator;
 import datadog.trace.instrumentation.netty41.NettyUtils;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
@@ -39,35 +39,6 @@ public class NettyHttpClientDecorator extends HttpClientDecorator<HttpRequest, H
       return new URI("http://" + request.headers().get(HOST) + request.uri());
     } else {
       return uri;
-    }
-  }
-
-  @Override
-  protected String hostname(final HttpRequest request) {
-    try {
-      final URI uri = new URI(request.uri());
-      if ((uri.getHost() == null || uri.getHost().equals("")) && request.headers().contains(HOST)) {
-        return request.headers().get(HOST).split(":")[0];
-      } else {
-        return uri.getHost();
-      }
-    } catch (final Exception e) {
-      return null;
-    }
-  }
-
-  @Override
-  protected Integer port(final HttpRequest request) {
-    try {
-      final URI uri = new URI(request.uri());
-      if ((uri.getHost() == null || uri.getHost().equals("")) && request.headers().contains(HOST)) {
-        final String[] hostPort = request.headers().get(HOST).split(":");
-        return hostPort.length == 2 ? Integer.parseInt(hostPort[1]) : null;
-      } else {
-        return uri.getPort();
-      }
-    } catch (final Exception e) {
-      return null;
     }
   }
 

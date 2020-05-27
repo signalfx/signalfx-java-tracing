@@ -6,7 +6,7 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import spock.lang.Shared
 
@@ -124,12 +124,12 @@ class CassandraClientTest extends AgentTestRunner {
       tags {
         "$Tags.COMPONENT" "java-cassandra"
         "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
-        "$Tags.DB_INSTANCE" keyspace
-        "$Tags.DB_STATEMENT" statement
-        "$Tags.DB_TYPE" "cassandra"
         "$Tags.PEER_HOSTNAME" "localhost"
         "$Tags.PEER_HOST_IPV4" "127.0.0.1"
         "$Tags.PEER_PORT" port
+        "$Tags.DB_TYPE" "cassandra"
+        "$Tags.DB_INSTANCE" keyspace
+        "$Tags.DB_STATEMENT" statement
         defaultTags()
       }
     }

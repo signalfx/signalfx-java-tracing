@@ -1,7 +1,8 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
+import datadog.trace.api.DDSpanTypes
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import io.dropwizard.testing.junit.ResourceTestRule
-import datadog.trace.instrumentation.api.Tags
 import org.junit.ClassRule
 import spock.lang.Shared
 
@@ -11,23 +12,53 @@ class JerseyTest extends AgentTestRunner {
 
   @Shared
   @ClassRule
-  ResourceTestRule resources = ResourceTestRule.builder().addResource(new Resource.Test()).build()
+  ResourceTestRule resources = ResourceTestRule.builder()
+    .addResource(new Resource.Test1())
+    .addResource(new Resource.Test2())
+    .addResource(new Resource.Test3())
+    .build()
 
-  def "test resource"() {
-    setup:
+  def "test #resource"() {
+    when:
     // start a trace because the test doesn't go through any servlet or other instrumentation.
     def response = runUnderTrace("test.span") {
-      resources.client().resource("/test/hello/bob").post(String)
+      resources.client().resource(resource).post(String)
     }
 
-    expect:
-    response == "Hello bob!"
-    TEST_WRITER.waitForTraces(1)
-    TEST_WRITER.size() == 1
+    then:
+    response == expectedResponse
 
-    def trace = TEST_WRITER.firstTrace()
-    def span = trace[0]
-    span.resourceName == "/test/hello/{name}"
-    span.tags["$Tags.SPAN_KIND"] == "$Tags.SPAN_KIND_SERVER"
+    assertTraces(1) {
+      trace(0, 2) {
+        span(0) {
+          operationName "test.span"
+          resourceName expectedResourceName
+          tags {
+            "$Tags.COMPONENT" "jax-rs"
+            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_SERVER"
+            defaultTags()
+          }
+        }
+
+        span(1) {
+          childOf span(0)
+          operationName "jax-rs.request"
+          resourceName controllerName
+          spanType DDSpanTypes.HTTP_SERVER
+          tags {
+            "$Tags.COMPONENT" "jax-rs-controller"
+            "$Tags.HTTP_URL" expectedResourceName
+            "$Tags.HTTP_METHOD" "POST"
+            defaultTags()
+          }
+        }
+      }
+    }
+
+    where:
+    resource           | expectedResourceName  | controllerName | expectedResponse
+    "/test/hello/bob"  | "/test/hello/{name}"  | "Test1.hello"  | "Test1 bob!"
+    "/test2/hello/bob" | "/test2/hello/{name}" | "Test2.hello"  | "Test2 bob!"
+    "/test3/hi/bob"    | "/test3/hi/{name}"    | "Test3.hello"  | "Test3 bob!"
   }
 }

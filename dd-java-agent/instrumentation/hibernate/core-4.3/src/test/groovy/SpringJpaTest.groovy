@@ -1,6 +1,6 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import spock.lang.Shared
 import spring.jpa.Customer
@@ -34,11 +34,11 @@ class SpringJpaTest extends AgentTestRunner {
           resourceName "hsqldb.query"
           spanType "sql"
           tags {
-            "$Tags.DB_INSTANCE" "test"
-            "$Tags.DB_TYPE" "hsqldb"
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.DB_INSTANCE" "test"
             "$Tags.DB_USER" "sa"
-            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
             "$Tags.DB_STATEMENT" ~/select customer0_.id as id1_0_, customer0_.firstName as first[nN]am2_0_, customer0_.lastName as last[nN]ame3_0_ from Customer customer0_/
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()
@@ -64,11 +64,11 @@ class SpringJpaTest extends AgentTestRunner {
             resourceName "hsqldb.query"
             spanType "sql"
             tags {
-              "$Tags.DB_INSTANCE" "test"
-              "$Tags.DB_TYPE" "hsqldb"
               "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+              "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+              "$Tags.DB_TYPE" "hsqldb"
+              "$Tags.DB_INSTANCE" "test"
               "$Tags.DB_USER" "sa"
-              "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
               "$Tags.DB_STATEMENT" "call next value for hibernate_sequence"
               "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
               defaultTags()
@@ -82,11 +82,11 @@ class SpringJpaTest extends AgentTestRunner {
           resourceName "hsqldb.query"
           spanType "sql"
           tags {
-            "$Tags.DB_INSTANCE" "test"
-            "$Tags.DB_TYPE" "hsqldb"
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.DB_INSTANCE" "test"
             "$Tags.DB_USER" "sa"
-            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
             "$Tags.DB_STATEMENT"  ~/insert into Customer \(.*\) values \(.*, \?, \?\)/
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()
@@ -109,11 +109,11 @@ class SpringJpaTest extends AgentTestRunner {
           resourceName "hsqldb.query"
           spanType "sql"
           tags {
-            "$Tags.DB_INSTANCE" "test"
-            "$Tags.DB_TYPE" "hsqldb"
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.DB_INSTANCE" "test"
             "$Tags.DB_USER" "sa"
-            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
             "$Tags.DB_STATEMENT" ~/select customer0_.id as id1_0_0_, customer0_.firstName as first[nN]am2_0_0_, customer0_.lastName as last[nN]ame3_0_0_ from Customer customer0_ where customer0_.id=?/
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()
@@ -126,11 +126,11 @@ class SpringJpaTest extends AgentTestRunner {
           resourceName "hsqldb.query"
           spanType "sql"
           tags {
-            "$Tags.DB_INSTANCE" "test"
-            "$Tags.DB_TYPE" "hsqldb"
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.DB_INSTANCE" "test"
             "$Tags.DB_USER" "sa"
-            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
             "$Tags.DB_STATEMENT" "update Customer set firstName=?, lastName=? where id=?"
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()
@@ -153,11 +153,11 @@ class SpringJpaTest extends AgentTestRunner {
           resourceName "hsqldb.query"
           spanType "sql"
           tags {
-            "$Tags.DB_INSTANCE" "test"
-            "$Tags.DB_TYPE" "hsqldb"
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.DB_INSTANCE" "test"
             "$Tags.DB_USER" "sa"
-            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
             "$Tags.DB_STATEMENT" ~/select customer0_.id as id1_0_, customer0_.firstName as first[nN]am2_0_, customer0_.lastName as last[nN]ame3_0_ from Customer customer0_ where customer0_.lastName=?/
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()
@@ -178,11 +178,11 @@ class SpringJpaTest extends AgentTestRunner {
           resourceName "hsqldb.query"
           spanType "sql"
           tags {
-            "$Tags.DB_INSTANCE" "test"
-            "$Tags.DB_TYPE" "hsqldb"
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.DB_INSTANCE" "test"
             "$Tags.DB_USER" "sa"
-            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
             "$Tags.DB_STATEMENT" ~/select customer0_.id as id1_0_0_, customer0_.firstName as first[nN]am2_0_0_, customer0_.lastName as last[nN]ame3_0_0_ from Customer customer0_ where customer0_.id=?/
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()
@@ -195,11 +195,11 @@ class SpringJpaTest extends AgentTestRunner {
           resourceName "hsqldb.query"
           spanType "sql"
           tags {
-            "$Tags.DB_INSTANCE" "test"
-            "$Tags.DB_TYPE" "hsqldb"
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.DB_INSTANCE" "test"
             "$Tags.DB_USER" "sa"
-            "$Tags.SPAN_KIND" "$Tags.SPAN_KIND_CLIENT"
             "$Tags.DB_STATEMENT" "delete from Customer where id=?"
             "span.origin.type" "org.hsqldb.jdbc.JDBCPreparedStatement"
             defaultTags()

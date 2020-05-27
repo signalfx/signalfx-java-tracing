@@ -1,6 +1,7 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Config
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.KafkaStreams
@@ -137,8 +138,8 @@ class KafkaStreamsTest extends AgentTestRunner {
           errored false
           parent()
           tags {
-            "component" "java-kafka"
-            "span.kind" "producer"
+            "$Tags.COMPONENT" "java-kafka"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_PRODUCER
             "message_bus.destination" "$STREAM_PENDING"
             defaultTags()
           }
@@ -158,8 +159,8 @@ class KafkaStreamsTest extends AgentTestRunner {
             parent()
           }
           tags {
-            "component" "java-kafka"
-            "span.kind" "consumer"
+            "$Tags.COMPONENT" "java-kafka"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CONSUMER
             "message_bus.destination" "$STREAM_PENDING"
             "partition" { it >= 0 }
             "offset" 0
@@ -179,8 +180,8 @@ class KafkaStreamsTest extends AgentTestRunner {
           childOf span(1)
 
           tags {
-            "component" "java-kafka"
-            "span.kind" "producer"
+            "$Tags.COMPONENT" "java-kafka"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_PRODUCER
             "message_bus.destination" "$STREAM_PROCESSED"
             defaultTags()
           }
@@ -200,13 +201,13 @@ class KafkaStreamsTest extends AgentTestRunner {
           }
 
           tags {
-            "component" "java-kafka"
-            "span.kind" "consumer"
+            "$Tags.COMPONENT" "java-kafka"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CONSUMER
             "message_bus.destination" "$STREAM_PENDING"
             "partition" { it >= 0 }
             "offset" 0
-            defaultTags(true)
             "asdf" "testing"
+            defaultTags(true)
           }
         }
       }
@@ -224,13 +225,13 @@ class KafkaStreamsTest extends AgentTestRunner {
             parent()
           }
           tags {
-            "component" "java-kafka"
-            "span.kind" "consumer"
+            "$Tags.COMPONENT" "java-kafka"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CONSUMER
             "message_bus.destination" "$STREAM_PROCESSED"
             "partition" { it >= 0 }
             "offset" 0
-            defaultTags(true)
             "testing" 123
+            defaultTags(true)
           }
         }
       }
@@ -239,8 +240,8 @@ class KafkaStreamsTest extends AgentTestRunner {
     def headers = received.headers()
     if (propagation) {
       assert headers.iterator().hasNext()
-      assert new String(headers.headers("x-b3-traceid").iterator().next().value()) == new BigInteger(TEST_WRITER[2][0].traceId).toString(16).toLowerCase()
-      assert new String(headers.headers("x-b3-spanid").iterator().next().value()) == new BigInteger(TEST_WRITER[2][0].spanId).toString(16).toLowerCase()
+      assert new String(headers.headers("x-b3-traceid").iterator().next().value()) == String.format("%016x", TEST_WRITER[2][0].traceId)
+      assert new String(headers.headers("x-b3-spanid").iterator().next().value()) == String.format("%016x", TEST_WRITER[2][0].spanId)
     } else {
       assert !headers.iterator().hasNext()
     }

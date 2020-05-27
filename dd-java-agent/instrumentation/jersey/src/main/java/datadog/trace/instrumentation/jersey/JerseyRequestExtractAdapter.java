@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.jersey;
 
-import datadog.trace.instrumentation.api.AgentPropagation;
+import datadog.trace.bootstrap.instrumentation.api.AgentPropagation;
 import java.util.List;
 import javax.ws.rs.core.MultivaluedMap;
 import org.glassfish.jersey.server.ContainerRequest;

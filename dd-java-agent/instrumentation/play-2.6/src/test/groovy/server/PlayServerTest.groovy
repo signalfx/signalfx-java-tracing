@@ -5,8 +5,9 @@ import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpServerTest
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.api.DDTags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.akkahttp.AkkaHttpServerDecorator
-import datadog.trace.instrumentation.api.Tags
 import datadog.trace.instrumentation.play26.PlayHttpServerDecorator
 import play.BuiltInComponents
 import play.Mode
@@ -18,10 +19,11 @@ import java.util.function.Supplier
 
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.ERROR
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.QUERY_PARAM
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.REDIRECT
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
 
-class PlayServerTest extends HttpServerTest<Server, AkkaHttpServerDecorator> {
+class PlayServerTest extends HttpServerTest<Server> {
   @Override
   Server startServer(int port) {
     return Server.forRouter(Mode.TEST, port) { BuiltInComponents components ->
@@ -29,6 +31,11 @@ class PlayServerTest extends HttpServerTest<Server, AkkaHttpServerDecorator> {
         .GET(SUCCESS.getPath()).routeTo({
         controller(SUCCESS) {
           Results.status(SUCCESS.getStatus(), SUCCESS.getBody())
+        }
+      } as Supplier)
+        .GET(QUERY_PARAM.getPath()).routeTo({
+        controller(QUERY_PARAM) {
+          Results.status(QUERY_PARAM.getStatus(), QUERY_PARAM.getBody())
         }
       } as Supplier)
         .GET(REDIRECT.getPath()).routeTo({
@@ -56,8 +63,8 @@ class PlayServerTest extends HttpServerTest<Server, AkkaHttpServerDecorator> {
   }
 
   @Override
-  AkkaHttpServerDecorator decorator() {
-    return AkkaHttpServerDecorator.DECORATE
+  String component() {
+    return AkkaHttpServerDecorator.DECORATE.component()
   }
 
   @Override
@@ -91,21 +98,24 @@ class PlayServerTest extends HttpServerTest<Server, AkkaHttpServerDecorator> {
       childOf(parent as DDSpan)
       tags {
         "$Tags.COMPONENT" PlayHttpServerDecorator.DECORATE.component()
-        "$Tags.HTTP_STATUS" Integer
-        "$Tags.HTTP_URL" String
         "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
+        "$Tags.HTTP_URL" String
         "$Tags.HTTP_METHOD" String
-        defaultTags()
+        "$Tags.HTTP_STATUS" Integer
         if (endpoint == ERROR) {
           "$Tags.ERROR" true
         } else if (endpoint == EXCEPTION) {
           errorTags(Exception, EXCEPTION.body)
         }
+        if (endpoint.query) {
+          "$DDTags.HTTP_QUERY" endpoint.query
+        }
+        defaultTags()
       }
     }
   }
 
-  void serverSpan(TraceAssert trace, int index, String traceID = null, String parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
+  void serverSpan(TraceAssert trace, int index, BigInteger traceID = null, BigInteger parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
     trace.span(index) {
       serviceName expectedServiceName()
       operationName expectedOperationName()
@@ -119,8 +129,11 @@ class PlayServerTest extends HttpServerTest<Server, AkkaHttpServerDecorator> {
         parent()
       }
       tags {
-        defaultTags(true)
-        "$Tags.COMPONENT" serverDecorator.component()
+        "$Tags.COMPONENT" component
+        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        "$Tags.HTTP_STATUS" endpoint.status
+        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
+        "$Tags.HTTP_METHOD" method
         if (endpoint.errored) {
           "$Tags.ERROR" endpoint.errored
           "sfx.error.message" { it == null || it == EXCEPTION.body }
@@ -128,10 +141,10 @@ class PlayServerTest extends HttpServerTest<Server, AkkaHttpServerDecorator> {
           "sfx.error.kind" { it == null || it instanceof String }
           "sfx.error.stack" { it == null || it instanceof String }
         }
-        "$Tags.HTTP_STATUS" endpoint.status
-        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
-        "$Tags.HTTP_METHOD" method
-        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        if (endpoint.query) {
+          "$DDTags.HTTP_QUERY" endpoint.query
+        }
+        defaultTags(true)
       }
     }
   }

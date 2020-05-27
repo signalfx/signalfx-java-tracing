@@ -5,14 +5,16 @@ plugins {
 
 apply from: "${rootDir}/gradle/java.gradle"
 
+// FIXME: Improve test coverage.
+minimumBranchCoverage = 0.0
+minimumInstructionCoverage = 0.0
+
 dependencies {
   compile project(':dd-trace-api')
   compile deps.opentracing
   compile deps.slf4j
   compile group: 'org.slf4j', name: 'slf4j-simple', version: versions.slf4j
   // ^ Generally a bad idea for libraries, but we're shadowing.
-}
 
-jar {
-  classifier = 'unbundled'
+  testCompile project(':dd-java-agent:testing')
 }

@@ -3,7 +3,7 @@ package datadog.trace.instrumentation.netty40.server;
 
 import static datadog.trace.instrumentation.netty40.server.NettyHttpServerDecorator.DECORATE;
 
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.instrumentation.netty40.AttributeKeys;
 import datadog.trace.instrumentation.netty40.NettyUtils;
 import io.netty.channel.ChannelHandlerContext;

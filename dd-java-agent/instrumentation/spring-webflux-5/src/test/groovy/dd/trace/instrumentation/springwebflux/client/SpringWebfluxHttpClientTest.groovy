@@ -5,17 +5,19 @@ import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpClientTest
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.netty41.client.NettyHttpClientDecorator
 import datadog.trace.instrumentation.springwebflux.client.SpringWebfluxHttpClientDecorator
 import org.springframework.http.HttpMethod
 import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
 import spock.lang.Shared
+import spock.lang.Timeout
 
-import static datadog.trace.instrumentation.api.AgentTracer.activeSpan
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeSpan
 
-class SpringWebfluxHttpClientTest extends HttpClientTest<SpringWebfluxHttpClientDecorator> {
+@Timeout(5)
+class SpringWebfluxHttpClientTest extends HttpClientTest {
 
   @Shared
   def client = WebClient.builder().build()
@@ -40,8 +42,8 @@ class SpringWebfluxHttpClientTest extends HttpClientTest<SpringWebfluxHttpClient
   }
 
   @Override
-  SpringWebfluxHttpClientDecorator decorator() {
-    return SpringWebfluxHttpClientDecorator.DECORATE
+  String component() {
+    return SpringWebfluxHttpClientDecorator.DECORATE.component()
   }
 
 
@@ -52,30 +54,30 @@ class SpringWebfluxHttpClientTest extends HttpClientTest<SpringWebfluxHttpClient
     if (!exception) {
       trace.span(index + 1) {
         childOf(trace.span(index))
-        serviceName renameService ? "localhost" : "unnamed-java-app"
+        serviceName renameService ? "localhost" : "unnamed-java-service"
         operationName "netty.client.request"
         resourceName uri.path
         spanType DDSpanTypes.HTTP_CLIENT
         errored exception != null
         tags {
-          defaultTags()
-          if (exception) {
-            errorTags(exception.class, exception.message)
-          }
           "$Tags.COMPONENT" NettyHttpClientDecorator.DECORATE.component()
+          "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+          "$Tags.PEER_HOSTNAME" "localhost"
+          "$Tags.PEER_PORT" uri.port
+          "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
+          "$Tags.HTTP_URL" "${uri.resolve(uri.path)}"
+          "$Tags.HTTP_METHOD" method
           if (status) {
             "$Tags.HTTP_STATUS" status
           }
-          "$Tags.HTTP_URL" "${uri.resolve(uri.path)}"
           if (tagQueryString) {
             "$DDTags.HTTP_QUERY" uri.query
             "$DDTags.HTTP_FRAGMENT" { it == null || it == uri.fragment } // Optional
           }
-          "$Tags.PEER_HOSTNAME" "localhost"
-          "$Tags.PEER_PORT" uri.port
-          "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
-          "$Tags.HTTP_METHOD" method
-          "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+          if (exception) {
+            errorTags(exception.class, exception.message)
+          }
+          defaultTags()
         }
       }
     }
@@ -91,6 +93,11 @@ class SpringWebfluxHttpClientTest extends HttpClientTest<SpringWebfluxHttpClient
   }
 
   boolean testConnectionFailure() {
+    false
+  }
+
+  boolean testRemoteConnection() {
+    // FIXME: figure out how to configure timeouts.
     false
   }
 }

@@ -1,7 +1,8 @@
 // Modified by SignalFx
+import datadog.opentracing.scopemanager.ContinuableScope
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import example.GreeterGrpc
 import example.Helloworld
 import io.grpc.BindableService
@@ -30,22 +31,35 @@ class GrpcStreamingTest extends AgentTestRunner {
         return new StreamObserver<Helloworld.Response>() {
           @Override
           void onNext(Helloworld.Response value) {
+
             serverReceived << value.message
 
             (1..msgCount).each {
-              observer.onNext(value)
+              if ((testTracer.scopeManager().active() as ContinuableScope).isAsyncPropagating()) {
+                observer.onNext(value)
+              } else {
+                observer.onError(new IllegalStateException("not async propagating!"))
+              }
             }
           }
 
           @Override
           void onError(Throwable t) {
-            error.set(t)
-            observer.onError(t)
+            if ((testTracer.scopeManager().active() as ContinuableScope).isAsyncPropagating()) {
+              error.set(t)
+              observer.onError(t)
+            } else {
+              observer.onError(new IllegalStateException("not async propagating!"))
+            }
           }
 
           @Override
           void onCompleted() {
-            observer.onCompleted()
+            if ((testTracer.scopeManager().active() as ContinuableScope).isAsyncPropagating()) {
+              observer.onCompleted()
+            } else {
+              observer.onError(new IllegalStateException("not async propagating!"))
+            }
           }
         }
       }
@@ -59,17 +73,29 @@ class GrpcStreamingTest extends AgentTestRunner {
     def observer = client.conversation(new StreamObserver<Helloworld.Response>() {
       @Override
       void onNext(Helloworld.Response value) {
-        clientReceived << value.message
+        if ((testTracer.scopeManager().active() as ContinuableScope).isAsyncPropagating()) {
+          clientReceived << value.message
+        } else {
+          error.set(new IllegalStateException("not async propagating!"))
+        }
       }
 
       @Override
       void onError(Throwable t) {
-        error.set(t)
+        if ((testTracer.scopeManager().active() as ContinuableScope).isAsyncPropagating()) {
+          error.set(t)
+        } else {
+          error.set(new IllegalStateException("not async propagating!"))
+        }
       }
 
       @Override
       void onCompleted() {
-        TEST_WRITER.waitForTraces(1)
+        if ((testTracer.scopeManager().active() as ContinuableScope).isAsyncPropagating()) {
+          TEST_WRITER.waitForTraces(1)
+        } else {
+          error.set(new IllegalStateException("not async propagating!"))
+        }
       }
     })
 
@@ -81,26 +107,30 @@ class GrpcStreamingTest extends AgentTestRunner {
 
     then:
     error.get() == null
+    TEST_WRITER.waitForTraces(2)
+    error.get() == null
+    serverReceived == clientRange.collect { "call $it" }
+    clientReceived == serverRange.collect { clientRange.collect { "call $it" } }.flatten().sort()
 
     assertTraces(2) {
       trace(0, clientMessageCount + 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "grpc.server"
           resourceName "example.Greeter/Conversation"
           spanType DDSpanTypes.RPC
           childOf trace(1).get(0)
           errored false
           tags {
-            "status.code" "OK"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "$Tags.COMPONENT" "grpc-server"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "status.code" "OK"
             defaultTags(true)
           }
         }
         clientRange.each {
           span(it) {
-            serviceName "unnamed-java-app"
+            serviceName "unnamed-java-service"
             operationName "grpc.message"
             resourceName "grpc.message"
             spanType DDSpanTypes.RPC
@@ -116,30 +146,30 @@ class GrpcStreamingTest extends AgentTestRunner {
       }
       trace(1, (clientMessageCount * serverMessageCount) + 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "grpc.client"
           resourceName "example.Greeter/Conversation"
           spanType DDSpanTypes.RPC
           parent()
           errored false
           tags {
-            "status.code" "OK"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.COMPONENT" "grpc-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "status.code" "OK"
             defaultTags()
           }
         }
         (1..(clientMessageCount * serverMessageCount)).each {
           span(it) {
-            serviceName "unnamed-java-app"
+            serviceName "unnamed-java-service"
             operationName "grpc.message"
             resourceName "grpc.message"
             spanType DDSpanTypes.RPC
             childOf span(0)
             errored false
             tags {
-              "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
               "$Tags.COMPONENT" "grpc-client"
+              "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
               "message.type" "example.Helloworld\$Response"
               defaultTags()
             }
@@ -147,9 +177,6 @@ class GrpcStreamingTest extends AgentTestRunner {
         }
       }
     }
-
-    serverReceived == clientRange.collect { "call $it" }
-    clientReceived == serverRange.collect { clientRange.collect { "call $it" } }.flatten().sort()
 
     cleanup:
     channel?.shutdownNow()?.awaitTermination(10, TimeUnit.SECONDS)

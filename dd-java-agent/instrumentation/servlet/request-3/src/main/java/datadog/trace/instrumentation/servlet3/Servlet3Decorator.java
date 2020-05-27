@@ -1,7 +1,7 @@
 package datadog.trace.instrumentation.servlet3;
 
-import datadog.trace.agent.decorator.HttpServerDecorator;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecorator;
 import java.net.URI;
 import java.net.URISyntaxException;
 import javax.servlet.ServletException;
@@ -29,12 +29,14 @@ public class Servlet3Decorator
 
   @Override
   protected URI url(final HttpServletRequest httpServletRequest) throws URISyntaxException {
-    return new URI(httpServletRequest.getRequestURL().toString());
-  }
-
-  @Override
-  protected String peerHostname(final HttpServletRequest httpServletRequest) {
-    return httpServletRequest.getRemoteHost();
+    return new URI(
+        httpServletRequest.getScheme(),
+        null,
+        httpServletRequest.getServerName(),
+        httpServletRequest.getServerPort(),
+        httpServletRequest.getRequestURI(),
+        httpServletRequest.getQueryString(),
+        null);
   }
 
   @Override
@@ -57,6 +59,7 @@ public class Servlet3Decorator
     assert span != null;
     if (request != null) {
       span.setTag("servlet.context", request.getContextPath());
+      span.setTag("servlet.path", request.getServletPath());
     }
     return super.onRequest(span, request);
   }

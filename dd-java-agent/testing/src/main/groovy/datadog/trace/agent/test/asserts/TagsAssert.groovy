@@ -3,6 +3,7 @@ package datadog.trace.agent.test.asserts
 
 import datadog.opentracing.DDSpan
 import datadog.trace.api.Config
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
 
@@ -42,10 +43,25 @@ class TagsAssert {
 
     assert tags["thread.name"] != null
     assert tags["thread.id"] != null
-    if (distributedRootSpan) {
+
+    // FIXME: DQH - Too much conditional logic?  Maybe create specialized methods for client & server cases
+
+    boolean isRoot = ("0" == spanParentId)
+    if (isRoot || distributedRootSpan) {
+      assert tags[Config.RUNTIME_ID_TAG] == null
       assert tags[Config.TRACING_LIBRARY_KEY] == Config.TRACING_LIBRARY_VALUE
       assert tags[Config.TRACING_VERSION_KEY] == Config.TRACING_VERSION_VALUE
+    } else {
+      assert tags[Config.RUNTIME_ID_TAG] == null
     }
+
+    // SFx doesn't need this tag (always null)
+//    boolean isServer = (tags[Tags.SPAN_KIND] == Tags.SPAN_KIND_SERVER)
+//    if (isRoot || distributedRootSpan || isServer) {
+//      assert tags[Config.LANGUAGE_TAG_KEY] == Config.LANGUAGE_TAG_VALUE
+//    } else {
+//      assert tags[Config.LANGUAGE_TAG_KEY] == null
+//    }
     assert tags[Config.RUNTIME_ID_TAG] == null
     assert tags[Config.LANGUAGE_TAG_KEY] == null
   }

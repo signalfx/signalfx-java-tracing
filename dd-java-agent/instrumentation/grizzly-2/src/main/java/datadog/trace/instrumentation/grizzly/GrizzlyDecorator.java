@@ -1,6 +1,6 @@
 package datadog.trace.instrumentation.grizzly;
 
-import datadog.trace.agent.decorator.HttpServerDecorator;
+import datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecorator;
 import java.net.URI;
 import java.net.URISyntaxException;
 import org.glassfish.grizzly.http.server.Request;
@@ -16,12 +16,14 @@ public class GrizzlyDecorator extends HttpServerDecorator<Request, Request, Resp
 
   @Override
   protected URI url(final Request request) throws URISyntaxException {
-    return new URI(request.getRequestURL().toString());
-  }
-
-  @Override
-  protected String peerHostname(final Request request) {
-    return request.getRemoteHost();
+    return new URI(
+        request.getScheme(),
+        null,
+        request.getServerName(),
+        request.getServerPort(),
+        request.getRequestURI(),
+        request.getQueryString(),
+        null);
   }
 
   @Override

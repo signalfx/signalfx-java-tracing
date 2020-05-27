@@ -1,19 +1,17 @@
 package datadog.trace.instrumentation.elasticsearch2;
 
-import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.elasticsearch.ElasticsearchTransportClientDecorator.DECORATE;
 import static java.util.Collections.singletonMap;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.instrumentation.api.AgentScope;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -35,7 +33,7 @@ public class Elasticsearch2TransportClientInstrumentation extends Instrumenter.D
   public ElementMatcher<TypeDescription> typeMatcher() {
     // If we want to be more generic, we could instrument the interface instead:
     // .and(safeHasSuperType(named("org.elasticsearch.client.ElasticsearchClient"))))
-    return not(isInterface()).and(named("org.elasticsearch.client.support.AbstractClient"));
+    return named("org.elasticsearch.client.support.AbstractClient");
   }
 
   @Override
@@ -46,9 +44,6 @@ public class Elasticsearch2TransportClientInstrumentation extends Instrumenter.D
       "com.google.common.base.Joiner$1",
       "com.google.common.base.Joiner$2",
       "com.google.common.base.Joiner$MapJoiner",
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
-      "datadog.trace.agent.decorator.DatabaseClientDecorator",
       "datadog.trace.instrumentation.elasticsearch.ElasticsearchTransportClientDecorator",
       packageName + ".TransportActionListener",
     };
@@ -62,7 +57,8 @@ public class Elasticsearch2TransportClientInstrumentation extends Instrumenter.D
             .and(takesArgument(0, named("org.elasticsearch.action.Action")))
             .and(takesArgument(1, named("org.elasticsearch.action.ActionRequest")))
             .and(takesArgument(2, named("org.elasticsearch.action.ActionListener"))),
-        ElasticsearchTransportClientAdvice.class.getName());
+        Elasticsearch2TransportClientInstrumentation.class.getName()
+            + "$ElasticsearchTransportClientAdvice");
   }
 
   public static class ElasticsearchTransportClientAdvice {

@@ -2,6 +2,7 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import spark.Spark
@@ -43,22 +44,21 @@ class SparkJavaBasedTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "jetty.request"
           resourceName "/param/:param"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           parent()
           tags {
-            "http.url" "http://localhost:$port/param/asdf1234"
-            "http.method" "GET"
-            "span.kind" "server"
-            "component" "jetty-handler"
+            "$Tags.COMPONENT" "jetty-handler"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/param/asdf1234"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
             "span.origin.type" spark.embeddedserver.jetty.JettyHandler.name
-            "http.status_code" 200
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
             defaultTags()
           }
         }

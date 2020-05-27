@@ -52,7 +52,7 @@ class JettyHandlerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "jetty.request"
           resourceName "/"
           spanType DDSpanTypes.HTTP_SERVER
@@ -65,7 +65,6 @@ class JettyHandlerTest extends AgentTestRunner {
             "component" "jetty-handler"
             "span.origin.type" handler.class.name
             "http.status_code" 200
-            "peer.hostname" "127.0.0.1"
             "peer.ipv4" "127.0.0.1"
             "peer.port" Integer
             defaultTags()
@@ -100,7 +99,7 @@ class JettyHandlerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "jetty.request"
           resourceName "/"
           spanType DDSpanTypes.HTTP_SERVER
@@ -113,7 +112,6 @@ class JettyHandlerTest extends AgentTestRunner {
             "component" "jetty-handler"
             "span.origin.type" handler.class.name
             "http.status_code" 200
-            "peer.hostname" "127.0.0.1"
             "peer.ipv4" "127.0.0.1"
             "peer.port" Integer
             errorTags RuntimeException

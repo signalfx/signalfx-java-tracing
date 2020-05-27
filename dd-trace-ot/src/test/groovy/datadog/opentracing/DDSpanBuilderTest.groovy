@@ -5,12 +5,10 @@ import datadog.opentracing.propagation.ExtractedContext
 import datadog.opentracing.propagation.TagContext
 import datadog.trace.api.Config
 import datadog.trace.api.DDTags
-import datadog.trace.api.sampling.PrioritySampling
 import datadog.trace.common.writer.ListWriter
 import datadog.trace.util.test.DDSpecification
 import io.opentracing.Scope
 import io.opentracing.noop.NoopSpan
-
 import static datadog.opentracing.DDSpanContext.ORIGIN_KEY
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 
@@ -18,7 +16,7 @@ class DDSpanBuilderTest extends DDSpecification {
 
   def writer = new ListWriter()
   def config = Config.get()
-  def tracer = new DDTracer(writer)
+  def tracer = DDTracer.builder().writer(writer).build()
 
   def "build simple span"() {
     setup:
@@ -150,15 +148,15 @@ class DDSpanBuilderTest extends DDSpecification {
 
   def "should link to parent span"() {
     setup:
-    final String spanId = "1"
-    final long expectedParentId = spanId
+    final BigInteger spanId = 1G
+    final BigInteger expectedParentId = spanId
 
     final DDSpanContext mockedContext = Mock()
     1 * mockedContext.getTraceId() >> spanId
     1 * mockedContext.getSpanId() >> spanId
     _ * mockedContext.getServiceName() >> "foo"
     1 * mockedContext.getBaggageItems() >> [:]
-    1 * mockedContext.getTrace() >> new PendingTrace(tracer, "1", [:])
+    1 * mockedContext.getTrace() >> new PendingTrace(tracer, 1G)
 
     final String expectedName = "fakeName"
 
@@ -183,7 +181,7 @@ class DDSpanBuilderTest extends DDSpecification {
       tracer.buildSpan("parent")
         .startActive(false)
 
-    final String expectedParentId = noopParent ? "0" : parent.span().context().getSpanId()
+    final BigInteger expectedParentId = noopParent ? 0G : new BigInteger(parent.span().context().toSpanId())
 
     final String expectedName = "fakeName"
 
@@ -430,9 +428,9 @@ class DDSpanBuilderTest extends DDSpecification {
                                                      (Config.TRACING_VERSION_KEY): Config.TRACING_VERSION_VALUE]
 
     where:
-    extractedContext                                                                                                  | _
-    new ExtractedContext("1", "2", 0, null, [:], [:])                                                                 | _
-    new ExtractedContext("3", "4", 1, "some-origin", ["asdf": "qwer"], [(ORIGIN_KEY): "some-origin", "zxcv": "1234"]) | _
+    extractedContext                                                                                                | _
+    new ExtractedContext(1G, 2G, 0, null, [:], [:])                                                                 | _
+    new ExtractedContext(3G, 4G, 1, "some-origin", ["asdf": "qwer"], [(ORIGIN_KEY): "some-origin", "zxcv": "1234"]) | _
   }
 
   def "TagContext should populate default span details"() {
@@ -441,9 +439,9 @@ class DDSpanBuilderTest extends DDSpecification {
     final DDSpan span = tracer.buildSpan("op name").asChildOf(tagContext).start()
 
     expect:
-    span.traceId != "0"
-    span.parentId == "0"
-    span.samplingPriority == PrioritySampling.SAMPLER_KEEP // Since we're using the RateByServiceSampler
+    span.traceId != 0G
+    span.parentId == 0G
+    span.samplingPriority == null
     span.context().origin == tagContext.origin
     span.context().baggageItems == [:]
     span.context().@tags == tagContext.tags + [(DDTags.THREAD_NAME)        : thread.name, (DDTags.THREAD_ID): thread.id,
@@ -460,7 +458,7 @@ class DDSpanBuilderTest extends DDSpecification {
     setup:
     System.setProperty("signalfx.span.tags", tagString)
     def config = new Config()
-    tracer = new DDTracer(config, writer)
+    tracer = DDTracer.builder().config(config).writer(writer).build()
     def span = tracer.buildSpan("op name").withServiceName("foo").start()
 
     expect:
@@ -481,5 +479,165 @@ class DDSpanBuilderTest extends DDSpecification {
     "a:x"         | [a: "x"]
     "a:a,a:b,a:c" | [a: "c"]
     "a:1,b-c:d"   | [a: "1", "b-c": "d"]
+  }
+
+  def "sanity test for logs if logHandler is null"() {
+    setup:
+    final String expectedName = "fakeName"
+
+    final DDSpan span =
+      tracer
+        .buildSpan(expectedName)
+        .withServiceName("foo")
+        .start()
+    final String expectedLogEvent = "fakeEvent"
+    final timeStamp = System.currentTimeMillis()
+    final Map<String, String> fieldsMap = new HashMap<>()
+
+    span.log(expectedLogEvent)
+    span.log(timeStamp, expectedLogEvent)
+    span.log(fieldsMap)
+    span.log(timeStamp, fieldsMap)
+  }
+
+  def "sanity test when passed log handler is null"() {
+    setup:
+    final String expectedName = "fakeName"
+    final DDSpan span = tracer
+      .buildSpan(expectedName)
+      .withLogHandler(null)
+      .start()
+    final String expectedLogEvent = "fakeEvent"
+    final timeStamp = System.currentTimeMillis()
+    final Map<String, String> fieldsMap = new HashMap<>()
+
+    span.log(expectedLogEvent)
+    span.log(timeStamp, expectedLogEvent)
+    span.log(fieldsMap)
+    span.log(timeStamp, fieldsMap)
+  }
+
+
+  def "should delegate simple logs to logHandler"() {
+    setup:
+    final LogHandler logHandler = new TestLogHandler()
+    final String expectedName = "fakeName"
+
+    final DDSpan span =
+      tracer
+        .buildSpan(expectedName)
+        .withLogHandler(logHandler)
+        .withServiceName("foo")
+        .start()
+    final String expectedLogEvent = "fakeEvent"
+    final timeStamp = System.currentTimeMillis()
+    span.log(timeStamp, expectedLogEvent)
+
+    expect:
+    logHandler.assertLogCalledWithArgs(timeStamp, expectedLogEvent, span)
+  }
+
+  def "should delegate simple logs with timestamp to logHandler"() {
+    setup:
+    final LogHandler logHandler = new TestLogHandler()
+    final String expectedName = "fakeName"
+
+    final DDSpan span =
+      tracer
+        .buildSpan(expectedName)
+        .withLogHandler(logHandler)
+        .withServiceName("foo")
+        .start()
+    final String expectedLogEvent = "fakeEvent"
+    span.log(expectedLogEvent)
+
+    expect:
+    logHandler.assertLogCalledWithArgs(expectedLogEvent, span)
+
+  }
+
+  def "should delegate logs with fields to logHandler"() {
+    setup:
+    final LogHandler logHandler = new TestLogHandler()
+    final String expectedName = "fakeName"
+
+    final DDSpan span =
+      tracer
+        .buildSpan(expectedName)
+        .withLogHandler(logHandler)
+        .withServiceName("foo")
+        .start()
+    final Map<String, String> fieldsMap = new HashMap<>()
+    span.log(fieldsMap)
+
+    expect:
+    logHandler.assertLogCalledWithArgs(fieldsMap, span)
+
+  }
+
+  def "should delegate logs with fields and timestamp to logHandler"() {
+    setup:
+    final LogHandler logHandler = new TestLogHandler()
+    final String expectedName = "fakeName"
+
+    final DDSpan span =
+      tracer
+        .buildSpan(expectedName)
+        .withLogHandler(logHandler)
+        .withServiceName("foo")
+        .start()
+    final Map<String, String> fieldsMap = new HashMap<>()
+    final timeStamp = System.currentTimeMillis()
+    span.log(timeStamp, fieldsMap)
+
+    expect:
+    logHandler.assertLogCalledWithArgs(timeStamp, fieldsMap, span)
+
+  }
+
+  private static class TestLogHandler implements LogHandler {
+    Object[] arguments = null
+
+    @Override
+    void log(Map<String, ?> fields, DDSpan span) {
+      arguments = new Object[2]
+      arguments[0] = fields
+      arguments[1] = span
+    }
+
+    @Override
+    void log(long timestampMicroseconds, Map<String, ?> fields, DDSpan span) {
+      arguments = new Object[3]
+      arguments[0] = timestampMicroseconds
+      arguments[1] = fields
+      arguments[2] = span
+    }
+
+    @Override
+    void log(String event, DDSpan span) {
+      arguments = new Object[2]
+      arguments[0] = event
+      arguments[1] = span
+    }
+
+    @Override
+    void log(long timestampMicroseconds, String event, DDSpan span) {
+      arguments = new Object[3]
+      arguments[0] = timestampMicroseconds
+      arguments[1] = event
+      arguments[2] = span
+    }
+
+    boolean assertLogCalledWithArgs(Object... args) {
+      if (arguments.size() != args.size()) {
+        return false
+      }
+      for (int i = 0; i < args.size(); i++) {
+        if (arguments[i] != args[i]) {
+          return false
+        }
+      }
+      return true
+    }
   }
 }

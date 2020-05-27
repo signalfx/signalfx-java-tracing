@@ -44,11 +44,7 @@ public final class MongoAsyncClientInstrumentation extends Instrumenter.Default 
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
-      "datadog.trace.agent.decorator.DatabaseClientDecorator",
-      packageName + ".MongoClientDecorator",
-      packageName + ".TracingCommandListener"
+      packageName + ".MongoClientDecorator", packageName + ".TracingCommandListener"
     };
   }
 
@@ -56,7 +52,7 @@ public final class MongoAsyncClientInstrumentation extends Instrumenter.Default 
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
     return singletonMap(
         isMethod().and(isPublic()).and(named("build")).and(takesArguments(0)),
-        MongoAsyncClientAdvice.class.getName());
+        MongoAsyncClientInstrumentation.class.getName() + "$MongoAsyncClientAdvice");
   }
 
   public static class MongoAsyncClientAdvice {

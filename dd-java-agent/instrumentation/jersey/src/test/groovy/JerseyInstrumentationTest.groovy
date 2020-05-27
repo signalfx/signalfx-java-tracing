@@ -42,9 +42,9 @@ class JerseyInstrumentationTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          traceId "123"
-          parentId "456"
-          serviceName "unnamed-java-app"
+          traceId 123G
+          parentId 456G
+          serviceName "unnamed-java-service"
           operationName "jersey.request"
           resourceName "/test/hello/bob"
           errored false
@@ -84,9 +84,9 @@ class JerseyInstrumentationTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          traceId "123"
-          parentId "456"
-          serviceName "unnamed-java-app"
+          traceId 123G
+          parentId 456G
+          serviceName "unnamed-java-service"
           operationName "jersey.request"
           resourceName "/test/blowup"
           errored true

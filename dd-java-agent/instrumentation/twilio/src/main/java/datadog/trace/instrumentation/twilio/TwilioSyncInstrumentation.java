@@ -1,8 +1,9 @@
 package datadog.trace.instrumentation.twilio;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
-import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.extendsClass;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.twilio.TwilioClientDecorator.DECORATE;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
@@ -15,8 +16,8 @@ import com.google.auto.service.AutoService;
 import com.twilio.Twilio;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
-import datadog.trace.instrumentation.api.AgentScope;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -30,12 +31,18 @@ public class TwilioSyncInstrumentation extends Instrumenter.Default {
     super("twilio-sdk");
   }
 
+  @Override
+  public ElementMatcher<ClassLoader> classLoaderMatcher() {
+    // Optimization for expensive typeMatcher.
+    return hasClassesNamed("com.twilio.Twilio");
+  }
+
   /** Match any child class of the base Twilio service classes. */
   @Override
   public net.bytebuddy.matcher.ElementMatcher<
           ? super net.bytebuddy.description.type.TypeDescription>
       typeMatcher() {
-    return safeHasSuperType(
+    return extendsClass(
         named("com.twilio.base.Creator")
             .or(named("com.twilio.base.Deleter"))
             .or(named("com.twilio.base.Fetcher"))
@@ -47,8 +54,6 @@ public class TwilioSyncInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
       packageName + ".TwilioClientDecorator",
     };
   }
@@ -74,7 +79,7 @@ public class TwilioSyncInstrumentation extends Instrumenter.Default {
                     .or(named("read"))
                     .or(named("fetch"))
                     .or(named("update"))),
-        TwilioClientAdvice.class.getName());
+        TwilioSyncInstrumentation.class.getName() + "$TwilioClientAdvice");
   }
 
   /** Advice for instrumenting Twilio service classes. */

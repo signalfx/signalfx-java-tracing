@@ -12,7 +12,7 @@ public class AllSampler extends AbstractSampler {
   }
 
   /** Injected sampling flags are based on sampling priority, so always keep */
-  public void initializeSamplingPriority(DDSpan span) {
+  public void initializeSamplingPriority(final DDSpan span) {
     if (span.isRootSpan() || span.getSamplingPriority() == null) {
       span.setSamplingPriority(PrioritySampling.SAMPLER_KEEP);
     }

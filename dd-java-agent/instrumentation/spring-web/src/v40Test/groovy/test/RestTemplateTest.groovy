@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package test
 
 import datadog.trace.agent.test.AgentTestRunner
@@ -61,7 +62,7 @@ class RestTemplateTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "parent"
           resourceName "parent"
           spanType null
@@ -92,8 +93,8 @@ class RestTemplateTest extends AgentTestRunner {
       }
     }
 
-    server.lastRequest.headers.get("x-b3-traceid") == new BigInteger(TEST_WRITER[0][1].traceId).toString(16).toLowerCase()
-    server.lastRequest.headers.get("x-b3-spanid") == new BigInteger(TEST_WRITER[0][1].spanId).toString(16).toLowerCase()
+    server.lastRequest.headers.get("x-b3-traceid") == String.format("%016x", TEST_WRITER[0][1].traceId)
+    server.lastRequest.headers.get("x-b3-spanid") == String.format("%016x", TEST_WRITER[0][1].spanId)
 
     cleanup:
     server.close()

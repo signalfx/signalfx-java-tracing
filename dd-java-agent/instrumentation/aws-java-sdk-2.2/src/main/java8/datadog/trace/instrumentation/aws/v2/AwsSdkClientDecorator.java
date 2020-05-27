@@ -1,8 +1,8 @@
 package datadog.trace.instrumentation.aws.v2;
 
-import datadog.trace.agent.decorator.HttpClientDecorator;
 import datadog.trace.api.DDTags;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.decorator.HttpClientDecorator;
 import java.net.URI;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.core.SdkRequest;
@@ -22,21 +22,21 @@ public class AwsSdkClientDecorator extends HttpClientDecorator<SdkHttpRequest, S
     request
         .getValueForField("Bucket", String.class)
         .ifPresent(name -> span.setTag("aws.bucket.name", name));
-    // DynamoDB
-    request
-        .getValueForField("TableName", String.class)
-        .ifPresent(name -> span.setTag("aws.table.name", name));
     // SQS
-    request
-        .getValueForField("QueueName", String.class)
-        .ifPresent(name -> span.setTag("aws.queue.name", name));
     request
         .getValueForField("QueueUrl", String.class)
         .ifPresent(name -> span.setTag("aws.queue.url", name));
+    request
+        .getValueForField("QueueName", String.class)
+        .ifPresent(name -> span.setTag("aws.queue.name", name));
     // Kinesis
     request
         .getValueForField("StreamName", String.class)
         .ifPresent(name -> span.setTag("aws.stream.name", name));
+    // DynamoDB
+    request
+        .getValueForField("TableName", String.class)
+        .ifPresent(name -> span.setTag("aws.table.name", name));
     return span;
   }
 
@@ -86,16 +86,6 @@ public class AwsSdkClientDecorator extends HttpClientDecorator<SdkHttpRequest, S
   @Override
   protected URI url(final SdkHttpRequest request) {
     return request.getUri();
-  }
-
-  @Override
-  protected String hostname(final SdkHttpRequest request) {
-    return request.host();
-  }
-
-  @Override
-  protected Integer port(final SdkHttpRequest request) {
-    return request.port();
   }
 
   @Override

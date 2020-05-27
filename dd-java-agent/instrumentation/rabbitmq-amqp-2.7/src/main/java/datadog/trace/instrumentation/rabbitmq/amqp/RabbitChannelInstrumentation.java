@@ -1,11 +1,12 @@
 package datadog.trace.instrumentation.rabbitmq.amqp;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
-import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.activeSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.noopSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.propagate;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.implementsInterface;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.noopSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.rabbitmq.amqp.RabbitDecorator.CONSUMER_DECORATE;
 import static datadog.trace.instrumentation.rabbitmq.amqp.RabbitDecorator.DECORATE;
 import static datadog.trace.instrumentation.rabbitmq.amqp.RabbitDecorator.PRODUCER_DECORATE;
@@ -13,7 +14,6 @@ import static datadog.trace.instrumentation.rabbitmq.amqp.TextMapExtractAdapter.
 import static datadog.trace.instrumentation.rabbitmq.amqp.TextMapInjectAdapter.SETTER;
 import static net.bytebuddy.matcher.ElementMatchers.canThrow;
 import static net.bytebuddy.matcher.ElementMatchers.isGetter;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.isSetter;
@@ -33,10 +33,10 @@ import com.rabbitmq.client.MessageProperties;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.api.DDTags;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
-import datadog.trace.instrumentation.api.AgentScope;
-import datadog.trace.instrumentation.api.AgentSpan;
-import datadog.trace.instrumentation.api.AgentSpan.Context;
-import datadog.trace.instrumentation.api.Tags;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan.Context;
+import datadog.trace.bootstrap.instrumentation.api.Tags;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -55,15 +55,19 @@ public class RabbitChannelInstrumentation extends Instrumenter.Default {
   }
 
   @Override
+  public ElementMatcher<ClassLoader> classLoaderMatcher() {
+    // Optimization for expensive typeMatcher.
+    return hasClassesNamed("com.rabbitmq.client.Channel");
+  }
+
+  @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return not(isInterface()).and(safeHasSuperType(named("com.rabbitmq.client.Channel")));
+    return implementsInterface(named("com.rabbitmq.client.Channel"));
   }
 
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
       packageName + ".RabbitDecorator",
       packageName + ".RabbitDecorator$1",
       packageName + ".RabbitDecorator$2",
@@ -93,19 +97,19 @@ public class RabbitChannelInstrumentation extends Instrumenter.Default {
                         .or(named("basicGet"))))
             .and(isPublic())
             .and(canThrow(IOException.class).or(canThrow(InterruptedException.class))),
-        ChannelMethodAdvice.class.getName());
+        RabbitChannelInstrumentation.class.getName() + "$ChannelMethodAdvice");
     transformers.put(
         isMethod().and(named("basicPublish")).and(takesArguments(6)),
-        ChannelPublishAdvice.class.getName());
+        RabbitChannelInstrumentation.class.getName() + "$ChannelPublishAdvice");
     transformers.put(
         isMethod().and(named("basicGet")).and(takesArgument(0, String.class)),
-        ChannelGetAdvice.class.getName());
+        RabbitChannelInstrumentation.class.getName() + "$ChannelGetAdvice");
     transformers.put(
         isMethod()
             .and(named("basicConsume"))
             .and(takesArgument(0, String.class))
             .and(takesArgument(6, named("com.rabbitmq.client.Consumer"))),
-        ChannelConsumeAdvice.class.getName());
+        RabbitChannelInstrumentation.class.getName() + "$ChannelConsumeAdvice");
     return transformers;
   }
 

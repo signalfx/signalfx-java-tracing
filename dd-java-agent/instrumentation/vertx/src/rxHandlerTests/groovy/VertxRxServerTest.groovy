@@ -78,7 +78,7 @@ class VertxRxServerTest extends AgentTestRunner {
 
     and:
     assertTraces(1) {
-      trace(0, 9) {
+      trace(0, 8) {
         spanByOperationName("netty.request") {
           spanType "web"
         }
@@ -102,9 +102,6 @@ class VertxRxServerTest extends AgentTestRunner {
         }
         spanByOperationName("hsqldb.query") {
           spanType "sql"
-          childOf spanByOperationName("VertxRxWebTestServer.listProducts")
-        }
-        spanByOperationName("database.connection") {
           childOf spanByOperationName("VertxRxWebTestServer.listProducts")
         }
       }

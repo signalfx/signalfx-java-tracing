@@ -12,7 +12,7 @@ import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import org.springframework.amqp.core.AmqpAdmin
 import org.springframework.amqp.core.AmqpTemplate
 import org.springframework.amqp.core.Queue
@@ -108,6 +108,9 @@ class RabbitMQTest extends AgentTestRunner {
       trace(1, 5) {
         span(0) {
           operationName "parent"
+          tags {
+            defaultTags()
+          }
         }
         // reverse order
         rabbitSpan(it, 1, "basic.publish $exchangeName -> $routingKey", false, span(0))
@@ -366,9 +369,6 @@ class RabbitMQTest extends AgentTestRunner {
       errored exception != null
 
       tags {
-        if (exception) {
-          errorTags(exception.class, errorMsg)
-        }
         "$Tags.COMPONENT" "rabbitmq-amqp"
         "$Tags.PEER_HOSTNAME" { it == null || it instanceof String }
         "$Tags.PEER_HOST_IPV4" { "127.0.0.1" }
@@ -405,6 +405,9 @@ class RabbitMQTest extends AgentTestRunner {
           default:
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "amqp.command" { it == null || it == resource }
+        }
+        if (exception) {
+          errorTags(exception.class, errorMsg)
         }
         defaultTags(distributedRootSpan)
       }

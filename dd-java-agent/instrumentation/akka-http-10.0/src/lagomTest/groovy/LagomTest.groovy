@@ -5,7 +5,7 @@ import akka.stream.testkit.TestSubscriber.Probe
 import akka.stream.testkit.javadsl.TestSink
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import play.inject.guice.GuiceApplicationBuilder
 import spock.lang.Shared
 
@@ -60,24 +60,28 @@ class LagomTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "akka-http.request"
           resourceName "/echo"
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            defaultTags()
-            "$Tags.HTTP_STATUS" 101
+            "$Tags.COMPONENT" "akka-http-server"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "$Tags.HTTP_URL" "ws://localhost:${server.port()}/echo"
             "$Tags.HTTP_METHOD" "GET"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
-            "$Tags.COMPONENT" "akka-http-server"
+            "$Tags.HTTP_STATUS" 101
+            defaultTags()
           }
         }
         span(1) {
           childOf span(0)
           operationName 'trace.annotation'
           resourceName 'EchoServiceImpl.tracedMethod'
+          tags {
+            "$Tags.COMPONENT" "trace"
+            defaultTags()
+          }
         }
       }
     }
@@ -99,19 +103,19 @@ class LagomTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "akka-http.request"
           resourceName "/error"
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
-            defaultTags()
-            "$Tags.HTTP_STATUS" 500
+            "$Tags.COMPONENT" "akka-http-server"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "$Tags.HTTP_URL" "ws://localhost:${server.port()}/error"
             "$Tags.HTTP_METHOD" "GET"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
-            "$Tags.COMPONENT" "akka-http-server"
+            "$Tags.HTTP_STATUS" 500
             "$Tags.ERROR" true
+            defaultTags()
           }
         }
       }

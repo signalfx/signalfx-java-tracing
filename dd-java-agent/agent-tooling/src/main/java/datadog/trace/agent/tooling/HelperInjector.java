@@ -7,8 +7,8 @@ import datadog.trace.bootstrap.WeakMap;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.nio.file.Files;
 import java.security.SecureClassLoader;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -18,6 +18,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.agent.builder.AgentBuilder.Transformer;
 import net.bytebuddy.description.type.TypeDescription;
@@ -31,15 +32,21 @@ import net.bytebuddy.utility.JavaModule;
 public class HelperInjector implements Transformer {
   // Need this because we can't put null into the injectedClassLoaders map.
   private static final ClassLoader BOOTSTRAP_CLASSLOADER_PLACEHOLDER =
-      new SecureClassLoader(null) {};
+      new SecureClassLoader(null) {
+        @Override
+        public String toString() {
+          return "<bootstrap>";
+        }
+      };
+
+  private final String requestingName;
 
   private final Set<String> helperClassNames;
-  private Map<TypeDescription, byte[]> helperMap = null;
+  private final Map<String, byte[]> dynamicTypeMap = new LinkedHashMap<>();
+
   private final WeakMap<ClassLoader, Boolean> injectedClassLoaders = newWeakMap();
 
-  // Neither Module nor WeakReference implements equals or hashcode so using a list
-  private final List<WeakReference<Object>> helperModules = new ArrayList<>();
-
+  private final List<WeakReference<Object>> helperModules = new CopyOnWriteArrayList<>();
   /**
    * Construct HelperInjector.
    *
@@ -49,43 +56,44 @@ public class HelperInjector implements Transformer {
    *     provided. This is important if there is interdependency between helper classes that
    *     requires them to be injected in a specific order.
    */
-  public HelperInjector(final String... helperClassNames) {
+  public HelperInjector(final String requestingName, final String... helperClassNames) {
+    this.requestingName = requestingName;
+
     this.helperClassNames = new LinkedHashSet<>(Arrays.asList(helperClassNames));
   }
 
-  public HelperInjector(final Map<String, byte[]> helperMap) {
+  public HelperInjector(final String requestingName, final Map<String, byte[]> helperMap) {
+    this.requestingName = requestingName;
+
     helperClassNames = helperMap.keySet();
-    this.helperMap = new LinkedHashMap<>(helperClassNames.size());
-    for (final String helperName : helperClassNames) {
-      final TypeDescription typeDesc =
-          new TypeDescription.Latent(
-              helperName, 0, null, Collections.<TypeDescription.Generic>emptyList());
-      this.helperMap.put(typeDesc, helperMap.get(helperName));
-    }
+    dynamicTypeMap.putAll(helperMap);
   }
 
-  public static HelperInjector forDynamicTypes(final Collection<DynamicType.Unloaded<?>> helpers) {
+  public static HelperInjector forDynamicTypes(
+      final String requestingName, final Collection<DynamicType.Unloaded<?>> helpers) {
     final Map<String, byte[]> bytes = new HashMap<>(helpers.size());
     for (final DynamicType.Unloaded<?> helper : helpers) {
       bytes.put(helper.getTypeDescription().getName(), helper.getBytes());
     }
-    return new HelperInjector(bytes);
+    return new HelperInjector(requestingName, bytes);
   }
 
-  private synchronized Map<TypeDescription, byte[]> getHelperMap() throws IOException {
-    if (helperMap == null) {
-      helperMap = new LinkedHashMap<>(helperClassNames.size());
-      for (final String helperName : helperClassNames) {
-        final ClassFileLocator locator =
-            ClassFileLocator.ForClassLoader.of(Utils.getAgentClassLoader());
-        final byte[] classBytes = locator.locate(helperName).resolve();
-        final TypeDescription typeDesc =
-            new TypeDescription.Latent(
-                helperName, 0, null, Collections.<TypeDescription.Generic>emptyList());
-        helperMap.put(typeDesc, classBytes);
+  private Map<String, byte[]> getHelperMap() throws IOException {
+    if (dynamicTypeMap.isEmpty()) {
+      final Map<String, byte[]> classnameToBytes = new LinkedHashMap<>();
+
+      final ClassFileLocator locator =
+          ClassFileLocator.ForClassLoader.of(Utils.getAgentClassLoader());
+
+      for (final String helperClassName : helperClassNames) {
+        final byte[] classBytes = locator.locate(helperClassName).resolve();
+        classnameToBytes.put(helperClassName, classBytes);
       }
+
+      return classnameToBytes;
+    } else {
+      return dynamicTypeMap;
     }
-    return helperMap;
   }
 
   @Override
@@ -95,57 +103,70 @@ public class HelperInjector implements Transformer {
       ClassLoader classLoader,
       final JavaModule module) {
     if (!helperClassNames.isEmpty()) {
-      synchronized (this) {
-        if (classLoader == BOOTSTRAP_CLASSLOADER) {
-          classLoader = BOOTSTRAP_CLASSLOADER_PLACEHOLDER;
-        }
-        if (!injectedClassLoaders.containsKey(classLoader)) {
-          try {
-            final Map<TypeDescription, byte[]> helperMap = getHelperMap();
-            log.debug("Injecting classes onto classloader {} -> {}", classLoader, helperClassNames);
-            if (classLoader == BOOTSTRAP_CLASSLOADER_PLACEHOLDER) {
-              final Map<TypeDescription, Class<?>> injected =
-                  ClassInjector.UsingInstrumentation.of(
-                          new File(System.getProperty("java.io.tmpdir")),
-                          ClassInjector.UsingInstrumentation.Target.BOOTSTRAP,
-                          AgentInstaller.getInstrumentation())
-                      .inject(helperMap);
-              for (final TypeDescription desc : injected.keySet()) {
-                final Class<?> injectedClass =
-                    Class.forName(desc.getName(), false, Utils.getBootstrapProxy());
-                if (JavaModule.isSupported()) {
-                  helperModules.add(new WeakReference<>(JavaModule.ofType(injectedClass).unwrap()));
-                }
-              }
-            } else {
-              final Map<TypeDescription, Class<?>> classMap =
-                  new ClassInjector.UsingReflection(classLoader).inject(helperMap);
-              if (JavaModule.isSupported()) {
-                for (final Class<?> injectedClass : classMap.values()) {
-                  helperModules.add(new WeakReference<>(JavaModule.ofType(injectedClass).unwrap()));
-                }
-              }
-            }
-          } catch (final Exception e) {
-            log.error(
-                "Error preparing helpers for "
-                    + typeDescription
-                    + ". Failed to inject helper classes into instance "
-                    + classLoader
-                    + " of type "
-                    + (classLoader == BOOTSTRAP_CLASSLOADER_PLACEHOLDER
-                        ? "<bootstrap>"
-                        : classLoader.getClass().getName()),
-                e);
-            throw new RuntimeException(e);
+      if (classLoader == BOOTSTRAP_CLASSLOADER) {
+        classLoader = BOOTSTRAP_CLASSLOADER_PLACEHOLDER;
+      }
+
+      if (!injectedClassLoaders.containsKey(classLoader)) {
+        try {
+          log.debug("Injecting classes onto classloader {} -> {}", classLoader, helperClassNames);
+
+          final Map<String, byte[]> classnameToBytes = getHelperMap();
+          final Map<String, Class<?>> classes;
+          if (classLoader == BOOTSTRAP_CLASSLOADER_PLACEHOLDER) {
+            classes = injectBootstrapClassLoader(classnameToBytes);
+          } else {
+            classes = injectClassLoader(classLoader, classnameToBytes);
           }
-          injectedClassLoaders.put(classLoader, true);
+
+          // All datadog helper classes are in the unnamed module
+          // And there's exactly one unnamed module per classloader
+          // Use the module of the first class for convenience
+          if (JavaModule.isSupported()) {
+            final JavaModule javaModule = JavaModule.ofType(classes.values().iterator().next());
+            helperModules.add(new WeakReference<>(javaModule.unwrap()));
+          }
+        } catch (final Exception e) {
+          log.error(
+              "Error preparing helpers while processing {} for {}. Failed to inject helper classes into instance {}",
+              typeDescription,
+              requestingName,
+              classLoader,
+              e);
+          throw new RuntimeException(e);
         }
 
-        ensureModuleCanReadHelperModules(module);
+        injectedClassLoaders.put(classLoader, true);
       }
+
+      ensureModuleCanReadHelperModules(module);
     }
     return builder;
+  }
+
+  private Map<String, Class<?>> injectBootstrapClassLoader(
+      final Map<String, byte[]> classnameToBytes) throws IOException {
+    // Mar 2020: Since we're proactively cleaning up tempDirs, we cannot share dirs per thread.
+    // If this proves expensive, we could do a per-process tempDir with
+    // a reference count -- but for now, starting simple.
+
+    // Failures to create a tempDir are propagated as IOException and handled by transform
+    File tempDir = createTempDir();
+    try {
+      return ClassInjector.UsingInstrumentation.of(
+              tempDir,
+              ClassInjector.UsingInstrumentation.Target.BOOTSTRAP,
+              AgentInstaller.getInstrumentation())
+          .injectRaw(classnameToBytes);
+    } finally {
+      // Delete fails silently
+      deleteTempDir(tempDir);
+    }
+  }
+
+  private Map<String, Class<?>> injectClassLoader(
+      final ClassLoader classLoader, final Map<String, byte[]> classnameToBytes) {
+    return new ClassInjector.UsingReflection(classLoader).injectRaw(classnameToBytes);
   }
 
   private void ensureModuleCanReadHelperModules(final JavaModule target) {
@@ -167,6 +188,20 @@ public class HelperInjector implements Transformer {
           }
         }
       }
+    }
+  }
+
+  private static final File createTempDir() throws IOException {
+    return Files.createTempDirectory("datadog-temp-jars").toFile();
+  }
+
+  private static final void deleteTempDir(final File file) {
+    // Not using Files.delete for deleting the directory because failures
+    // create Exceptions which may prove expensive.  Instead using the
+    // older File API which simply returns a boolean.
+    boolean deleted = file.delete();
+    if (!deleted) {
+      file.deleteOnExit();
     }
   }
 }

@@ -1,7 +1,8 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.jetty6;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.safeHasSuperType;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -24,6 +25,12 @@ public final class HandlerInstrumentation extends Instrumenter.Default {
   }
 
   @Override
+  public ElementMatcher<ClassLoader> classLoaderMatcher() {
+    // Optimization for expensive typeMatcher.
+    return hasClassesNamed("org.mortbay.jetty.Handler");
+  }
+
+  @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
     return not(isInterface())
         .and(safeHasSuperType(named("org.mortbay.jetty.Handler")))
@@ -33,11 +40,7 @@ public final class HandlerInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ServerDecorator",
-      "datadog.trace.agent.decorator.HttpServerDecorator",
-      packageName + ".JettyDecorator",
-      packageName + ".HttpServletRequestExtractAdapter",
+      packageName + ".JettyDecorator", packageName + ".HttpServletRequestExtractAdapter",
     };
   }
 

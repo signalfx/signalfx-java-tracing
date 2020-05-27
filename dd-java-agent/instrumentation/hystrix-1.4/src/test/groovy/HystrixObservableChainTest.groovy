@@ -1,7 +1,7 @@
 import com.netflix.hystrix.HystrixObservableCommand
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Trace
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import rx.Observable
 import rx.schedulers.Schedulers
 import spock.lang.Retry
@@ -72,7 +72,7 @@ class HystrixObservableChainTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 5) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "parent"
           resourceName "parent"
           spanType null
@@ -83,22 +83,22 @@ class HystrixObservableChainTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "hystrix.cmd"
           resourceName "OtherGroup.HystrixObservableChainTest\$2.execute"
           spanType null
           childOf span(3)
           errored false
           tags {
+            "$Tags.COMPONENT" "hystrix"
             "hystrix.command" "HystrixObservableChainTest\$2"
             "hystrix.group" "OtherGroup"
             "hystrix.circuit-open" false
-            "$Tags.COMPONENT" "hystrix"
             defaultTags()
           }
         }
         span(2) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "trace.annotation"
           resourceName "HystrixObservableChainTest\$2.tracedMethod"
           spanType null
@@ -110,22 +110,22 @@ class HystrixObservableChainTest extends AgentTestRunner {
           }
         }
         span(3) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "hystrix.cmd"
           resourceName "ExampleGroup.HystrixObservableChainTest\$1.execute"
           spanType null
           childOf span(0)
           errored false
           tags {
+            "$Tags.COMPONENT" "hystrix"
             "hystrix.command" "HystrixObservableChainTest\$1"
             "hystrix.group" "ExampleGroup"
             "hystrix.circuit-open" false
-            "$Tags.COMPONENT" "hystrix"
             defaultTags()
           }
         }
         span(4) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "trace.annotation"
           resourceName "HystrixObservableChainTest\$1.tracedMethod"
           spanType null

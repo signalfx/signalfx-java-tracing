@@ -5,7 +5,8 @@ import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpServerTest
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.api.DDTags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.netty41.server.NettyHttpServerDecorator
 import datadog.trace.instrumentation.ratpack.RatpackServerDecorator
 import ratpack.error.ServerErrorHandler
@@ -15,10 +16,11 @@ import ratpack.test.embed.EmbeddedApp
 
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.ERROR
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.QUERY_PARAM
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.REDIRECT
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
 
-class RatpackHttpServerTest extends HttpServerTest<EmbeddedApp, NettyHttpServerDecorator> {
+class RatpackHttpServerTest extends HttpServerTest<EmbeddedApp> {
 
   @Override
   EmbeddedApp startServer(int bindPort) {
@@ -34,6 +36,13 @@ class RatpackHttpServerTest extends HttpServerTest<EmbeddedApp, NettyHttpServerD
           all {
             controller(SUCCESS) {
               context.response.status(SUCCESS.status).send(SUCCESS.body)
+            }
+          }
+        }
+        prefix(QUERY_PARAM.rawPath()) {
+          all {
+            controller(QUERY_PARAM) {
+              context.response.status(QUERY_PARAM.status).send(request.query)
             }
           }
         }
@@ -79,8 +88,8 @@ class RatpackHttpServerTest extends HttpServerTest<EmbeddedApp, NettyHttpServerD
   }
 
   @Override
-  NettyHttpServerDecorator decorator() {
-    return NettyHttpServerDecorator.DECORATE
+  String component() {
+    return NettyHttpServerDecorator.DECORATE.component()
   }
 
   @Override
@@ -108,18 +117,20 @@ class RatpackHttpServerTest extends HttpServerTest<EmbeddedApp, NettyHttpServerD
       childOf(parent as DDSpan)
       tags {
         "$Tags.COMPONENT" RatpackServerDecorator.DECORATE.component()
-        "$Tags.HTTP_STATUS" Integer
-        "$Tags.HTTP_URL" String
-        "$Tags.PEER_HOSTNAME" "localhost"
-        "$Tags.PEER_PORT" Integer
         "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
+        "$Tags.PEER_PORT" Integer
+        "$Tags.HTTP_URL" String
         "$Tags.HTTP_METHOD" String
-        defaultTags()
+        "$Tags.HTTP_STATUS" Integer
         if (endpoint == ERROR) {
           "$Tags.ERROR" true
         } else if (endpoint == EXCEPTION) {
           errorTags(Exception, EXCEPTION.body)
         }
+        if (endpoint.query) {
+          "$DDTags.HTTP_QUERY" endpoint.query
+        }
+        defaultTags()
       }
     }
   }

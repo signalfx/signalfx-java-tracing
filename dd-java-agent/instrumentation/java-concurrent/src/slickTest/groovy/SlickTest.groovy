@@ -1,7 +1,7 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.jdbc.JDBCUtils
 
 class SlickTest extends AgentTestRunner {
@@ -21,7 +21,7 @@ class SlickTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           operationName "trace.annotation"
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           resourceName "SlickUtils.startQuery"
           parent()
           errored false
@@ -40,14 +40,13 @@ class SlickTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT" "java-jdbc-prepared_statement"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
-
             "$Tags.DB_TYPE" SlickUtils.Driver()
+            "$Tags.DB_INSTANCE" SlickUtils.Db()
             "$Tags.DB_USER" SlickUtils.Username()
 
             "db.statement" JDBCUtils.normalizeSql(SlickUtils.TestQuery())
             "db.instance" SlickUtils.Db()
             "span.origin.type" "org.h2.jdbc.JdbcPreparedStatement"
-
             defaultTags()
           }
         }

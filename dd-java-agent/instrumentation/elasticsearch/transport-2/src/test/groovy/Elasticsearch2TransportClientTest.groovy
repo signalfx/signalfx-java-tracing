@@ -3,8 +3,9 @@ import com.anotherchrisberry.spock.extensions.retry.RetryOnFailure
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest
+import org.elasticsearch.action.admin.cluster.stats.ClusterStatsRequest
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.io.FileSystemUtils
 import org.elasticsearch.common.settings.Settings
@@ -91,13 +92,49 @@ class Elasticsearch2TransportClientTest extends AgentTestRunner {
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT" "elasticsearch-java"
-            "$Tags.DB_TYPE" "elasticsearch"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.PEER_HOSTNAME" "127.0.0.1"
             "$Tags.PEER_HOST_IPV4" "127.0.0.1"
             "$Tags.PEER_PORT" tcpPort
+            "$Tags.DB_TYPE" "elasticsearch"
             "elasticsearch.action" "ClusterHealthAction"
             "elasticsearch.request" "ClusterHealthRequest"
+            defaultTags()
+          }
+        }
+      }
+    }
+  }
+
+  def "test elasticsearch stats"() {
+    setup:
+    def result = client.admin().cluster().clusterStats(new ClusterStatsRequest(new String[0]))
+
+    def status = result.get().status
+    def failures = result.get().failures()
+
+    expect:
+    status.name() == "GREEN"
+    failures == null
+
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          serviceName "elasticsearch"
+          resourceName "ClusterStatsAction"
+          operationName "ClusterStatsAction"
+          spanType DDSpanTypes.ELASTICSEARCH
+          tags {
+            "$Tags.COMPONENT" "elasticsearch-java"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "127.0.0.1"
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" tcpPort
+            "$Tags.DB_TYPE" "elasticsearch"
+            "$Tags.DB_INSTANCE" "test-cluster"
+            "elasticsearch.action" "ClusterStatsAction"
+            "elasticsearch.request" "ClusterStatsRequest"
+            "elasticsearch.node.cluster.name" "test-cluster"
             defaultTags()
           }
         }
@@ -123,8 +160,8 @@ class Elasticsearch2TransportClientTest extends AgentTestRunner {
           errored true
           tags {
             "$Tags.COMPONENT" "elasticsearch-java"
-            "$Tags.DB_TYPE" "elasticsearch"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "elasticsearch"
             "elasticsearch.action" "GetAction"
             "elasticsearch.request" "GetRequest"
             "elasticsearch.request.indices" indexName
@@ -195,14 +232,14 @@ class Elasticsearch2TransportClientTest extends AgentTestRunner {
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT" "elasticsearch-java"
-            "$Tags.DB_TYPE" "elasticsearch"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
-            "elasticsearch.action" "CreateIndexAction"
-            "elasticsearch.request" "CreateIndexRequest"
-            "elasticsearch.request.indices" indexName
             "$Tags.PEER_HOSTNAME" "127.0.0.1"
             "$Tags.PEER_HOST_IPV4" "127.0.0.1"
             "$Tags.PEER_PORT" tcpPort
+            "$Tags.DB_TYPE" "elasticsearch"
+            "elasticsearch.action" "CreateIndexAction"
+            "elasticsearch.request" "CreateIndexRequest"
+            "elasticsearch.request.indices" indexName
             defaultTags()
           }
         }
@@ -215,13 +252,13 @@ class Elasticsearch2TransportClientTest extends AgentTestRunner {
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT" "elasticsearch-java"
-            "$Tags.DB_TYPE" "elasticsearch"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
-            "elasticsearch.action" "ClusterHealthAction"
-            "elasticsearch.request" "ClusterHealthRequest"
             "$Tags.PEER_HOSTNAME" "127.0.0.1"
             "$Tags.PEER_HOST_IPV4" "127.0.0.1"
             "$Tags.PEER_PORT" tcpPort
+            "$Tags.DB_TYPE" "elasticsearch"
+            "elasticsearch.action" "ClusterHealthAction"
+            "elasticsearch.request" "ClusterHealthRequest"
             defaultTags()
           }
         }
@@ -234,11 +271,11 @@ class Elasticsearch2TransportClientTest extends AgentTestRunner {
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT" "elasticsearch-java"
-            "$Tags.DB_TYPE" "elasticsearch"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.PEER_HOSTNAME" "127.0.0.1"
             "$Tags.PEER_HOST_IPV4" "127.0.0.1"
             "$Tags.PEER_PORT" tcpPort
+            "$Tags.DB_TYPE" "elasticsearch"
             "elasticsearch.action" "GetAction"
             "elasticsearch.request" "GetRequest"
             "elasticsearch.request.indices" indexName
@@ -257,8 +294,8 @@ class Elasticsearch2TransportClientTest extends AgentTestRunner {
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT" "elasticsearch-java"
-            "$Tags.DB_TYPE" "elasticsearch"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "elasticsearch"
             "elasticsearch.action" "PutMappingAction"
             "elasticsearch.request" "PutMappingRequest"
             "elasticsearch.request.indices" indexName
@@ -274,11 +311,11 @@ class Elasticsearch2TransportClientTest extends AgentTestRunner {
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT" "elasticsearch-java"
-            "$Tags.DB_TYPE" "elasticsearch"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.PEER_HOSTNAME" "127.0.0.1"
             "$Tags.PEER_HOST_IPV4" "127.0.0.1"
             "$Tags.PEER_PORT" tcpPort
+            "$Tags.DB_TYPE" "elasticsearch"
             "elasticsearch.action" "IndexAction"
             "elasticsearch.request" "IndexRequest"
             "elasticsearch.request.indices" indexName
@@ -295,11 +332,11 @@ class Elasticsearch2TransportClientTest extends AgentTestRunner {
           spanType DDSpanTypes.ELASTICSEARCH
           tags {
             "$Tags.COMPONENT" "elasticsearch-java"
-            "$Tags.DB_TYPE" "elasticsearch"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.PEER_HOSTNAME" "127.0.0.1"
             "$Tags.PEER_HOST_IPV4" "127.0.0.1"
             "$Tags.PEER_PORT" tcpPort
+            "$Tags.DB_TYPE" "elasticsearch"
             "elasticsearch.action" "GetAction"
             "elasticsearch.request" "GetRequest"
             "elasticsearch.request.indices" indexName

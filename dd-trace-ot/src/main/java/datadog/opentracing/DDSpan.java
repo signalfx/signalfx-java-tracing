@@ -1,30 +1,17 @@
 // Modified by SignalFx
 package datadog.opentracing;
 
-import static io.opentracing.log.Fields.ERROR_KIND;
-import static io.opentracing.log.Fields.ERROR_OBJECT;
-import static io.opentracing.log.Fields.MESSAGE;
-import static io.opentracing.log.Fields.STACK;
-
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import datadog.trace.api.DDTags;
 import datadog.trace.api.interceptor.MutableSpan;
 import datadog.trace.api.sampling.PrioritySampling;
 import datadog.trace.common.util.Clock;
 import io.opentracing.Span;
 import io.opentracing.tag.Tag;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.ref.WeakReference;
 import java.math.BigInteger;
 import java.util.AbstractMap;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +50,9 @@ public class DDSpan implements Span, MutableSpan {
    */
   private final AtomicLong durationNano = new AtomicLong();
 
+  /** Delegates to for handling the logs if present. */
+  private final LogHandler logHandler;
+
   /** Implementation detail. Stores the weak reference to this span. Used by TraceCollection. */
   volatile WeakReference<DDSpan> ref;
 
@@ -73,7 +63,19 @@ public class DDSpan implements Span, MutableSpan {
    * @param context the context used for the span
    */
   DDSpan(final long timestampMicro, final DDSpanContext context) {
+    this(timestampMicro, context, new DefaultLogHandler());
+  }
+
+  /**
+   * Spans should be constructed using the builder, not by calling the constructor directly.
+   *
+   * @param timestampMicro if greater than zero, use this time instead of the current time
+   * @param context the context used for the span
+   * @param logHandler as the handler where to delegate the log actions
+   */
+  DDSpan(final long timestampMicro, final DDSpanContext context, final LogHandler logHandler) {
     this.context = context;
+    this.logHandler = logHandler;
 
     if (timestampMicro <= 0L) {
       // record the start time
@@ -88,7 +90,6 @@ public class DDSpan implements Span, MutableSpan {
     context.getTrace().registerSpan(this);
   }
 
-  @JsonIgnore
   public boolean isFinished() {
     return durationNano.get() != 0;
   }
@@ -120,7 +121,7 @@ public class DDSpan implements Span, MutableSpan {
 
   @Override
   public DDSpan setError(final boolean error) {
-    context.setErrorFlag(true);
+    context.setErrorFlag(error);
     return this;
   }
 
@@ -131,20 +132,17 @@ public class DDSpan implements Span, MutableSpan {
    *
    * @return true if root, false otherwise
    */
-  @JsonIgnore
   public final boolean isRootSpan() {
-    return "0".equals(context.getParentId());
+    return BigInteger.ZERO.equals(context.getParentId());
   }
 
   @Override
   @Deprecated
-  @JsonIgnore
   public MutableSpan getRootSpan() {
     return getLocalRootSpan();
   }
 
   @Override
-  @JsonIgnore
   public MutableSpan getLocalRootSpan() {
     return context().getTrace().getRootSpan();
   }
@@ -160,19 +158,6 @@ public class DDSpan implements Span, MutableSpan {
     final StringWriter errorString = new StringWriter();
     error.printStackTrace(new PrintWriter(errorString));
     setTag(DDTags.ERROR_STACK, errorString.toString());
-  }
-
-  private boolean extractError(final Map<String, ?> map) {
-    final Object errorObject = map.get(ERROR_OBJECT);
-    if (errorObject instanceof Throwable) {
-      // if custom instrumentation don't use setErrorMeta
-      if (!map.containsKey(ERROR_KIND) && !map.containsKey(MESSAGE) && !map.containsKey(STACK)) {
-        final Throwable error = (Throwable) errorObject;
-        setErrorMeta(error);
-        return true;
-      }
-    }
-    return false;
   }
 
   /* (non-Javadoc)
@@ -247,10 +232,7 @@ public class DDSpan implements Span, MutableSpan {
    */
   @Override
   public final DDSpan log(final Map<String, ?> map) {
-    final long currentTime = Clock.currentMicroTime();
-    if (!extractError(map)) {
-      context().log(currentTime, map);
-    }
+    logHandler.log(map, this);
     return this;
   }
 
@@ -259,9 +241,7 @@ public class DDSpan implements Span, MutableSpan {
    */
   @Override
   public final DDSpan log(final long l, final Map<String, ?> map) {
-    if (!extractError(map)) {
-      context().log(l, map);
-    }
+    logHandler.log(l, map, this);
     return this;
   }
 
@@ -270,7 +250,7 @@ public class DDSpan implements Span, MutableSpan {
    */
   @Override
   public final DDSpan log(final String s) {
-    this.log(Collections.singletonMap("event", s));
+    logHandler.log(s, this);
     return this;
   }
 
@@ -279,12 +259,11 @@ public class DDSpan implements Span, MutableSpan {
    */
   @Override
   public final DDSpan log(final long l, final String s) {
-    this.log(l, Collections.singletonMap("event", s));
+    logHandler.log(l, s, this);
     return this;
   }
 
   @Override
-  @JsonIgnore
   public List<AbstractMap.SimpleEntry<Long, Map<String, ?>>> getLogs() {
     return context().getLogs();
   }
@@ -318,14 +297,13 @@ public class DDSpan implements Span, MutableSpan {
     return this;
   }
 
-  // Getters and JSON serialisation instructions
+  // Getters
 
   /**
    * Meta merges baggage and tags (stringified values)
    *
    * @return merged context baggage and tags
    */
-  @JsonGetter
   public Map<String, String> getMeta() {
     final Map<String, String> meta = new HashMap<>();
     for (final Map.Entry<String, String> entry : context().getBaggageItems().entrySet()) {
@@ -342,61 +320,48 @@ public class DDSpan implements Span, MutableSpan {
    *
    * @return metrics for this span
    */
-  @JsonGetter
   public Map<String, Number> getMetrics() {
     return context.getMetrics();
   }
 
   @Override
-  @JsonGetter("start")
   public long getStartTime() {
     return startTimeNano > 0 ? startTimeNano : TimeUnit.MICROSECONDS.toNanos(startTimeMicro);
   }
 
   @Override
-  @JsonGetter("duration")
   public long getDurationNano() {
     return durationNano.get();
   }
 
   @Override
-  @JsonGetter("service")
   public String getServiceName() {
     return context.getServiceName();
   }
 
-  @JsonGetter("trace_id")
-  @JsonSerialize(using = UInt64IDStringSerializer.class)
-  public String getTraceId() {
+  public BigInteger getTraceId() {
     return context.getTraceId();
   }
 
-  @JsonGetter("span_id")
-  @JsonSerialize(using = UInt64IDStringSerializer.class)
-  public String getSpanId() {
+  public BigInteger getSpanId() {
     return context.getSpanId();
   }
 
-  @JsonGetter("parent_id")
-  @JsonSerialize(using = UInt64IDStringSerializer.class)
-  public String getParentId() {
+  public BigInteger getParentId() {
     return context.getParentId();
   }
 
   @Override
-  @JsonGetter("resource")
   public String getResourceName() {
     return context.getResourceName();
   }
 
   @Override
-  @JsonGetter("name")
   public String getOperationName() {
     return context.getOperationName();
   }
 
   @Override
-  @JsonIgnore
   public Integer getSamplingPriority() {
     final int samplingPriority = context.getSamplingPriority();
     if (samplingPriority == PrioritySampling.UNSET) {
@@ -407,29 +372,24 @@ public class DDSpan implements Span, MutableSpan {
   }
 
   @Override
-  @JsonIgnore
   public String getSpanType() {
     return context.getSpanType();
   }
 
   @Override
-  @JsonIgnore
   public Map<String, Object> getTags() {
     return context().getTags();
   }
 
-  @JsonGetter
   public String getType() {
     return context.getSpanType();
   }
 
   @Override
-  @JsonIgnore
   public Boolean isError() {
     return context.getErrorFlag();
   }
 
-  @JsonGetter
   public int getError() {
     return context.getErrorFlag() ? 1 : 0;
   }
@@ -441,32 +401,5 @@ public class DDSpan implements Span, MutableSpan {
         .append(", duration_ns=")
         .append(durationNano)
         .toString();
-  }
-
-  protected static class UInt64IDStringSerializer extends StdSerializer<String> {
-    private static final int LONG_PARSE_LIMIT = String.valueOf(Long.MAX_VALUE).length();
-
-    public UInt64IDStringSerializer() {
-      this(null);
-    }
-
-    public UInt64IDStringSerializer(final Class<String> stringClass) {
-      super(stringClass);
-    }
-
-    @Override
-    public void serialize(
-        final String value, final JsonGenerator gen, final SerializerProvider provider)
-        throws IOException {
-      final int length = value.length();
-      // BigInteger's are expensive, so lets try to avoid using them if possible.
-      // This is a rough approximation for optimization.
-      // There are some values that would pass this test that could be parsed with Long.parseLong.
-      if (length > LONG_PARSE_LIMIT || (length == LONG_PARSE_LIMIT && value.startsWith("9"))) {
-        gen.writeNumber(new BigInteger(value));
-      } else {
-        gen.writeNumber(Long.parseLong(value));
-      }
-    }
   }
 }

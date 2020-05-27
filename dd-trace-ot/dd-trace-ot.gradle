@@ -1,6 +1,7 @@
 // Modified by SignalFx
 plugins {
-  id "me.champeau.gradle.jmh" version "0.5.0-rc-2"
+  id "com.github.johnrengelman.shadow" version "5.2.0"
+  id "me.champeau.gradle.jmh" version "0.5.0"
 }
 
 description = 'dd-trace-ot'
@@ -14,11 +15,15 @@ excludedClassesCoverage += [
   'datadog.trace.common.writer.ListWriter',
   'datadog.trace.common.writer.Writer.Builder',
   'datadog.trace.common.writer.LoggingWriter',
+  'datadog.trace.common.writer.DDAgentWriter.DDAgentWriterBuilder',
+  'datadog.trace.common.sampling.AllSampler',
   'datadog.trace.common.sampling.PrioritySampling',
   'datadog.trace.common.sampling.Sampler.Builder',
   // This code is copied from okHttp samples and we have integration tests to verify that it works.
   'datadog.trace.common.writer.unixdomainsockets.TunnelingUnixSocket',
-  'datadog.trace.common.writer.unixdomainsockets.UnixDomainSocketFactory'
+  'datadog.trace.common.writer.unixdomainsockets.UnixDomainSocketFactory',
+  'datadog.opentracing.StringCachingBigInteger',
+  'datadog.opentracing.jfr.DDNoopScopeEventFactory'
 ]
 
 apply plugin: 'org.unbroken-dome.test-sets'
@@ -35,6 +40,8 @@ dependencies {
   implementation deps.autoservice
 
   compile project(':dd-trace-api')
+  compile project(':utils:thread-utils')
+
   compile deps.opentracing
   compile group: 'io.opentracing.contrib', name: 'opentracing-tracerresolver', version: '0.1.0'
 
@@ -42,7 +49,9 @@ dependencies {
 
   compile deps.jackson
   compile deps.slf4j
-  compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.11.0' // Last version to support Java7
+  compile deps.okhttp
+  compile group: 'org.msgpack', name: 'msgpack-core', version: '0.8.20'
+  compile group: 'com.squareup.moshi', name: 'moshi', version: '1.9.2'
   compile group: 'com.github.jnr', name: 'jnr-unixsocket', version: '0.23'
   compile group: 'com.lmax', name: 'disruptor', version: '3.4.2'
 
@@ -51,8 +60,8 @@ dependencies {
   testImplementation deps.autoservice
 
   testCompile project(":dd-java-agent:testing")
-  testCompile project(':utils:gc-utils')
-  testCompile group: 'com.github.stefanbirkner', name: 'system-rules', version: '1.17.1'
+  testCompile group: 'com.github.stefanbirkner', name: 'system-rules', version: '1.19.0'
+  testCompile group: 'org.msgpack', name: 'jackson-dataformat-msgpack', version: '0.8.20'
 
   traceAgentTestCompile deps.testcontainers
 
@@ -88,6 +97,18 @@ tasks.getByName('zipkinApiNonGzipTest').configure {
   jvmArgs "-Dsignalfx.zipkin.gzip.content.encoding=false"
 }
 test.dependsOn(zipkinApiNonGzipTest)
+
+jar {
+  archiveClassifier = 'unbundled'
+}
+
+shadowJar {
+  archiveClassifier = ''
+
+  dependencies {
+    include(project(':utils:thread-utils'))
+  }
+}
 
 jmh {
 //  include = [".*URLAsResourceNameBenchmark"]
@@ -126,7 +147,7 @@ jmh {
 //  warmupBenchmarks = ['.*Warmup'] // Warmup benchmarks to include in the run in addition to already selected. JMH will not measure these benchmarks, but only use them for the warmup.
 
 //  zip64 = true // Use ZIP64 format for bigger archives
-  jmhVersion = '1.21' // Specifies JMH version
+  jmhVersion = '1.23' // Specifies JMH version
 //  includeTests = true // Allows to include test sources into generate JMH jar, i.e. use it when benchmarks depend on the test classes.
   duplicateClassesStrategy = 'warn'
   // Strategy to apply when encountring duplicate classes during creation of the fat jar (i.e. while executing jmhJar task)

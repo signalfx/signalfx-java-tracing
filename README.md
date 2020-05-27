@@ -99,7 +99,7 @@ over corresponding environment variables.
 
 | System property | Environment variable | Default value | Notes |
 | ---             | ---                  | ---           | ---   |
-| `signalfx.service.name` | `SIGNALFX_SERVICE_NAME` | `"unnamed-java-app"` | The name of the service. |
+| `signalfx.service.name` | `SIGNALFX_SERVICE_NAME` | `"unnamed-java-service"` | The name of the service. |
 | `signalfx.agent.host` | `SIGNALFX_AGENT_HOST` | `"localhost"` | The endpoint for a SignalFx Smart Agent or OpenTelemetry Collector. |
 | `signalfx.endpoint.url` | `SIGNALFX_ENDPOINT_URL` | `"http://localhost:9080/v1/trace"` | Takes priority over constituent Agent properties. |
 | `signalfx.tracing.enabled` | `SIGNALFX_TRACING_ENABLED` | `"true"` | Globally enables tracer creation and auto-instrumentation.  Any value not matching `"true"` is treated as false (`Boolean.valueOf()`). |

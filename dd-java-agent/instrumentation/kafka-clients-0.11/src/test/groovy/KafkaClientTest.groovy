@@ -1,6 +1,7 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Config
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -91,8 +92,8 @@ class KafkaClientTest extends AgentTestRunner {
           errored false
           parent()
           tags {
-            "component" "java-kafka"
-            "span.kind" "producer"
+            "$Tags.COMPONENT" "java-kafka"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_PRODUCER
             "message_bus.destination" "$SHARED_TOPIC"
             defaultTags()
           }
@@ -112,8 +113,8 @@ class KafkaClientTest extends AgentTestRunner {
             parent()
           }
           tags {
-            "component" "java-kafka"
-            "span.kind" "consumer"
+            "$Tags.COMPONENT" "java-kafka"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CONSUMER
             "message_bus.destination" "$SHARED_TOPIC"
             "partition" { it >= 0 }
             "offset" 0
@@ -127,8 +128,8 @@ class KafkaClientTest extends AgentTestRunner {
 
     if (PROPAGATION) {
       assert headers.iterator().hasNext()
-      assert new String(headers.headers("x-b3-traceid").iterator().next().value()) == new BigInteger(TEST_WRITER[0][0].traceId).toString(16).toLowerCase()
-      assert new String(headers.headers("x-b3-spanid").iterator().next().value()) == new BigInteger(TEST_WRITER[0][0].spanId).toString(16).toLowerCase()
+      assert new String(headers.headers("x-b3-traceid").iterator().next().value()) == String.format("%016x", TEST_WRITER[0][0].traceId)
+      assert new String(headers.headers("x-b3-spanid").iterator().next().value()) == String.format("%016x", TEST_WRITER[0][0].spanId)
     } else {
       assert !headers.iterator().hasNext()
     }
@@ -184,8 +185,8 @@ class KafkaClientTest extends AgentTestRunner {
           errored false
           parent()
           tags {
-            "component" "java-kafka"
-            "span.kind" "producer"
+            "$Tags.COMPONENT" "java-kafka"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_PRODUCER
             "kafka.partition" { it >= 0 }
             "message_bus.destination" "$SHARED_TOPIC"
             defaultTags(true)
@@ -206,8 +207,8 @@ class KafkaClientTest extends AgentTestRunner {
             parent()
           }
           tags {
-            "component" "java-kafka"
-            "span.kind" "consumer"
+            "$Tags.COMPONENT" "java-kafka"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CONSUMER
             "partition" { it >= 0 }
             "message_bus.destination" "$SHARED_TOPIC"
             "offset" 0

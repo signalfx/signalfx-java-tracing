@@ -1,11 +1,11 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.kafka_streams;
 
-import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.activeScope;
-import static datadog.trace.instrumentation.api.AgentTracer.activeSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.propagate;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeScope;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.kafka_streams.KafkaStreamsDecorator.CONSUMER_DECORATE;
 import static datadog.trace.instrumentation.kafka_streams.TextMapExtractAdapter.GETTER;
 import static java.util.Collections.singletonMap;
@@ -19,9 +19,9 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.api.Config;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan.Context;
 import datadog.trace.context.TraceScope;
-import datadog.trace.instrumentation.api.AgentSpan;
-import datadog.trace.instrumentation.api.AgentSpan.Context;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -52,10 +52,7 @@ public class KafkaStreamsProcessorInstrumentation {
     @Override
     public String[] helperClassNames() {
       return new String[] {
-        "datadog.trace.agent.decorator.BaseDecorator",
-        "datadog.trace.agent.decorator.ClientDecorator",
-        packageName + ".KafkaStreamsDecorator",
-        packageName + ".TextMapExtractAdapter"
+        packageName + ".KafkaStreamsDecorator", packageName + ".TextMapExtractAdapter"
       };
     }
 
@@ -66,7 +63,7 @@ public class KafkaStreamsProcessorInstrumentation {
               .and(isPackagePrivate())
               .and(named("nextRecord"))
               .and(returns(named("org.apache.kafka.streams.processor.internals.StampedRecord"))),
-          StartSpanAdvice.class.getName());
+          StartInstrumentation.class.getName() + "$StartSpanAdvice");
     }
 
     public static class StartSpanAdvice {
@@ -88,7 +85,7 @@ public class KafkaStreamsProcessorInstrumentation {
         CONSUMER_DECORATE.afterStart(span);
         CONSUMER_DECORATE.onConsume(span, record);
 
-        activateSpan(span, true);
+        activateSpan(span, true).setAsyncPropagation(true);
       }
     }
   }
@@ -108,10 +105,7 @@ public class KafkaStreamsProcessorInstrumentation {
     @Override
     public String[] helperClassNames() {
       return new String[] {
-        "datadog.trace.agent.decorator.BaseDecorator",
-        "datadog.trace.agent.decorator.ClientDecorator",
-        packageName + ".KafkaStreamsDecorator",
-        packageName + ".TextMapExtractAdapter"
+        packageName + ".KafkaStreamsDecorator", packageName + ".TextMapExtractAdapter"
       };
     }
 
@@ -119,13 +113,14 @@ public class KafkaStreamsProcessorInstrumentation {
     public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
       return singletonMap(
           isMethod().and(isPublic()).and(named("process")).and(takesArguments(0)),
-          StopSpanAdvice.class.getName());
+          StopInstrumentation.class.getName() + "$StopSpanAdvice");
     }
 
     public static class StopSpanAdvice {
 
       @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
       public static void stopSpan(@Advice.Thrown final Throwable throwable) {
+        // This is dangerous... we assume the span/scope is the one we expect, but it may not be.
         final AgentSpan span = activeSpan();
         if (span != null) {
           CONSUMER_DECORATE.onError(span, throwable);

@@ -1,6 +1,7 @@
 package datadog.trace.instrumentation.jaxrs2;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.implementsInterface;
 import static datadog.trace.instrumentation.jaxrs2.JaxRsAnnotationsDecorator.DECORATE;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -10,7 +11,7 @@ import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,14 +35,21 @@ public final class JaxRsAsyncResponseInstrumentation extends Instrumenter.Defaul
   }
 
   @Override
+  public ElementMatcher<ClassLoader> classLoaderMatcher() {
+    // Optimization for expensive typeMatcher.
+    return hasClassesNamed("javax.ws.rs.container.AsyncResponse");
+  }
+
+  @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return safeHasSuperType(named("javax.ws.rs.container.AsyncResponse"));
+    return implementsInterface(named("javax.ws.rs.container.AsyncResponse"));
   }
 
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
+      "datadog.trace.agent.tooling.ClassHierarchyIterable",
+      "datadog.trace.agent.tooling.ClassHierarchyIterable$ClassIterator",
       packageName + ".JaxRsAnnotationsDecorator",
       packageName + ".JaxRsAnnotationsDecorator$ResourceInfo",
     };
@@ -52,11 +60,13 @@ public final class JaxRsAsyncResponseInstrumentation extends Instrumenter.Defaul
     final Map<ElementMatcher<? super MethodDescription>, String> transformers = new HashMap<>();
     transformers.put(
         named("resume").and(takesArgument(0, Object.class)).and(isPublic()),
-        AsyncResponseAdvice.class.getName());
+        JaxRsAsyncResponseInstrumentation.class.getName() + "$AsyncResponseAdvice");
     transformers.put(
         named("resume").and(takesArgument(0, Throwable.class)).and(isPublic()),
-        AsyncResponseThrowableAdvice.class.getName());
-    transformers.put(named("cancel"), AsyncResponseCancelAdvice.class.getName());
+        JaxRsAsyncResponseInstrumentation.class.getName() + "$AsyncResponseThrowableAdvice");
+    transformers.put(
+        named("cancel"),
+        JaxRsAsyncResponseInstrumentation.class.getName() + "$AsyncResponseCancelAdvice");
     return transformers;
   }
 

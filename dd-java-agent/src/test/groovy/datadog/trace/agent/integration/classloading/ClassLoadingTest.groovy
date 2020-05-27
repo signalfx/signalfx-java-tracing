@@ -22,7 +22,7 @@ class ClassLoadingTest extends Specification {
     URLClassLoader loader = new URLClassLoader(classpath, (ClassLoader) null)
 
     when:
-    loader.loadClass("datadog.agent.TracingAgent")
+    loader.loadClass("datadog.trace.instrumentation.trace_annotation.TraceAdvice")
     then:
     thrown ClassNotFoundException
 
@@ -78,7 +78,7 @@ class ClassLoadingTest extends Specification {
     loader.count == countAfterFirstLoad
   }
 
-  def "make sure that ByteBuddy doesn't resue cached type descriptions between different classloaders"() {
+  def "make sure that ByteBuddy doesn't reuse cached type descriptions between different classloaders"() {
     setup:
     CountingClassLoader loader1 = new CountingClassLoader(classpath)
     CountingClassLoader loader2 = new CountingClassLoader(classpath)

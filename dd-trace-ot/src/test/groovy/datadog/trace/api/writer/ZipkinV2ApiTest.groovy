@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import datadog.opentracing.SpanFactory
 import datadog.trace.api.Config
+import datadog.trace.api.DDSpanTypes
 import datadog.trace.common.writer.ZipkinV2Api
 import datadog.trace.util.test.DDSpecification
 import org.eclipse.jetty.http.HttpHeaders
@@ -87,7 +88,7 @@ class ZipkinV2ApiTest extends DDSpecification {
     where:
     traces                                                               | expectedRequestBody
     []                                                                   | []
-    [[SpanFactory.newSpanOf(1L).setTag("service", "my-service").log(1000L, "some event")]]     | [new TreeMap<>([
+    [[SpanFactory.newSpanOf(1L).setTag("service", "my-service").log(1000L, "some event")]] | [new TreeMap<>([
       "traceId" : "0000000000000001",
       "id"  :     "0000000000000001",
       "duration" : 0,
@@ -135,6 +136,18 @@ class ZipkinV2ApiTest extends DDSpecification {
       "localEndpoint": ["serviceName": "fakeService"],
       "kind"    : "SERVER",
       "timestamp"    : 100,
+    ])]
+    // Confirm server span type still uses resource name as operation name but doesn't set span kind
+    [[SpanFactory.newSpanOf(1L).setSpanType(DDSpanTypes.HTTP_SERVER).setTag("service", "my-service").log(1000L, "some event")]] | [new TreeMap<>([
+      "traceId" : "0000000000000001",
+      "id"  :     "0000000000000001",
+      "duration" : 0,
+      "tags"     : ["thread.name": Thread.currentThread().getName(),
+                    "thread.id": "${Thread.currentThread().id}"],
+      "annotations": [["timestamp" : 1000, "value": "{\"event\":\"some event\"}"]],
+      "name"     : "fakeResource",
+      "localEndpoint": ["serviceName": "fakeService"],
+      "timestamp"    : 1,
     ])]
   }
 

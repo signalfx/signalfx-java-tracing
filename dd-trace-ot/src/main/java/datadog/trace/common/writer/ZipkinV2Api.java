@@ -260,8 +260,6 @@ public class ZipkinV2Api implements Api {
       switch (span.getSpanType()) {
         case DDSpanTypes.HTTP_CLIENT:
           return DDTags.SPAN_KIND_CLIENT;
-        case DDSpanTypes.HTTP_SERVER:
-          return DDTags.SPAN_KIND_SERVER;
       }
     }
     return null;
@@ -278,8 +276,9 @@ public class ZipkinV2Api implements Api {
     String resourceName = span.getResourceName();
 
     if (!Strings.isNullOrEmpty(resourceName)
-        && !Strings.isNullOrEmpty(spanKind)
-        && spanKind.equalsIgnoreCase(DDTags.SPAN_KIND_SERVER)) {
+        && ((!Strings.isNullOrEmpty(spanKind) && spanKind.equalsIgnoreCase(DDTags.SPAN_KIND_SERVER))
+            || (!Strings.isNullOrEmpty(span.getSpanType())
+                && span.getSpanType().equalsIgnoreCase(DDSpanTypes.HTTP_SERVER)))) {
       return resourceName;
     }
 

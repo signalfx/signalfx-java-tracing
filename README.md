@@ -133,15 +133,46 @@ Set this environment variable from the command line:
     $ java -javaagent:path/to/signalfx-tracing.jar -jar app.jar
     ```
 
-## Troubleshoot the SignalFx Java Agent
+## Inject trace IDs in logs
 
-Enable debug logging for troubleshooting assistance. Set this property at
-runtime:
+Link individual log entries with trace IDs and span IDs associated with
+corresponding events. The SignalFx Java Agent uses a
+[Mapped Diagnostic Context](http://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/MDC.html)
+(MDC), an open standard for identifying interleaved log outputs from multiple
+sources.
 
-`-Ddatadog.slf4j.simpleLogger.defaultLogLevel=debug`
+The MDC adds the `signalfx.trace_id` and `signalfx.span_id` fields to log events.
 
-These logs are extremely verbose. Enable debug logging only when needed.
-Debug logging negatively impacts the performance of your application.
+Trace ID injection uses `java.util.logging` with a `logback`, `log4j`, or
+`slf4j` logging framework. 
+
+`java.util.logging` doesn't support MDC on its own. If you aren't using one of
+these frameworks, use a [jul-to-slf4j bridge](http://www.slf4j.org/legacy.html#jul-to-slf4j).
+The bridge can substantially impact performance.
+
+Follow these steps to inject trace IDs in logs with a `logback`, `log4j`, or
+`slf4j` logging framework.
+
+1. Enable trace ID injection. Add this to your JVM's command line flags:
+   ```
+   -Dsignalfx.logs.injection=true
+   ```
+2. Find your logging pattern. This is also known as a logging format or layout.
+   Depending on your environment, this could be in a system property, a
+   configuration file specific to your application, or a configuration file your
+   logging framework generates. The logging pattern generally looks something
+   like this:
+   ```
+   logging.pattern.console= %d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg %n
+   ```
+3. Add a `%X` placeholder value to your logging pattern:
+   ```
+   logging.pattern.console= %d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg %X %n
+   ```
+   The MDC replaces `%X` with the `signalfx.trace_id` and `signalfx.span_id`
+   associated with the log event.
+4. Update any other services that use the logging pattern to be aware of the
+   new logging pattern format as necessary.
 
 ## Manually instrument a Java application
 
@@ -153,7 +184,26 @@ instrument your Java application.
 The SignalFx Java Agent configures an OpenTracing-compatible tracer
 to capture and export trace spans. It registers this tracer as the OpenTracing
 `GlobalTracer` to easily enable custom instrumentation throughout your
-application:
+application. Simply add the following to your Maven POM:
+
+      ```
+      Maven:
+      <dependency>
+        <groupId>io.opentracing</groupId>
+        <artifactId>opentracing-util</artifactId>
+        <version>0.32.0</version>
+        <scope>provided</scope>
+      </dependency>
+      ```
+Or to your Gradle config:
+
+      ```
+      Gradle:
+      compileOnly group: 'io.opentracing', name: 'opentracing-util', version: '0.32.0'
+      ```
+The scope is `provided` in Maven and `compileOnly` in Gradle because that artifact 
+is included in the Java agent and will be available to your application classes 
+at runtime:
 ```java
 import io.opentracing.util.GlobalTracer;
 import io.opentracing.*;
@@ -278,6 +328,16 @@ instance across thread boundaries via parameters or closures and reactivate it
 manually in the thread with ``GlobalTracer.get().scopeManager().activate(Span span, boolean closeOnFinish)``.
 Just note that ``Scope`` instances aren't thread-safe and shouldn't be passed
 between threads, even if externally synchronized.
+
+## Troubleshoot the SignalFx Java Agent
+
+Enable debug logging for troubleshooting assistance. Set this property at
+runtime:
+
+`-Ddatadog.slf4j.simpleLogger.defaultLogLevel=debug`
+
+These logs are extremely verbose. Enable debug logging only when needed.
+Debug logging negatively impacts the performance of your application.
 
 # License and versioning
 

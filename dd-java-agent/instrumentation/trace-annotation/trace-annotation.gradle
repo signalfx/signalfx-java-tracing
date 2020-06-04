@@ -1,9 +1,9 @@
 // Modified by SignalFx
 muzzle {
   pass {
-    group = "com.datadoghq"
-    module = "dd-trace-api"
-    versions = "[0.31.0,]"
+    group = "com.signalfx.public"
+    module = "signalfx-trace-api"
+    versions = "[0.36.0-sfx4,]"
     assertInverse = true
   }
 }

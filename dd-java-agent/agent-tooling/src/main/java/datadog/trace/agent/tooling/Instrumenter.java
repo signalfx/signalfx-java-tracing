@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.tooling;
 
 import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.failSafe;
@@ -108,7 +109,7 @@ public interface Instrumenter {
       if (helperClassNames.length > 0) {
         agentBuilder =
             agentBuilder.transform(
-                new HelperInjector(this.getClass().getSimpleName(), helperClassNames));
+                new HelperInjector(getClass().getSimpleName(), helperClassNames));
       }
       return agentBuilder;
     }

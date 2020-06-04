@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.agent.tooling.bytebuddy.matcher;
 
 import java.util.regex.Pattern;

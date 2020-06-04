@@ -21,7 +21,7 @@ public final class Constants {
     "datadog.trace.api",
     "datadog.trace.bootstrap",
     "datadog.trace.context",
-    "datadog.trace.bootstrap.instrumentation.api",
+    "datadog.trace.instrumentation.api",
     "io.opentracing",
   };
 

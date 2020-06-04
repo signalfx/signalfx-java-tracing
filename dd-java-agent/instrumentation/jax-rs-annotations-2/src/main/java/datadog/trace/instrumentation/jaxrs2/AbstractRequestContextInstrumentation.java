@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jaxrs2;
 
 import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
@@ -44,6 +45,7 @@ public abstract class AbstractRequestContextInstrumentation extends Instrumenter
       "datadog.trace.agent.tooling.ClassHierarchyIterable",
       "datadog.trace.agent.tooling.ClassHierarchyIterable$ClassIterator",
       packageName + ".JaxRsAnnotationsDecorator",
+      packageName + ".JaxRsAnnotationsDecorator$ResourceInfo",
       AbstractRequestContextInstrumentation.class.getName() + "$RequestFilterHelper",
     };
   }

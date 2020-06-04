@@ -166,8 +166,8 @@ public class AdditionalLibraryIgnoresMatcher<T extends TypeDescription>
       }
 
       if (name.startsWith("org.springframework.web.")) {
-        if (name.startsWith("org.springframework.web.client.")
-            || name.startsWith("org.springframework.web.servlet.")
+        if (name.startsWith("org.springframework.web.servlet.")
+            || name.startsWith("org.springframework.web.client.")
             || name.startsWith("org.springframework.web.reactive.")
             || name.startsWith("org.springframework.web.context.request.async.")) {
           return false;

@@ -208,7 +208,7 @@ jobs:
       - restore_cache:
           # Reset the cache approx every release
           keys:
-          - signalfx-java-tracing-muzzle-{{ checksum "signalfx-java-tracing.gradle" }}
+            - signalfx-java-tracing-muzzle-{{ checksum "signalfx-java-tracing.gradle" }}
 
       - run:
           name: Verify Muzzle

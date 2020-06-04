@@ -388,7 +388,7 @@ abstract class HttpClientTest extends AgentTestRunner {
   def "test https request"() {
     given:
     assumeTrue(testRemoteConnection())
-    def uri = new URI("https://www.google.com/")
+    def uri = new URI("https://www.example.com/")
 
     when:
     def status = doRequest(method, uri)

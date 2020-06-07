@@ -82,6 +82,7 @@ class URLAsResourceNameTest extends DDSpecification {
     "/V01/v9/abc/-1"                                   | "/V01/v9/abc/?"
     "/ABC/av-1/b_2/c.3/d4d/v5f/v699/7"                 | "/ABC/?/?/?/?/?/?/?"
     "/user/asdf123/repository/01234567-9ABC-DEF0-1234" | "/user/?/repository/?"
+    "/user/1/repo/test@example.com/"                   | "/user/?/repo/?/"
   }
 
   def "should leave other segments alone"() {
@@ -127,13 +128,13 @@ class URLAsResourceNameTest extends DDSpecification {
     context.resourceName == resourceName
 
     where:
-    value                       | resourceName        | tags
-    null                        | "fakeResource"      | [:]
-    " "                         | "/"                 | [:]
-    "\t"                        | "/"                 | [:]
-    "/path"                     | "/path"             | [:]
-    "/ABC/a-1/b_2/c.3/d4d/5f/6" | "/ABC/?/?/?/?/?/?"  | [:]
-    "/not-found"                | "fakeResource"      | [(Tags.HTTP_STATUS.key): 404]
-    "/with-method"              | "/with-method"      | [(Tags.HTTP_METHOD.key): "Post"]
+    value                       | resourceName       | tags
+    null                        | "fakeResource"     | [:]
+    " "                         | "/"                | [:]
+    "\t"                        | "/"                | [:]
+    "/path"                     | "/path"            | [:]
+    "/ABC/a-1/b_2/c.3/d4d/5f/6" | "/ABC/?/?/?/?/?/?" | [:]
+    "/not-found"                | "fakeResource"     | [(Tags.HTTP_STATUS.key): 404]
+    "/with-method"              | "/with-method"     | [(Tags.HTTP_METHOD.key): "Post"]
   }
 }

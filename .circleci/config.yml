@@ -5,7 +5,7 @@ defaults: &defaults
   working_directory: ~/signalfx-java-tracing
   resource_class: xlarge
   docker:
-    - image: &default_container datadog/dd-trace-java-docker-build:latest
+    - image: &default_container datadog/dd-trace-java-docker-build:mar-kolya_add-java14
 
 cache_keys: &cache_keys
   # Reset the cache approx every release

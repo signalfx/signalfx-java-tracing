@@ -10,8 +10,8 @@ import java.util.regex.Pattern;
 public class URLAsResourceName extends AbstractDecorator {
 
   // Matches any path segments with numbers in them. (exception for versioning: "/v1/")
-  public static final Pattern PATH_MIXED_ALPHANUMERICS =
-      Pattern.compile("(?<=/)(?![vV]\\d{1,2}/)(?:[^\\/\\d\\?]*[\\d]+[^\\/\\?]*)");
+  public static final Pattern PATH_MIXED_ALPHANUMERICS_AND_EMAILS =
+      Pattern.compile("(?<=/)(?![vV]\\d{1,2}/)(?:[^\\/\\d\\?]*[\\d@]+[^\\/\\?]*)");
 
   public URLAsResourceName() {
     super();
@@ -91,7 +91,7 @@ public class URLAsResourceName extends AbstractDecorator {
       return "/";
     }
 
-    return PATH_MIXED_ALPHANUMERICS.matcher(path).replaceAll("?");
+    return PATH_MIXED_ALPHANUMERICS_AND_EMAILS.matcher(path).replaceAll("?");
   }
 
   private String addMethodIfAvailable(final DDSpanContext context, String path) {

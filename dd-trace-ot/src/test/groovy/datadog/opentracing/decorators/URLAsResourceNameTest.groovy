@@ -83,6 +83,11 @@ class URLAsResourceNameTest extends DDSpecification {
     "/ABC/av-1/b_2/c.3/d4d/v5f/v699/7"                 | "/ABC/?/?/?/?/?/?/?"
     "/user/asdf123/repository/01234567-9ABC-DEF0-1234" | "/user/?/repository/?"
     "/user/1/repo/test@example.com/"                   | "/user/?/repo/?/"
+    "/user123@host-456.biz"                            | "/?"
+    "/a@b@c"                                           | "/?"
+    "/@nothing-before-at.com"                          | "/?"
+    "/endsinat@/includedsegment"                       | "/?/includedsegment"
+    "/@"                                               | "/?"
   }
 
   def "should leave other segments alone"() {

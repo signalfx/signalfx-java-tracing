@@ -362,7 +362,7 @@ class TraceAnnotationsTest extends AgentTestRunner {
       trace(0, 1) {
         span(0) {
           resourceName "SayTracedHello.sayERROR"
-          operationName "ERROR"
+          operationName "SayTracedHello.sayERROR"
           errored true
           tags {
             "$Tags.COMPONENT" "trace"
@@ -470,7 +470,7 @@ class TraceAnnotationsTest extends AgentTestRunner {
         trace(0, 2) {
           span(0) {
             resourceName "SomeInnerClass.one"
-            operationName "trace.annotation"
+            operationName "SomeInnerClass.one"
             parent()
             errored false
             tags {
@@ -480,7 +480,7 @@ class TraceAnnotationsTest extends AgentTestRunner {
           }
           span(1) {
             resourceName "SomeInnerClass.two"
-            operationName "trace.annotation"
+            operationName "SomeInnerClass.two"
             childOf span(0)
             errored false
             tags {

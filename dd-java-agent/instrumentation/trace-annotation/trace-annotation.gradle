@@ -21,6 +21,10 @@ testSets {
   }
 }
 
+tasks.withType(Test).all {
+  jvmArgs '-Dsignalfx.trace.methods=dd.test.trace.annotation.SayTracedHello[sayERROR];dd.test.trace.annotation.SayTracedHello$SomeInnerClass[*];'
+}
+
 tasks.getByName('propertyTest').configure {
   jvmArgs '-Dsignalfx.trace.annotated.method.blacklist=something.That[doesnt,exist];dd.test.trace.annotation.SayTracedHello[doesntExist,sayHA,sayHELLOsayHAWithResource,alsoDoesntExist];dd.test.trace.annotation.SayTracedHello$SomeInnerClass[*];'
 }

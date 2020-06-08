@@ -107,7 +107,8 @@ over corresponding environment variables.
 | `signalfx.span.tags` | `SIGNALFX_SPAN_TAGS` | `null` | Comma-separated list of tags included in every reported span. For example, `"key1:val1,key2:val2"`. |
 | `signalfx.db.statement.max.length` | `SIGNALFX_DB_STATEMENT_MAX_LENGTH` | `1024` | The maximum number of characters written for the OpenTracing `db.statement` tag. |
 | `signalfx.recorded.value.max.length` | `SIGNALFX_RECORDED_VALUE_MAX_LENGTH` | `12288` | The maximum number of characters for any Zipkin-encoded tagged or logged value. |
-| `signalfx.trace.annotated.method.blacklist` | `SIGNALFX_TRACE_ANNOTATED_METHOD_BLACKLIST` | `null` | Prevents `@Trace` annotation functionality for the target method string of format `package.OuterClass[methodOne,methodTwo];other.package.OuterClass$InnerClass[*];`. All methods in class need to include `*` and `;`. |
+| `signalfx.trace.annotated.method.blacklist` | `SIGNALFX_TRACE_ANNOTATED_METHOD_BLACKLIST` | `null` | Prevents `@Trace` annotation functionality for the target method string of format `package.OuterClass[methodOne,methodTwo];other.package.OuterClass$InnerClass[*];`. (; is required and * for all methods in class). |
+| `signalfx.trace.methods` | `SIGNALFX_TRACE_METHODS` | `null` | Same as adding `@Trace` annotation functionality for the target method string of format `package.OuterClass[methodOne,methodTwo];other.package.OuterClass$InnerClass[*];`. (; is required and * for all public methods in class). |
 | `signalfx.max.spans.per.trace` | `SIGNALFX_MAX_SPANS_PER_TRACE` | `0 (no limit)` | Drops traces with more spans than this. Intended to prevent runaway traces from flooding upstream systems. |
 | `signalfx.max.continuation.depth` | `SIGNALFX_MAX_CONTINUATION_DEPTH` | `100` | Stops propagating asynchronous context at this recursive depth. Intended to prevent runaway traces from leaking memory. |
 

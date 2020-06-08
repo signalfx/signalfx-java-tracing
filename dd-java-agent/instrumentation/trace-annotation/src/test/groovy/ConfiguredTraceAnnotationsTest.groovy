@@ -17,7 +17,7 @@ class ConfiguredTraceAnnotationsTest extends AgentTestRunner {
     }
   }
 
-  def specCleanup() {
+  def cleanupSpec() {
     System.clearProperty("dd.trace.annotations")
   }
 

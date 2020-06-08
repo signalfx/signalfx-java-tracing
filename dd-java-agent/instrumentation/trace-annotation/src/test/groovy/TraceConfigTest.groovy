@@ -3,20 +3,24 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.ConfigUtils
 import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.trace_annotation.TraceConfigInstrumentation
+import spock.lang.Shared
 
 import java.util.concurrent.Callable
 
 class TraceConfigTest extends AgentTestRunner {
 
+  @Shared
+  static String propertyToRestore = System.getProperty("signalfx.trace.methods")
+
   static {
     ConfigUtils.updateConfig {
-      System.setProperty("dd.trace.methods", "package.ClassName[method1,method2];${ConfigTracedCallable.name}[call]")
+      System.setProperty("signalfx.trace.methods", "package.ClassName[method1,method2];${ConfigTracedCallable.name}[call]")
     }
   }
 
-  def specCleanup() {
+  def cleanupSpec() {
     ConfigUtils.updateConfig {
-      System.clearProperty("dd.trace.methods")
+      System.setProperty("signalfx.trace.methods", propertyToRestore)
     }
   }
 
@@ -53,9 +57,9 @@ class TraceConfigTest extends AgentTestRunner {
     setup:
     ConfigUtils.updateConfig {
       if (value) {
-        System.properties.setProperty("dd.trace.methods", value)
+        System.properties.setProperty("signalfx.trace.methods", value)
       } else {
-        System.clearProperty("dd.trace.methods")
+        System.clearProperty("signalfx.trace.methods")
       }
     }
 
@@ -63,7 +67,7 @@ class TraceConfigTest extends AgentTestRunner {
     new TraceConfigInstrumentation().classMethodsToTrace == expected
 
     cleanup:
-    System.clearProperty("dd.trace.methods")
+    System.clearProperty("signalfx.trace.methods")
 
     where:
     value                                                           | expected

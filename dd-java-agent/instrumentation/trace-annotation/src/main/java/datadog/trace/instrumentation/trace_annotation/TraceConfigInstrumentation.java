@@ -3,7 +3,10 @@ package datadog.trace.instrumentation.trace_annotation;
 
 import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
 import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.safeHasSuperType;
+import static datadog.trace.instrumentation.trace_annotation.TraceAnnotationUtils.ContainsEverythingSet;
 import static datadog.trace.instrumentation.trace_annotation.TraceAnnotationUtils.getClassMethodMap;
+import static net.bytebuddy.matcher.ElementMatchers.isMethod;
+import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 
 import com.google.auto.service.AutoService;
@@ -94,6 +97,11 @@ public class TraceConfigInstrumentation implements Instrumenter {
     @Override
     public Map<ElementMatcher<? super MethodDescription>, String> transformers() {
       ElementMatcher.Junction<MethodDescription> methodMatchers = null;
+      if (methodNames instanceof ContainsEverythingSet && methodNames.isEmpty()) {
+        // We are tracing all public methods
+        methodMatchers = isMethod().and(isPublic());
+      }
+
       for (final String methodName : methodNames) {
         if (methodMatchers == null) {
           methodMatchers = named(methodName);

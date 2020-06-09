@@ -11,7 +11,7 @@ import datadog.trace.agent.test.asserts.ListWriterAssert;
 import datadog.trace.agent.test.utils.GlobalTracerUtils;
 import datadog.trace.agent.tooling.AgentInstaller;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.api.Config;
+import datadog.trace.agent.tooling.bytebuddy.matcher.AdditionalLibraryIgnoresMatcher;
 import datadog.trace.api.GlobalTracer;
 import datadog.trace.common.writer.ListWriter;
 import datadog.trace.common.writer.Writer;
@@ -24,6 +24,7 @@ import io.opentracing.Span;
 import io.opentracing.Tracer;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.Instrumentation;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.ServiceLoader;
@@ -37,6 +38,7 @@ import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
+import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.utility.JavaModule;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -77,8 +79,13 @@ public abstract class AgentTestRunner extends DDSpecification {
   // so we declare tracer as an object and cast when needed.
   protected static final Object TEST_TRACER;
 
-  protected static final Set<String> TRANSFORMED_CLASSES = Sets.newConcurrentHashSet();
-  private static final AtomicInteger INSTRUMENTATION_ERROR_COUNT = new AtomicInteger();
+  private static final ElementMatcher.Junction<TypeDescription> GLOBAL_LIBRARIES_IGNORES_MATCHER =
+      AdditionalLibraryIgnoresMatcher.additionalLibraryIgnoresMatcher();
+
+  protected static final Set<String> TRANSFORMED_CLASSES_NAMES = Sets.newConcurrentHashSet();
+  protected static final Set<TypeDescription> TRANSFORMED_CLASSES_TYPES =
+      Sets.newConcurrentHashSet();
+  private static final AtomicInteger INSTRUMENTATION_ERROR_COUNT = new AtomicInteger(0);
   private static final TestRunnerListener TEST_LISTENER = new TestRunnerListener();
 
   private static final Instrumentation INSTRUMENTATION;
@@ -100,7 +107,7 @@ public abstract class AgentTestRunner extends DDSpecification {
         };
     Properties testProps = new Properties();
     testProps.setProperty("b3.propagation", "false");
-    TEST_TRACER = new DDTracer(Config.get(testProps), TEST_WRITER);
+    TEST_TRACER = DDTracer.builder().withProperties(testProps).writer(TEST_WRITER).build();
     GlobalTracerUtils.registerOrReplaceGlobalTracer((Tracer) TEST_TRACER);
     GlobalTracer.registerIfAbsent((datadog.trace.api.Tracer) TEST_TRACER);
   }
@@ -144,22 +151,15 @@ public abstract class AgentTestRunner extends DDSpecification {
   }
 
   @BeforeClass
-  public static synchronized void agentSetup() throws Exception {
+  public static synchronized void agentSetup() {
     if (null != activeTransformer) {
       throw new IllegalStateException("transformer already in place: " + activeTransformer);
     }
-
-    final ClassLoader contextLoader = Thread.currentThread().getContextClassLoader();
-    try {
-      Thread.currentThread().setContextClassLoader(AgentTestRunner.class.getClassLoader());
-      assert ServiceLoader.load(Instrumenter.class).iterator().hasNext()
-          : "No instrumentation found";
-      activeTransformer = AgentInstaller.installBytebuddyAgent(INSTRUMENTATION, TEST_LISTENER);
-    } finally {
-      Thread.currentThread().setContextClassLoader(contextLoader);
-    }
-
-    INSTRUMENTATION_ERROR_COUNT.set(0);
+    assert ServiceLoader.load(Instrumenter.class, AgentTestRunner.class.getClassLoader())
+            .iterator()
+            .hasNext()
+        : "No instrumentation found";
+    activeTransformer = AgentInstaller.installBytebuddyAgent(INSTRUMENTATION, true, TEST_LISTENER);
   }
 
   /**
@@ -195,6 +195,15 @@ public abstract class AgentTestRunner extends DDSpecification {
     // Cleanup before assertion.
     assert INSTRUMENTATION_ERROR_COUNT.get() == 0
         : INSTRUMENTATION_ERROR_COUNT.get() + " Instrumentation errors during test";
+
+    final List<TypeDescription> ignoredClassesTransformed = new ArrayList<>();
+    for (final TypeDescription type : TRANSFORMED_CLASSES_TYPES) {
+      if (GLOBAL_LIBRARIES_IGNORES_MATCHER.matches(type)) {
+        ignoredClassesTransformed.add(type);
+      }
+    }
+    assert ignoredClassesTransformed.isEmpty()
+        : "Transformed classes match global libraries ignore matcher: " + ignoredClassesTransformed;
   }
 
   public static void assertTraces(
@@ -256,7 +265,8 @@ public abstract class AgentTestRunner extends DDSpecification {
         final JavaModule module,
         final boolean loaded,
         final DynamicType dynamicType) {
-      TRANSFORMED_CLASSES.add(typeDescription.getActualName());
+      TRANSFORMED_CLASSES_NAMES.add(typeDescription.getActualName());
+      TRANSFORMED_CLASSES_TYPES.add(typeDescription);
     }
 
     @Override
@@ -300,5 +310,19 @@ public abstract class AgentTestRunner extends DDSpecification {
         super(message);
       }
     }
+  }
+
+  protected static String getClassName(Class clazz) {
+    String className = clazz.getSimpleName();
+    if (className.isEmpty()) {
+      className = clazz.getName();
+      if (clazz.getPackage() != null) {
+        final String pkgName = clazz.getPackage().getName();
+        if (!pkgName.isEmpty()) {
+          className = clazz.getName().replace(pkgName, "").substring(1);
+        }
+      }
+    }
+    return className;
   }
 }

@@ -37,9 +37,6 @@ public final class MemcachedClientInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
-      "datadog.trace.agent.decorator.DatabaseClientDecorator",
       packageName + ".MemcacheClientDecorator",
       packageName + ".CompletionListener",
       packageName + ".SyncCompletionListener",
@@ -61,16 +58,16 @@ public final class MemcachedClientInstrumentation extends Instrumenter.Default {
             Also tracing flush is probably of a very limited value.
             */
             .and(not(named("flush"))),
-        AsyncOperationAdvice.class.getName());
+        MemcachedClientInstrumentation.class.getName() + "$AsyncOperationAdvice");
     transformers.put(
         isMethod().and(isPublic()).and(returns(named(MEMCACHED_PACKAGE + ".internal.GetFuture"))),
-        AsyncGetAdvice.class.getName());
+        MemcachedClientInstrumentation.class.getName() + "$AsyncGetAdvice");
     transformers.put(
         isMethod().and(isPublic()).and(returns(named(MEMCACHED_PACKAGE + ".internal.BulkFuture"))),
-        AsyncBulkAdvice.class.getName());
+        MemcachedClientInstrumentation.class.getName() + "$AsyncBulkAdvice");
     transformers.put(
         isMethod().and(isPublic()).and(named("incr").or(named("decr"))),
-        SyncOperationAdvice.class.getName());
+        MemcachedClientInstrumentation.class.getName() + "$SyncOperationAdvice");
     return transformers;
   }
 
@@ -81,14 +78,17 @@ public final class MemcachedClientInstrumentation extends Instrumenter.Default {
       return CallDepthThreadLocalMap.incrementCallDepth(MemcachedClient.class) <= 0;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class)
+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void methodExit(
         @Advice.Enter final boolean shouldInjectListener,
         @Advice.This final MemcachedClient client,
         @Advice.Origin("#m") final String methodName,
         @Advice.Return final OperationFuture future) {
-      if (shouldInjectListener && future != null) {
-        CallDepthThreadLocalMap.reset(MemcachedClient.class);
+      if (!shouldInjectListener) {
+        return;
+      }
+      CallDepthThreadLocalMap.reset(MemcachedClient.class);
+      if (future != null) {
         final OperationCompletionListener listener =
             new OperationCompletionListener(client.getConnection(), methodName);
         future.addListener(listener);
@@ -103,14 +103,17 @@ public final class MemcachedClientInstrumentation extends Instrumenter.Default {
       return CallDepthThreadLocalMap.incrementCallDepth(MemcachedClient.class) <= 0;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class)
+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void methodExit(
         @Advice.Enter final boolean shouldInjectListener,
         @Advice.This final MemcachedClient client,
         @Advice.Origin("#m") final String methodName,
         @Advice.Return final GetFuture future) {
-      if (shouldInjectListener && future != null) {
-        CallDepthThreadLocalMap.reset(MemcachedClient.class);
+      if (!shouldInjectListener) {
+        return;
+      }
+      CallDepthThreadLocalMap.reset(MemcachedClient.class);
+      if (future != null) {
         final GetCompletionListener listener =
             new GetCompletionListener(client.getConnection(), methodName);
         future.addListener(listener);
@@ -125,14 +128,17 @@ public final class MemcachedClientInstrumentation extends Instrumenter.Default {
       return CallDepthThreadLocalMap.incrementCallDepth(MemcachedClient.class) <= 0;
     }
 
-    @Advice.OnMethodExit(suppress = Throwable.class)
+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void methodExit(
         @Advice.Enter final boolean shouldInjectListener,
         @Advice.This final MemcachedClient client,
         @Advice.Origin("#m") final String methodName,
         @Advice.Return final BulkFuture future) {
-      if (shouldInjectListener && future != null) {
-        CallDepthThreadLocalMap.reset(MemcachedClient.class);
+      if (!shouldInjectListener) {
+        return;
+      }
+      CallDepthThreadLocalMap.reset(MemcachedClient.class);
+      if (future != null) {
         final BulkGetCompletionListener listener =
             new BulkGetCompletionListener(client.getConnection(), methodName);
         future.addListener(listener);

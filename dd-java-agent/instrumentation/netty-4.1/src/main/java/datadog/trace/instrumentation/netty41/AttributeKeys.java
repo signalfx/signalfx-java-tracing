@@ -2,26 +2,25 @@
 package datadog.trace.instrumentation.netty41;
 
 import datadog.trace.bootstrap.WeakMap;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.context.TraceScope;
-import datadog.trace.instrumentation.api.AgentSpan;
 import datadog.trace.instrumentation.netty41.client.HttpClientTracingHandler;
 import datadog.trace.instrumentation.netty41.server.HttpServerTracingHandler;
 import io.netty.util.AttributeKey;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class AttributeKeys {
-
-  private static final WeakMap<ClassLoader, Map<String, AttributeKey<?>>> map =
+  private static final WeakMap<ClassLoader, ConcurrentMap<String, AttributeKey<?>>> map =
       WeakMap.Implementation.DEFAULT.get();
-
-  private static final WeakMap.ValueSupplier<Map<String, AttributeKey<?>>> mapSupplier =
-      new WeakMap.ValueSupplier<Map<String, AttributeKey<?>>>() {
-        @Override
-        public Map<String, AttributeKey<?>> get() {
-          return new ConcurrentHashMap<>();
-        }
-      };
+  private static final WeakMap.ValueSupplier<ClassLoader, ConcurrentMap<String, AttributeKey<?>>>
+      mapSupplier =
+          new WeakMap.ValueSupplier<ClassLoader, ConcurrentMap<String, AttributeKey<?>>>() {
+            @Override
+            public ConcurrentMap<String, AttributeKey<?>> get(final ClassLoader ignore) {
+              return new ConcurrentHashMap<>();
+            }
+          };
 
   public static final AttributeKey<TraceScope.Continuation>
       PARENT_CONNECT_CONTINUATION_ATTRIBUTE_KEY =
@@ -47,9 +46,9 @@ public class AttributeKeys {
    * while the Attribute class is loaded by a third class loader and used internally for the
    * cassandra driver.
    */
-  private static <T> AttributeKey<T> attributeKey(String key) {
-    Map<String, AttributeKey<?>> classLoaderMap =
-        map.getOrCreate(AttributeKey.class.getClassLoader(), mapSupplier);
+  private static <T> AttributeKey<T> attributeKey(final String key) {
+    final ConcurrentMap<String, AttributeKey<?>> classLoaderMap =
+        map.computeIfAbsent(AttributeKey.class.getClassLoader(), mapSupplier);
     if (classLoaderMap.containsKey(key)) {
       return (AttributeKey<T>) classLoaderMap.get(key);
     }

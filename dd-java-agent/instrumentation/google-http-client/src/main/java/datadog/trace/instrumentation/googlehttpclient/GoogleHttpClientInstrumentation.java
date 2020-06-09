@@ -1,8 +1,8 @@
 package datadog.trace.instrumentation.googlehttpclient;
 
-import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.propagate;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.googlehttpclient.GoogleHttpClientDecorator.DECORATE;
 import static datadog.trace.instrumentation.googlehttpclient.HeadersInjectAdapter.SETTER;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
@@ -17,8 +17,8 @@ import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
-import datadog.trace.instrumentation.api.AgentScope;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +36,8 @@ public class GoogleHttpClientInstrumentation extends Instrumenter.Default {
   @Override
   public ElementMatcher<? super TypeDescription> typeMatcher() {
     // HttpRequest is a final class.  Only need to instrument it exactly
+    // Note: the rest of com.google.api is ignored in AdditionalLibraryIgnoresMatcher to speed
+    // things up
     return named("com.google.api.client.http.HttpRequest");
   }
 
@@ -48,13 +50,8 @@ public class GoogleHttpClientInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
-      "datadog.trace.agent.decorator.HttpClientDecorator",
       packageName + ".GoogleHttpClientDecorator",
       packageName + ".RequestState",
-      getClass().getName() + "$GoogleHttpClientAdvice",
-      getClass().getName() + "$GoogleHttpClientAsyncAdvice",
       packageName + ".HeadersInjectAdapter"
     };
   }
@@ -64,7 +61,7 @@ public class GoogleHttpClientInstrumentation extends Instrumenter.Default {
     final Map<ElementMatcher<? super MethodDescription>, String> transformers = new HashMap<>();
     transformers.put(
         isMethod().and(isPublic()).and(named("execute")).and(takesArguments(0)),
-        GoogleHttpClientAdvice.class.getName());
+        GoogleHttpClientInstrumentation.class.getName() + "$GoogleHttpClientAdvice");
 
     transformers.put(
         isMethod()
@@ -72,7 +69,7 @@ public class GoogleHttpClientInstrumentation extends Instrumenter.Default {
             .and(named("executeAsync"))
             .and(takesArguments(1))
             .and(takesArgument(0, (named("java.util.concurrent.Executor")))),
-        GoogleHttpClientAsyncAdvice.class.getName());
+        GoogleHttpClientInstrumentation.class.getName() + "$GoogleHttpClientAsyncAdvice");
 
     return transformers;
   }

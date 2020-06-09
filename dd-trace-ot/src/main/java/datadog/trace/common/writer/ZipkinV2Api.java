@@ -17,7 +17,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
@@ -42,12 +44,27 @@ public class ZipkinV2Api implements Api {
   private volatile long nextAllowedLogTime = 0;
   private static final long MILLISECONDS_BETWEEN_ERROR_LOG = TimeUnit.MINUTES.toMillis(3);
 
+  private final List<ResponseListener> responseListeners = new ArrayList<>();
+  private URL tracesUrl;
+
   ZipkinV2Api(final String host, final int port, final String path, final boolean useHTTPS) {
     String portStr = ":" + String.valueOf(port);
     if ((useHTTPS && port == 443) || (!useHTTPS && port == 80)) {
       portStr = "";
     }
     traceEndpoint = (useHTTPS ? "https" : "http") + "://" + host + portStr + path;
+    try {
+      tracesUrl = new URL(traceEndpoint);
+    } catch (final MalformedURLException e) {
+      log.error("Invalid URL for Zipkin Collector.", e);
+    }
+  }
+
+  @Override
+  public void addResponseListener(final ResponseListener listener) {
+    if (!responseListeners.contains(listener)) {
+      responseListeners.add(listener);
+    }
   }
 
   @Override
@@ -87,7 +104,11 @@ public class ZipkinV2Api implements Api {
       final Integer sizeInBytes,
       final List<SerializedBuffer> traces) {
     try {
-      final HttpURLConnection httpCon = getHttpURLConnection(traceEndpoint);
+      if (tracesUrl == null) {
+        return Response.failed(new Exception("Invalid Zipkin Collector"));
+      }
+
+      final HttpURLConnection httpCon = getHttpURLConnection(tracesUrl);
 
       try (OutputStream out =
           gzipContentEncoding
@@ -152,7 +173,7 @@ public class ZipkinV2Api implements Api {
 
       log.debug("Successfully sent {} of {} traces.", traces.size(), representativeCount);
 
-      return Response.success(responseCode, responseContent);
+      return Response.success(responseCode);
     } catch (final IOException e) {
       if (log.isDebugEnabled()) {
         log.debug(
@@ -173,7 +194,7 @@ public class ZipkinV2Api implements Api {
   }
 
   private void writeIdField(
-      final JsonGenerator jsonGenerator, final String key, final String decimalId)
+      final JsonGenerator jsonGenerator, final String key, final BigInteger decimalId)
       throws IOException {
     jsonGenerator.writeFieldName(key);
     final char[] asHex = Ids.idToHexChars(decimalId);
@@ -188,9 +209,9 @@ public class ZipkinV2Api implements Api {
     writeIdField(jsonGenerator, "id", span.getSpanId());
     jsonGenerator.writeStringField("name", spanName);
     writeIdField(jsonGenerator, "traceId", span.getTraceId());
-    final String parentId = span.getParentId();
-    if (!parentId.equals("0")) {
-      writeIdField(jsonGenerator, "parentId", span.getParentId());
+    final BigInteger parentId = span.getParentId();
+    if (!BigInteger.ZERO.equals(parentId)) {
+      writeIdField(jsonGenerator, "parentId", parentId);
     }
 
     if (!Strings.isNullOrEmpty(spanKind)) {
@@ -285,9 +306,8 @@ public class ZipkinV2Api implements Api {
     return span.getOperationName();
   }
 
-  private static HttpURLConnection getHttpURLConnection(final String endpoint) throws IOException {
+  private static HttpURLConnection getHttpURLConnection(final URL url) throws IOException {
     final HttpURLConnection httpCon;
-    final URL url = new URL(endpoint);
     httpCon = (HttpURLConnection) url.openConnection();
     httpCon.setReadTimeout(30 * 1000);
     httpCon.setConnectTimeout(30 * 1000);

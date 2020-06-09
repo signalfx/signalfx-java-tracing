@@ -1,6 +1,7 @@
 package datadog.trace.instrumentation.apachehttpasyncclient;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.implementsInterface;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.named;
@@ -30,8 +31,14 @@ public class ApacheHttpClientRedirectInstrumentation extends Instrumenter.Defaul
   }
 
   @Override
+  public ElementMatcher<ClassLoader> classLoaderMatcher() {
+    // Optimization for expensive typeMatcher.
+    return hasClassesNamed("org.apache.http.client.RedirectStrategy");
+  }
+
+  @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return safeHasSuperType(named("org.apache.http.client.RedirectStrategy"));
+    return implementsInterface(named("org.apache.http.client.RedirectStrategy"));
   }
 
   @Override
@@ -40,7 +47,7 @@ public class ApacheHttpClientRedirectInstrumentation extends Instrumenter.Defaul
         isMethod()
             .and(named("getRedirect"))
             .and(takesArgument(0, named("org.apache.http.HttpRequest"))),
-        ClientRedirectAdvice.class.getName());
+        ApacheHttpClientRedirectInstrumentation.class.getName() + "$ClientRedirectAdvice");
   }
 
   public static class ClientRedirectAdvice {

@@ -8,7 +8,8 @@ import datadog.trace.agent.test.asserts.SpanAssert
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpServerTest
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.api.DDTags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.servlet3.Servlet3Decorator
 import datadog.trace.instrumentation.springweb.SpringWebHttpServerDecorator
 import groovy.transform.stc.ClosureParams
@@ -23,7 +24,7 @@ import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPT
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
 import static java.util.Collections.singletonMap
 
-class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext, Servlet3Decorator> {
+class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext> {
 
   def "allowedExceptions=IllegalArgument should tag error=#error when exception=#exception is thrown"() {
     setup:
@@ -66,8 +67,8 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
   }
 
   @Override
-  Servlet3Decorator decorator() {
-    return Servlet3Decorator.DECORATE
+  String component() {
+    return Servlet3Decorator.DECORATE.component()
   }
 
   @Override
@@ -107,7 +108,7 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
           spanType "web"
           errored false
           tags {
-            "component" "spring-webmvc"
+            "$Tags.COMPONENT" "spring-webmvc"
             "view.type" RedirectView.name
             defaultTags()
           }
@@ -132,16 +133,16 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
       childOf(parent as DDSpan)
       tags {
         "$Tags.COMPONENT" SpringWebHttpServerDecorator.DECORATE.component()
-        defaultTags()
         if (spanErrored) {
           errorTags(Exception, endpoint.body)
         }
+        defaultTags()
       }
     }
   }
 
   @Override
-  void serverSpan(TraceAssert trace, int index, String traceID = null, String parentID = null,
+  void serverSpan(TraceAssert trace, int index, BigInteger traceID = null, BigInteger parentID = null,
                   String method = "GET", ServerEndpoint endpoint = SUCCESS, Boolean error = null
   ) {
     def spanErrored = error != null ? error : endpoint.errored
@@ -158,10 +159,15 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
         parent()
       }
       tags {
+        "$Tags.COMPONENT" component
+        "$Tags.HTTP_METHOD" method
+        "$Tags.HTTP_STATUS" spanErrored ? EXCEPTION.status : endpoint.status
+        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
+        "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
+        "$Tags.PEER_PORT" Integer
+        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
         "span.origin.type" ApplicationFilterChain.name
-
-        defaultTags(true)
-        "$Tags.COMPONENT" serverDecorator.component()
+        "servlet.path" endpoint.path
         if (spanErrored) {
           "$Tags.ERROR" true
           "sfx.error.message" { it == null || it == endpoint.body }
@@ -176,13 +182,10 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext,
           "sfx.error.stack" { it instanceof String }
         }
 
-        "$Tags.HTTP_STATUS" spanErrored ? EXCEPTION.status : endpoint.status
-        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
-        "$Tags.PEER_HOSTNAME" { it == "localhost" || it == "127.0.0.1" }
-        "$Tags.PEER_PORT" Integer
-        "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
-        "$Tags.HTTP_METHOD" method
-        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        if (endpoint.query) {
+          "$DDTags.HTTP_QUERY" endpoint.query
+        }
+        defaultTags(true)
       }
     }
   }

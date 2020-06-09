@@ -2,17 +2,19 @@
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpServerTest
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.api.DDTags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.akkahttp.AkkaHttpServerDecorator
-import datadog.trace.instrumentation.api.Tags
+import spock.lang.Retry
 
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
 
-abstract class AkkaHttpServerInstrumentationTest extends HttpServerTest<Object, AkkaHttpServerDecorator> {
+abstract class AkkaHttpServerInstrumentationTest extends HttpServerTest<Object> {
 
   @Override
-  AkkaHttpServerDecorator decorator() {
-    return AkkaHttpServerDecorator.DECORATE
+  String component() {
+    return AkkaHttpServerDecorator.DECORATE.component()
   }
 
   @Override
@@ -36,7 +38,7 @@ abstract class AkkaHttpServerInstrumentationTest extends HttpServerTest<Object, 
 //    AkkaHttpTestWebServer.stop()
 //  }
 
-  void serverSpan(TraceAssert trace, int index, String traceID = null, String parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
+  void serverSpan(TraceAssert trace, int index, BigInteger traceID = null, BigInteger parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
     trace.span(index) {
       serviceName expectedServiceName()
       operationName expectedOperationName()
@@ -50,8 +52,11 @@ abstract class AkkaHttpServerInstrumentationTest extends HttpServerTest<Object, 
         parent()
       }
       tags {
-        defaultTags(true)
-        "$Tags.COMPONENT" serverDecorator.component()
+        "$Tags.COMPONENT" component
+        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
+        "$Tags.HTTP_METHOD" method
+        "$Tags.HTTP_STATUS" endpoint.status
         if (endpoint.errored) {
           "$Tags.ERROR" endpoint.errored
           "sfx.error.message" { it == null || it == EXCEPTION.body }
@@ -59,15 +64,16 @@ abstract class AkkaHttpServerInstrumentationTest extends HttpServerTest<Object, 
           "sfx.error.kind" { it == null || it instanceof String }
           "sfx.error.stack" { it == null || it instanceof String }
         }
-        "$Tags.HTTP_STATUS" endpoint.status
-        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
-        "$Tags.HTTP_METHOD" method
-        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        if (endpoint.query) {
+          "$DDTags.HTTP_QUERY" endpoint.query
+        }
+        defaultTags(true)
       }
     }
   }
 }
 
+@Retry
 class AkkaHttpServerInstrumentationTestSync extends AkkaHttpServerInstrumentationTest {
   @Override
   def startServer(int port) {
@@ -80,6 +86,7 @@ class AkkaHttpServerInstrumentationTestSync extends AkkaHttpServerInstrumentatio
   }
 }
 
+@Retry
 class AkkaHttpServerInstrumentationTestAsync extends AkkaHttpServerInstrumentationTest {
   @Override
   def startServer(int port) {

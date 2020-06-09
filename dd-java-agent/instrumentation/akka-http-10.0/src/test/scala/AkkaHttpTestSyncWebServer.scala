@@ -18,11 +18,12 @@ object AkkaHttpTestSyncWebServer {
   val syncHandler: HttpRequest => HttpResponse = {
     case HttpRequest(GET, uri: Uri, _, _, _) => {
       val endpoint = HttpServerTest.ServerEndpoint.forPath(uri.path.toString())
-      HttpServerTest.controller(endpoint, new Closure[HttpResponse]() {
+      HttpServerTest.controller(endpoint, new Closure[HttpResponse](()) {
         def doCall(): HttpResponse = {
           val resp = HttpResponse(status = endpoint.getStatus)
           endpoint match {
             case SUCCESS => resp.withEntity(endpoint.getBody)
+            case QUERY_PARAM => resp.withEntity(uri.queryString().orNull)
             case REDIRECT => resp.withHeaders(headers.Location(endpoint.getBody))
             case ERROR => resp.withEntity(endpoint.getBody)
             case EXCEPTION => throw new Exception(endpoint.getBody)

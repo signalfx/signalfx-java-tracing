@@ -6,11 +6,13 @@ import akka.http.javadsl.model.headers.RawHeader
 import akka.stream.ActorMaterializer
 import datadog.trace.agent.test.base.HttpClientTest
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.akkahttp.AkkaHttpClientDecorator
-import datadog.trace.instrumentation.api.Tags
 import spock.lang.Shared
+import spock.lang.Timeout
 
-class AkkaHttpClientInstrumentationTest extends HttpClientTest<AkkaHttpClientDecorator> {
+@Timeout(5)
+class AkkaHttpClientInstrumentationTest extends HttpClientTest {
 
   @Shared
   ActorSystem system = ActorSystem.create()
@@ -42,8 +44,8 @@ class AkkaHttpClientInstrumentationTest extends HttpClientTest<AkkaHttpClientDec
   }
 
   @Override
-  AkkaHttpClientDecorator decorator() {
-    return AkkaHttpClientDecorator.DECORATE
+  String component() {
+    return AkkaHttpClientDecorator.DECORATE.component()
   }
 
   @Override
@@ -54,6 +56,12 @@ class AkkaHttpClientInstrumentationTest extends HttpClientTest<AkkaHttpClientDec
   @Override
   boolean testRedirects() {
     false
+  }
+
+  @Override
+  boolean testRemoteConnection() {
+    // Not sure how to properly set timeouts...
+    return false
   }
 
   def "singleRequest exception trace"() {
@@ -67,17 +75,17 @@ class AkkaHttpClientInstrumentationTest extends HttpClientTest<AkkaHttpClientDec
       trace(0, 1) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "akka-http.request"
           resourceName "akka-http.request"
           spanType DDSpanTypes.HTTP_CLIENT
           errored true
           tags {
-            defaultTags()
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.COMPONENT" "akka-http-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.ERROR" true
             errorTags(NullPointerException)
+            defaultTags()
           }
         }
       }

@@ -1,17 +1,19 @@
 package datadog.trace.instrumentation.servlet3;
 
-import static datadog.trace.agent.decorator.HttpServerDecorator.DD_SPAN_ATTRIBUTE;
-import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.activeSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.propagate;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecorator.DD_SPAN_ATTRIBUTE;
 import static datadog.trace.instrumentation.servlet3.HttpServletRequestExtractAdapter.GETTER;
 import static datadog.trace.instrumentation.servlet3.Servlet3Decorator.DECORATE;
 
+import datadog.trace.api.CorrelationIdentifier;
 import datadog.trace.api.DDTags;
-import datadog.trace.instrumentation.api.AgentScope;
-import datadog.trace.instrumentation.api.AgentSpan;
-import datadog.trace.instrumentation.api.Tags;
+import datadog.trace.api.GlobalTracer;
+import datadog.trace.bootstrap.InstrumentationContext;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.Tags;
 import java.security.Principal;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.servlet.ServletRequest;
@@ -24,16 +26,22 @@ public class Servlet3Advice {
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static AgentScope onEnter(
-      @Advice.This final Object servlet, @Advice.Argument(0) final ServletRequest request) {
-    final boolean hasActiveTrace = activeSpan() != null;
+      @Advice.This final Object servlet,
+      @Advice.Argument(0) final ServletRequest request,
+      @Advice.Argument(1) final ServletResponse response) {
+
     final boolean hasServletTrace = request.getAttribute(DD_SPAN_ATTRIBUTE) instanceof AgentSpan;
     final boolean invalidRequest = !(request instanceof HttpServletRequest);
-    if (invalidRequest || (hasActiveTrace && hasServletTrace)) {
-      // Tracing might already be applied by the FilterChain.  If so ignore this.
+    if (invalidRequest || hasServletTrace) {
+      // Tracing might already be applied by the FilterChain or a parent request (forward/include).
       return null;
     }
 
     final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+
+    // For use by HttpServletResponseInstrumentation:
+    InstrumentationContext.get(HttpServletResponse.class, HttpServletRequest.class)
+        .put((HttpServletResponse) response, httpServletRequest);
 
     final AgentSpan.Context extractedContext = propagate().extract(httpServletRequest, GETTER);
 
@@ -45,10 +53,15 @@ public class Servlet3Advice {
     DECORATE.onConnection(span, httpServletRequest);
     DECORATE.onRequest(span, httpServletRequest);
 
-    httpServletRequest.setAttribute(DD_SPAN_ATTRIBUTE, span);
-
     final AgentScope scope = activateSpan(span, false);
     scope.setAsyncPropagation(true);
+
+    httpServletRequest.setAttribute(DD_SPAN_ATTRIBUTE, span);
+    httpServletRequest.setAttribute(
+        CorrelationIdentifier.getTraceIdKey(), GlobalTracer.get().getTraceId());
+    httpServletRequest.setAttribute(
+        CorrelationIdentifier.getSpanIdKey(), GlobalTracer.get().getSpanId());
+
     return scope;
   }
 

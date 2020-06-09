@@ -1,10 +1,8 @@
 // Modified by SignalFx
 package datadog.opentracing.propagation;
 
-import static datadog.opentracing.propagation.HttpCodec.ZERO;
-
-import com.google.common.base.Strings;
 import datadog.opentracing.DDSpanContext;
+import datadog.trace.api.Ids;
 import datadog.trace.api.sampling.PrioritySampling;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.TextMapExtract;
@@ -44,17 +42,11 @@ class B3HttpCodec {
     @Override
     public void inject(final DDSpanContext context, final TextMapInject carrier) {
       try {
-        // TODO: should we better store ids as BigInteger in context to avoid parsing it
-        // twice.
-        final BigInteger traceId = new BigInteger(context.getTraceId());
-        final BigInteger spanId = new BigInteger(context.getSpanId());
+        carrier.put(TRACE_ID_KEY, String.valueOf(Ids.idToHexChars(context.getTraceId())));
+        carrier.put(SPAN_ID_KEY, String.valueOf(Ids.idToHexChars(context.getSpanId())));
 
-        carrier.put(TRACE_ID_KEY, traceId.toString(HEX_RADIX).toLowerCase());
-        carrier.put(SPAN_ID_KEY, spanId.toString(HEX_RADIX).toLowerCase());
-
-        if (!Strings.isNullOrEmpty(context.getParentId())) {
-          final BigInteger parentId = new BigInteger(context.getParentId());
-          carrier.put(PARENT_SPAN_ID_KEY, parentId.toString(HEX_RADIX).toLowerCase());
+        if (context.getParentId() != null) {
+          carrier.put(PARENT_SPAN_ID_KEY, String.valueOf(Ids.idToHexChars(context.getParentId())));
         }
 
         if (context.lockSamplingPriority()) {
@@ -105,8 +97,8 @@ class B3HttpCodec {
     public SpanContext extract(final TextMapExtract carrier) {
       try {
         Map<String, String> tags = Collections.emptyMap();
-        String traceId = ZERO;
-        String spanId = ZERO;
+        BigInteger traceId = BigInteger.ZERO;
+        BigInteger spanId = BigInteger.ZERO;
         int samplingPriority = PrioritySampling.UNSET;
 
         for (final Map.Entry<String, String> entry : carrier) {
@@ -138,7 +130,7 @@ class B3HttpCodec {
           }
         }
 
-        if (!ZERO.equals(traceId)) {
+        if (!BigInteger.ZERO.equals(traceId)) {
           final ExtractedContext context =
               new ExtractedContext(
                   traceId,
@@ -162,15 +154,14 @@ class B3HttpCodec {
       return null;
     }
 
-    static String validateUInt128BitsID(final String value, final int radix)
+    static BigInteger validateUInt128BitsID(final String value, final int radix)
         throws IllegalArgumentException {
       final BigInteger parsedValue = new BigInteger(value, radix);
       if (parsedValue.compareTo(BigInteger.ZERO) == -1 || parsedValue.compareTo(UINT128_MAX) == 1) {
         throw new IllegalArgumentException(
             "ID out of range, must be between 0 and 2^128-1, got: " + value);
       }
-      // We use decimals
-      return parsedValue.toString();
+      return parsedValue;
     }
 
     private int convertSamplingPriority(final String samplingPriority) {

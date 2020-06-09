@@ -17,14 +17,21 @@ import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.handlers.RequestHandler2
 import com.amazonaws.regions.Regions
 import com.amazonaws.retry.PredefinedRetryPolicies
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder
+import com.amazonaws.services.dynamodbv2.model.CreateTableRequest
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
+import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder
+import com.amazonaws.services.kinesis.model.DeleteStreamRequest
 import com.amazonaws.services.rds.AmazonRDSClientBuilder
 import com.amazonaws.services.rds.model.DeleteOptionGroupRequest
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder
+import com.amazonaws.services.sqs.model.CreateQueueRequest
+import com.amazonaws.services.sqs.model.SendMessageRequest
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import org.apache.http.conn.HttpHostConnectException
 import org.apache.http.impl.execchain.RequestAbortedException
 import spock.lang.AutoCleanup
@@ -34,7 +41,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import static datadog.trace.agent.test.server.http.TestHttpServer.httpServer
 import static datadog.trace.agent.test.utils.PortUtils.UNUSABLE_PORT
-import static datadog.trace.instrumentation.api.AgentTracer.activeSpan
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeSpan
 
 class AWSClientTest extends AgentTestRunner {
 
@@ -136,31 +143,36 @@ class AWSClientTest extends AgentTestRunner {
           parent()
           tags {
             "$Tags.COMPONENT" "java-aws-sdk"
-            "$Tags.HTTP_STATUS" 200
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL" "$server.address/"
             "$Tags.HTTP_METHOD" "$method"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_STATUS" 200
+            "$Tags.PEER_PORT" server.address.port
+            "$Tags.PEER_HOSTNAME" "localhost"
             "aws.service" { it.contains(service) }
             "aws.endpoint" "$server.address"
             "aws.operation" "${operation}Request"
             "aws.agent" "java-aws-sdk"
+            for (def addedTag : additionalTags) {
+              "$addedTag.key" "$addedTag.value"
+            }
             defaultTags()
           }
         }
         span(1) {
           operationName "http.request"
-          resourceName "/$url"
+          resourceName path
           spanType DDSpanTypes.HTTP_CLIENT
           errored false
           childOf(span(0))
           tags {
             "$Tags.COMPONENT" "apache-httpclient"
-            "$Tags.HTTP_STATUS" 200
-            "$Tags.HTTP_URL" "$server.address/$url"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.PEER_HOSTNAME" "localhost"
             "$Tags.PEER_PORT" server.address.port
+            "$Tags.HTTP_URL" "${server.address}${path}"
             "$Tags.HTTP_METHOD" "$method"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.HTTP_STATUS" 200
             defaultTags()
           }
         }
@@ -170,23 +182,41 @@ class AWSClientTest extends AgentTestRunner {
     server.lastRequest.headers.get("x-b3-spanid") == null
 
     where:
-    service | operation           | method | url                  | handlerCount | call                                                                   | body               | client
-    "S3"    | "CreateBucket"      | "PUT"  | "testbucket/"        | 1            | { client -> client.createBucket("testbucket") }                        | ""                 | AmazonS3ClientBuilder.standard().withPathStyleAccessEnabled(true).withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build()
-    "S3"    | "GetObject"         | "GET"  | "someBucket/someKey" | 1            | { client -> client.getObject("someBucket", "someKey") }                | ""                 | AmazonS3ClientBuilder.standard().withPathStyleAccessEnabled(true).withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build()
-    "EC2"   | "AllocateAddress"   | "POST" | ""                   | 4            | { client -> client.allocateAddress() }                                 | """
-            <AllocateAddressResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-               <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId> 
-               <publicIp>192.0.2.1</publicIp>
-               <domain>standard</domain>
-            </AllocateAddressResponse>
-            """ | AmazonEC2ClientBuilder.standard().withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build()
-    "RDS"   | "DeleteOptionGroup" | "POST" | ""                   | 5            | { client -> client.deleteOptionGroup(new DeleteOptionGroupRequest()) } | """
+    service      | operation           | method | path                  | handlerCount | client                                                                                                                                             | call                                                                            | additionalTags                    | body
+    "S3"         | "CreateBucket"      | "PUT"  | "/testbucket/"        | 1            | AmazonS3ClientBuilder.standard().withPathStyleAccessEnabled(true).withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build() | { client -> client.createBucket("testbucket") }                                 | ["aws.bucket.name": "testbucket"] | ""
+    "S3"         | "GetObject"         | "GET"  | "/someBucket/someKey" | 1            | AmazonS3ClientBuilder.standard().withPathStyleAccessEnabled(true).withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build() | { client -> client.getObject("someBucket", "someKey") }                         | ["aws.bucket.name": "someBucket"] | ""
+    "DynamoDBv2" | "CreateTable"       | "POST" | "/"                   | 1            | AmazonDynamoDBClientBuilder.standard().withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build()                            | { c -> c.createTable(new CreateTableRequest("sometable", null)) }               | ["aws.table.name": "sometable"]   | ""
+    "Kinesis"    | "DeleteStream"      | "POST" | "/"                   | 1            | AmazonKinesisClientBuilder.standard().withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build()                             | { c -> c.deleteStream(new DeleteStreamRequest().withStreamName("somestream")) } | ["aws.stream.name": "somestream"] | ""
+    "SQS"        | "CreateQueue"       | "POST" | "/"                   | 4            | AmazonSQSClientBuilder.standard().withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build()                                 | { c -> c.createQueue(new CreateQueueRequest("somequeue")) }                     | ["aws.queue.name": "somequeue"]   | """
+        <CreateQueueResponse>
+            <CreateQueueResult><QueueUrl>https://queue.amazonaws.com/123456789012/MyQueue</QueueUrl></CreateQueueResult>
+            <ResponseMetadata><RequestId>7a62c49f-347e-4fc4-9331-6e8e7a96aa73</RequestId></ResponseMetadata>
+        </CreateQueueResponse>
+      """
+    "SQS"        | "SendMessage"       | "POST" | "/someurl"            | 4            | AmazonSQSClientBuilder.standard().withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build()                                 | { c -> c.sendMessage(new SendMessageRequest("someurl", "")) }                   | ["aws.queue.url": "someurl"]      | """
+        <SendMessageResponse>
+            <SendMessageResult>
+                <MD5OfMessageBody>d41d8cd98f00b204e9800998ecf8427e</MD5OfMessageBody>
+                <MD5OfMessageAttributes>3ae8f24a165a8cedc005670c81a27295</MD5OfMessageAttributes>
+                <MessageId>5fea7756-0ea4-451a-a703-a558b933e274</MessageId>
+            </SendMessageResult>
+            <ResponseMetadata><RequestId>27daac76-34dd-47df-bd01-1f6e873584a0</RequestId></ResponseMetadata>
+        </SendMessageResponse>
+      """
+    "EC2"        | "AllocateAddress"   | "POST" | "/"                   | 4            | AmazonEC2ClientBuilder.standard().withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build()                                 | { client -> client.allocateAddress() }                                          | [:]                               | """
+        <AllocateAddressResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+           <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+           <publicIp>192.0.2.1</publicIp>
+           <domain>standard</domain>
+        </AllocateAddressResponse>
+      """
+    "RDS"        | "DeleteOptionGroup" | "POST" | "/"                   | 5            | AmazonRDSClientBuilder.standard().withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build()                                 | { client -> client.deleteOptionGroup(new DeleteOptionGroupRequest()) }          | [:]                               | """
         <DeleteOptionGroupResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
           <ResponseMetadata>
             <RequestId>0ac9cda2-bbf4-11d3-f92b-31fa5e8dbc99</RequestId>
           </ResponseMetadata>
         </DeleteOptionGroupResponse>
-      """       | AmazonRDSClientBuilder.standard().withEndpointConfiguration(endpoint).withCredentials(credentialsProvider).build()
+      """
   }
 
   def "send #operation request to closed port"() {
@@ -210,13 +240,18 @@ class AWSClientTest extends AgentTestRunner {
           parent()
           tags {
             "$Tags.COMPONENT" "java-aws-sdk"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL" "http://localhost:${UNUSABLE_PORT}/"
             "$Tags.HTTP_METHOD" "$method"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" 61
             "aws.service" { it.contains(service) }
             "aws.endpoint" "http://localhost:${UNUSABLE_PORT}"
             "aws.operation" "${operation}Request"
             "aws.agent" "java-aws-sdk"
+            for (def addedTag : additionalTags) {
+              "$addedTag.key" "$addedTag.value"
+            }
             errorTags SdkClientException, ~/Unable to execute HTTP request/
             defaultTags()
           }
@@ -229,11 +264,11 @@ class AWSClientTest extends AgentTestRunner {
           childOf(span(0))
           tags {
             "$Tags.COMPONENT" "apache-httpclient"
-            "$Tags.HTTP_URL" "http://localhost:${UNUSABLE_PORT}/$url"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.PEER_HOSTNAME" "localhost"
             "$Tags.PEER_PORT" UNUSABLE_PORT
+            "$Tags.HTTP_URL" "http://localhost:${UNUSABLE_PORT}/$url"
             "$Tags.HTTP_METHOD" "$method"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             errorTags HttpHostConnectException, ~/Connection refused/
             defaultTags()
           }
@@ -242,8 +277,8 @@ class AWSClientTest extends AgentTestRunner {
     }
 
     where:
-    service | operation   | method | url                  | call                                                    | body | client
-    "S3"    | "GetObject" | "GET"  | "someBucket/someKey" | { client -> client.getObject("someBucket", "someKey") } | ""   | new AmazonS3Client(CREDENTIALS_PROVIDER_CHAIN, new ClientConfiguration().withRetryPolicy(PredefinedRetryPolicies.getDefaultRetryPolicyWithCustomMaxRetries(0))).withEndpoint("http://localhost:${UNUSABLE_PORT}")
+    service | operation   | method | url                  | call                                                    | additionalTags                    | body | client
+    "S3"    | "GetObject" | "GET"  | "someBucket/someKey" | { client -> client.getObject("someBucket", "someKey") } | ["aws.bucket.name": "someBucket"] | ""   | new AmazonS3Client(CREDENTIALS_PROVIDER_CHAIN, new ClientConfiguration().withRetryPolicy(PredefinedRetryPolicies.getDefaultRetryPolicyWithCustomMaxRetries(0))).withEndpoint("http://localhost:${UNUSABLE_PORT}")
   }
 
   def "naughty request handler doesn't break the trace"() {
@@ -273,9 +308,10 @@ class AWSClientTest extends AgentTestRunner {
           parent()
           tags {
             "$Tags.COMPONENT" "java-aws-sdk"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL" "https://s3.amazonaws.com/"
             "$Tags.HTTP_METHOD" "HEAD"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "s3.amazonaws.com"
             "aws.service" "Amazon S3"
             "aws.endpoint" "https://s3.amazonaws.com"
             "aws.operation" "HeadBucketRequest"
@@ -319,13 +355,16 @@ class AWSClientTest extends AgentTestRunner {
           parent()
           tags {
             "$Tags.COMPONENT" "java-aws-sdk"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.HTTP_URL" "$server.address/"
             "$Tags.HTTP_METHOD" "GET"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_PORT" server.address.port
+            "$Tags.PEER_HOSTNAME" "localhost"
             "aws.service" "Amazon S3"
             "aws.endpoint" "$server.address"
             "aws.operation" "GetObjectRequest"
             "aws.agent" "java-aws-sdk"
+            "aws.bucket.name" "someBucket"
             try {
               errorTags AmazonClientException, ~/Unable to execute HTTP request/
             } catch (AssertionError e) {
@@ -343,11 +382,11 @@ class AWSClientTest extends AgentTestRunner {
             childOf(span(0))
             tags {
               "$Tags.COMPONENT" "apache-httpclient"
-              "$Tags.HTTP_URL" "$server.address/someBucket/someKey"
+              "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
               "$Tags.PEER_HOSTNAME" "localhost"
               "$Tags.PEER_PORT" server.address.port
+              "$Tags.HTTP_URL" "$server.address/someBucket/someKey"
               "$Tags.HTTP_METHOD" "GET"
-              "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
               try {
                 errorTags SocketException, "Socket closed"
               } catch (AssertionError e) {

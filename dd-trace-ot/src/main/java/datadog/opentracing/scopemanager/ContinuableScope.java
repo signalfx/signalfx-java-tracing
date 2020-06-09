@@ -5,6 +5,8 @@ import com.signalfx.tracing.context.TraceScope;
 import datadog.opentracing.DDSpan;
 import datadog.opentracing.DDSpanContext;
 import datadog.opentracing.PendingTrace;
+import datadog.opentracing.jfr.DDScopeEvent;
+import datadog.opentracing.jfr.DDScopeEventFactory;
 import datadog.trace.api.Config;
 import datadog.trace.context.ScopeListener;
 import java.io.Closeable;
@@ -21,6 +23,10 @@ public class ContinuableScope implements DDScope, TraceScope {
    * Span contained by this scope. Async scopes will hold a reference to the parent scope's span.
    */
   private final DDSpan spanUnderScope;
+
+  private final DDScopeEventFactory eventFactory;
+  /** Event for this scope */
+  private final DDScopeEvent event;
   /** If true, finish the span when openCount hits 0. */
   private final boolean finishOnClose;
   /** Count of open scope and continuations */
@@ -31,14 +37,15 @@ public class ContinuableScope implements DDScope, TraceScope {
   private final Continuation continuation;
   /** Flag to propagate this scope across async boundaries. */
   private final AtomicBoolean isAsyncPropagating = new AtomicBoolean(false);
-
+  /** depth of scope on thread */
   private final int depth;
 
   ContinuableScope(
       final ContextualScopeManager scopeManager,
       final DDSpan spanUnderScope,
-      final boolean finishOnClose) {
-    this(scopeManager, new AtomicInteger(1), null, spanUnderScope, finishOnClose, 0);
+      final boolean finishOnClose,
+      final DDScopeEventFactory eventFactory) {
+    this(scopeManager, new AtomicInteger(1), null, spanUnderScope, finishOnClose, eventFactory, 0);
   }
 
   private ContinuableScope(
@@ -47,6 +54,7 @@ public class ContinuableScope implements DDScope, TraceScope {
       final Continuation continuation,
       final DDSpan spanUnderScope,
       final boolean finishOnClose,
+      final DDScopeEventFactory eventFactory,
       final int depth) {
     assert spanUnderScope != null : "span must not be null";
     this.scopeManager = scopeManager;
@@ -54,8 +62,13 @@ public class ContinuableScope implements DDScope, TraceScope {
     this.continuation = continuation;
     this.spanUnderScope = spanUnderScope;
     this.finishOnClose = finishOnClose;
+    this.eventFactory = eventFactory;
+    event = eventFactory.create(spanUnderScope.context());
+    event.start();
     toRestore = scopeManager.tlsScope.get();
     scopeManager.tlsScope.set(this);
+    // Persisting our message passing style over updated depth from 0.48.0
+    // depth = toRestore == null ? 0 : toRestore.depth() + 1;
     for (final ScopeListener listener : scopeManager.scopeListeners) {
       listener.afterScopeActivated();
     }
@@ -64,6 +77,11 @@ public class ContinuableScope implements DDScope, TraceScope {
 
   @Override
   public void close() {
+    // We have to scope finish event before we finish then span (which finishes span event).
+    // The reason is that we get span on construction and span event starts when span is created.
+    // This means from JFR perspective scope is included into the span.
+    event.finish();
+
     if (null != continuation) {
       spanUnderScope.context().getTrace().cancelContinuation(continuation);
     }
@@ -94,6 +112,11 @@ public class ContinuableScope implements DDScope, TraceScope {
   @Override
   public DDSpan span() {
     return spanUnderScope;
+  }
+
+  @Override
+  public int depth() {
+    return depth;
   }
 
   @Override
@@ -139,7 +162,7 @@ public class ContinuableScope implements DDScope, TraceScope {
 
     private Continuation() {
       openCount.incrementAndGet();
-      final DDSpanContext context = (DDSpanContext) spanUnderScope.context();
+      final DDSpanContext context = spanUnderScope.context();
       trace = context.getTrace();
       trace.registerContinuation(this);
     }
@@ -149,14 +172,26 @@ public class ContinuableScope implements DDScope, TraceScope {
       if (used.compareAndSet(false, true)) {
         final ContinuableScope scope =
             new ContinuableScope(
-                scopeManager, openCount, this, spanUnderScope, finishOnClose, depth + 1);
+                scopeManager,
+                openCount,
+                this,
+                spanUnderScope,
+                finishOnClose,
+                eventFactory,
+                depth + 1);
         log.debug("Activating continuation {}, scope: {}", this, scope);
         return scope;
       } else {
         log.debug(
             "Failed to activate continuation. Reusing a continuation not allowed.  Returning a new scope. Spans will not be linked.");
         return new ContinuableScope(
-            scopeManager, new AtomicInteger(1), null, spanUnderScope, finishOnClose, depth + 1);
+            scopeManager,
+            new AtomicInteger(1),
+            null,
+            spanUnderScope,
+            finishOnClose,
+            eventFactory,
+            depth + 1);
       }
     }
 

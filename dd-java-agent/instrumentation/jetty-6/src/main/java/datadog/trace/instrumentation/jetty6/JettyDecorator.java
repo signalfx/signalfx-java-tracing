@@ -1,8 +1,8 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.jetty6;
 
-import datadog.trace.agent.decorator.HttpServerDecorator;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecorator;
 import java.net.URI;
 import java.net.URISyntaxException;
 import javax.servlet.http.HttpServletRequest;
@@ -31,11 +31,6 @@ public class JettyDecorator
   @Override
   protected URI url(final HttpServletRequest httpServletRequest) throws URISyntaxException {
     return new URI(httpServletRequest.getRequestURL().toString());
-  }
-
-  @Override
-  protected String peerHostname(final HttpServletRequest httpServletRequest) {
-    return httpServletRequest.getRemoteHost();
   }
 
   @Override

@@ -5,10 +5,8 @@ import com.zaxxer.hikari.HikariDataSource
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.jdbc.JDBCUtils
-
-import javax.sql.DataSource
 import org.apache.derby.jdbc.EmbeddedDataSource
 import org.apache.derby.jdbc.EmbeddedDriver
 import org.h2.Driver
@@ -16,7 +14,10 @@ import org.h2.jdbcx.JdbcDataSource
 import org.hsqldb.jdbc.JDBCDriver
 import spock.lang.Shared
 import spock.lang.Unroll
+import test.TestConnection
+import test.TestStatement
 
+import javax.sql.DataSource
 import java.sql.CallableStatement
 import java.sql.Connection
 import java.sql.PreparedStatement
@@ -29,7 +30,7 @@ import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 
 class JDBCInstrumentationTest extends AgentTestRunner {
   static {
-    System.setProperty("dd.integration.jdbc.enabled", "true")
+    System.setProperty("dd.integration.jdbc-datasource.enabled", "true")
   }
 
   @Shared
@@ -184,14 +185,14 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "db.type" driver
-            if (username != null) {
-              "db.user" username
-            }
-            "span.kind" Tags.SPAN_KIND_CLIENT
-            "component" "java-jdbc-statement"
-            "db.instance" dbName.toLowerCase()
+            "$Tags.COMPONENT" "java-jdbc-statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" driver
+            "$Tags.DB_INSTANCE" dbName.toLowerCase()
             "db.statement" JDBCUtils.normalizeSql(query)
+            if (username != null) {
+              "$Tags.DB_USER" username
+            }
             "span.origin.type" String
             defaultTags()
           }
@@ -245,14 +246,14 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "db.type" driver
-            if (username != null) {
-              "db.user" username
-            }
-            "span.kind" Tags.SPAN_KIND_CLIENT
-            "component" "java-jdbc-prepared_statement"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" driver
+            "$Tags.DB_INSTANCE" dbName.toLowerCase()
             "db.statement" JDBCUtils.normalizeSql(query)
-            "db.instance" dbName.toLowerCase()
+            if (username != null) {
+              "$Tags.DB_USER" username
+            }
             "span.origin.type" String
             defaultTags()
           }
@@ -298,14 +299,14 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "db.type" driver
-            if (username != null) {
-              "db.user" username
-            }
-            "span.kind" Tags.SPAN_KIND_CLIENT
-            "component" "java-jdbc-prepared_statement"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" driver
+            "$Tags.DB_INSTANCE" dbName.toLowerCase()
             "db.statement" JDBCUtils.normalizeSql(query)
-            "db.instance" dbName.toLowerCase()
+            if (username != null) {
+              "$Tags.DB_USER" username
+            }
             "span.origin.type" String
             defaultTags()
           }
@@ -351,14 +352,14 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "db.type" driver
-            if (username != null) {
-              "db.user" username
-            }
-            "span.kind" Tags.SPAN_KIND_CLIENT
-            "component" "java-jdbc-prepared_statement"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" driver
+            "$Tags.DB_INSTANCE" dbName.toLowerCase()
             "db.statement" JDBCUtils.normalizeSql(query)
-            "db.instance" dbName.toLowerCase()
+            if (username != null) {
+              "$Tags.DB_USER" username
+            }
             "span.origin.type" String
             defaultTags()
           }
@@ -404,14 +405,14 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "db.type" driver
-            if (username != null) {
-              "db.user" username
-            }
-            "span.kind" Tags.SPAN_KIND_CLIENT
-            "component" "java-jdbc-statement"
+            "$Tags.COMPONENT" "java-jdbc-statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" driver
+            "$Tags.DB_INSTANCE" dbName.toLowerCase()
             "db.statement" JDBCUtils.normalizeSql(query)
-            "db.instance" dbName.toLowerCase()
+            if (username != null) {
+              "$Tags.DB_USER" username
+            }
             "span.origin.type" String
             defaultTags()
           }
@@ -460,14 +461,14 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "db.type" driver
-            if (username != null) {
-              "db.user" username
-            }
-            "span.kind" Tags.SPAN_KIND_CLIENT
-            "component" "java-jdbc-prepared_statement"
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" driver
+            "$Tags.DB_INSTANCE" dbName.toLowerCase()
             "db.statement" JDBCUtils.normalizeSql(query)
-            "db.instance" dbName.toLowerCase()
+            if (username != null) {
+              "$Tags.DB_USER" username
+            }
             "span.origin.type" String
             defaultTags()
           }
@@ -489,7 +490,6 @@ class JDBCInstrumentationTest extends AgentTestRunner {
     "derby" | cpDatasources.get("hikari").get("derby").getConnection()  | "APP"    | "CREATE TABLE PS_DERBY_HIKARI (id INTEGER not NULL, PRIMARY KEY ( id ))"
     "h2"    | cpDatasources.get("c3p0").get("h2").getConnection()       | null     | "CREATE TABLE PS_H2_C3P0 (id INTEGER not NULL, PRIMARY KEY ( id ))"
     "derby" | cpDatasources.get("c3p0").get("derby").getConnection()    | "APP"    | "CREATE TABLE PS_DERBY_C3P0 (id INTEGER not NULL, PRIMARY KEY ( id ))"
-
   }
 
   @Unroll
@@ -499,7 +499,7 @@ class JDBCInstrumentationTest extends AgentTestRunner {
 
     when:
     try {
-      connection = new DummyThrowingConnection()
+      connection = new TestConnection(true)
     } catch (Exception e) {
       connection = driverClass.connect(url, null)
     }
@@ -529,18 +529,18 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           childOf span(0)
           errored false
           tags {
-            "db.type" driver
-            if (username != null) {
-              "db.user" username
-            }
             if (prepareStatement) {
-              "component" "java-jdbc-prepared_statement"
+              "$Tags.COMPONENT" "java-jdbc-prepared_statement"
             } else {
-              "component" "java-jdbc-statement"
+              "$Tags.COMPONENT" "java-jdbc-statement"
             }
-            "span.kind" Tags.SPAN_KIND_CLIENT
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" driver
+            "$Tags.DB_INSTANCE" dbName.toLowerCase()
             "db.statement" JDBCUtils.normalizeSql(query)
-            "db.instance" dbName.toLowerCase()
+            if (username != null) {
+              "$Tags.DB_USER" username
+            }
             "span.origin.type" String
             defaultTags()
           }
@@ -624,6 +624,53 @@ class JDBCInstrumentationTest extends AgentTestRunner {
     recursive = datasource instanceof EmbeddedDataSource
   }
 
+  def "test getClientInfo exception"() {
+    setup:
+    Connection connection = new TestConnection(false)
+
+    when:
+    Statement statement = null
+    runUnderTrace("parent") {
+      statement = connection.createStatement()
+      return statement.executeQuery(query)
+    }
+
+    then:
+    assertTraces(1) {
+      trace(0, 2) {
+        basicSpan(it, 0, "parent")
+        span(1) {
+          operationName "${database}.query"
+          serviceName database
+          resourceName "${database}.query"
+          spanType DDSpanTypes.SQL
+          childOf span(0)
+          errored false
+          tags {
+            "$Tags.COMPONENT" "java-jdbc-statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" database
+            "$Tags.DB_STATEMENT" query
+            "span.origin.type" TestStatement.name
+            defaultTags()
+          }
+        }
+      }
+    }
+
+    cleanup:
+    if (statement != null) {
+      statement.close()
+    }
+    if (connection != null) {
+      connection.close()
+    }
+
+    where:
+    database = "testdb"
+    query = "testing ?"
+  }
+
   @Unroll
   def "#connectionPoolName connections should be cached in case of wrapped connections"() {
     setup:
@@ -665,12 +712,12 @@ class JDBCInstrumentationTest extends AgentTestRunner {
           spanType DDSpanTypes.SQL
           errored false
           tags {
-            "db.type" dbType
-            "db.user" "SA"
-            "component" "java-jdbc-prepared_statement"
-            "span.kind" Tags.SPAN_KIND_CLIENT
-            "db.instance" dbName.toLowerCase()
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" dbType
+            "$Tags.DB_INSTANCE" dbName.toLowerCase()
             "db.statement" JDBCUtils.normalizeSql(query)
+            "$Tags.DB_USER" "SA"
             "span.origin.type" String
             defaultTags()
           }
@@ -685,12 +732,12 @@ class JDBCInstrumentationTest extends AgentTestRunner {
             spanType DDSpanTypes.SQL
             errored false
             tags {
-              "db.type" dbType
-              "db.user" "SA"
-              "component" "java-jdbc-prepared_statement"
-              "span.kind" Tags.SPAN_KIND_CLIENT
+              "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+              "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+              "$Tags.DB_TYPE" dbType
+              "$Tags.DB_INSTANCE" dbName.toLowerCase()
               "db.statement" JDBCUtils.normalizeSql(query)
-              "db.instance" dbName.toLowerCase()
+              "$Tags.DB_USER" "SA"
               "span.origin.type" String
               defaultTags()
             }

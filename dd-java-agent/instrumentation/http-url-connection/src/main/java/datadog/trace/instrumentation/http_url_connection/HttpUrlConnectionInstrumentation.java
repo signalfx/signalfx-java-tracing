@@ -1,15 +1,16 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.http_url_connection;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
-import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.propagate;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.extendsClass;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.http_url_connection.HeadersInjectAdapter.SETTER;
 import static datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionDecorator.DECORATE;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
@@ -19,8 +20,8 @@ import datadog.trace.api.Config;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
-import datadog.trace.instrumentation.api.AgentScope;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
@@ -28,6 +29,7 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
+import net.bytebuddy.matcher.ElementMatchers;
 
 @AutoService(Instrumenter.class)
 public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
@@ -38,17 +40,16 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
 
   @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return safeHasSuperType(named("java.net.HttpURLConnection"))
+    return nameStartsWith("java.net.")
+        .or(ElementMatchers.<TypeDescription>nameStartsWith("sun.net"))
         // This class is a simple delegator. Skip because it does not update its `connected` field.
-        .and(not(named("sun.net.www.protocol.https.HttpsURLConnectionImpl")));
+        .and(not(named("sun.net.www.protocol.https.HttpsURLConnectionImpl")))
+        .and(extendsClass(named("java.net.HttpURLConnection")));
   }
 
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
-      "datadog.trace.agent.decorator.HttpClientDecorator",
       packageName + ".HttpUrlConnectionDecorator",
       packageName + ".HeadersInjectAdapter",
       HttpUrlConnectionInstrumentation.class.getName() + "$HttpUrlState",
@@ -67,7 +68,7 @@ public class HttpUrlConnectionInstrumentation extends Instrumenter.Default {
         isMethod()
             .and(isPublic())
             .and(named("connect").or(named("getOutputStream")).or(named("getInputStream"))),
-        HttpUrlConnectionAdvice.class.getName());
+        HttpUrlConnectionInstrumentation.class.getName() + "$HttpUrlConnectionAdvice");
   }
 
   public static class HttpUrlConnectionAdvice {

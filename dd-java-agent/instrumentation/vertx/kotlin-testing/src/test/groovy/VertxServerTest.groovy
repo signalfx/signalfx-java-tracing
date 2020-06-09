@@ -3,7 +3,7 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.vertx.core.Vertx
 import okhttp3.OkHttpClient
@@ -47,9 +47,9 @@ class VertxServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          traceId "123"
-          parentId "456"
-          serviceName "unnamed-java-app"
+          traceId 123G
+          parentId 456G
+          serviceName "unnamed-java-service"
           operationName "netty.request"
           resourceName "/test"
           spanType DDSpanTypes.HTTP_SERVER
@@ -59,7 +59,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD" "GET"
             "$Tags.HTTP_STATUS" 200
             "$Tags.HTTP_URL" "http://localhost:$port/test"
-            "$Tags.PEER_HOSTNAME" "localhost"
             "$Tags.PEER_HOST_IPV4" "127.0.0.1"
             "$Tags.PEER_PORT" Integer
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
@@ -86,7 +85,7 @@ class VertxServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "netty.request"
           resourceName name
           spanType DDSpanTypes.HTTP_SERVER
@@ -96,7 +95,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD" "GET"
             "$Tags.HTTP_STATUS" responseCode.code()
             "$Tags.HTTP_URL" "http://localhost:$port/$path"
-            "$Tags.PEER_HOSTNAME" "localhost"
             "$Tags.PEER_HOST_IPV4" "127.0.0.1"
             "$Tags.PEER_PORT" Integer
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER

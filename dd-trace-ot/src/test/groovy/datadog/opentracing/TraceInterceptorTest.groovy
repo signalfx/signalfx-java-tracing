@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class TraceInterceptorTest extends DDSpecification {
 
   def writer = new ListWriter()
-  def tracer = new DDTracer(writer)
+  def tracer = DDTracer.builder().writer(writer).build()
 
   def "interceptor is registered as a service"() {
     expect:
@@ -131,7 +131,7 @@ class TraceInterceptorTest extends DDSpecification {
     def span = trace[0]
 
     span.context().operationName == "modifiedON-test"
-    span.serviceName == "modifiedSN-unnamed-java-app"
+    span.serviceName == "modifiedSN-unnamed-java-service"
     span.resourceName == "modifiedRN-modifiedON-test"
     span.type == "modifiedST-null"
     span.context().getErrorFlag()

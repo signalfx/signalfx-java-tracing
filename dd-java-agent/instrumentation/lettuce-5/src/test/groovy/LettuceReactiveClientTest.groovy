@@ -2,6 +2,7 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import io.lettuce.core.ClientOptions
 import io.lettuce.core.RedisClient
 import io.lettuce.core.RedisCommandExecutionException
@@ -96,11 +97,11 @@ class LettuceReactiveClientTest extends AgentTestRunner {
           errored false
 
           tags {
-            defaultTags()
-            "component" "redis"
-            "db.type" "redis"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "redis"
             "db.statement" "SET: key<TESTSETKEY> value<TESTSETVAL>"
-            "span.kind" "client"
+            defaultTags()
           }
         }
       }
@@ -126,11 +127,11 @@ class LettuceReactiveClientTest extends AgentTestRunner {
           errored false
 
           tags {
-            defaultTags()
-            "component" "redis"
-            "db.type" "redis"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "redis"
             "db.statement" "GET: key<TESTKEY>"
-            "span.kind" "client"
+            defaultTags()
           }
         }
       }
@@ -164,11 +165,11 @@ class LettuceReactiveClientTest extends AgentTestRunner {
           errored false
 
           tags {
-            defaultTags()
-            "component" "redis"
-            "db.type" "redis"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "redis"
             "db.statement" "GET: key<NON_EXISTENT_KEY>"
-            "span.kind" "client"
+            defaultTags()
           }
         }
       }
@@ -200,11 +201,11 @@ class LettuceReactiveClientTest extends AgentTestRunner {
           errored false
 
           tags {
-            defaultTags()
-            "component" "redis"
-            "db.type" "redis"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "redis"
             "db.statement" "RANDOMKEY"
-            "span.kind" "client"
+            defaultTags()
           }
         }
       }
@@ -226,12 +227,12 @@ class LettuceReactiveClientTest extends AgentTestRunner {
           errored false
 
           tags {
-            defaultTags()
-            "component" "redis"
-            "db.type" "redis"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "redis"
             "db.statement" "COMMAND"
             "db.command.results.count" 157
-            "span.kind" "client"
+            defaultTags()
           }
         }
       }
@@ -253,13 +254,13 @@ class LettuceReactiveClientTest extends AgentTestRunner {
           errored false
 
           tags {
-            defaultTags()
-            "component" "redis"
-            "db.type" "redis"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "redis"
             "db.statement" "COMMAND"
             "db.command.cancelled" true
             "db.command.results.count" 2
-            "span.kind" "client"
+            defaultTags()
           }
         }
       }
@@ -293,11 +294,11 @@ class LettuceReactiveClientTest extends AgentTestRunner {
           errored false
 
           tags {
-            defaultTags()
-            "component" "redis"
-            "db.type" "redis"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "redis"
             "db.statement" "DEBUG: SEGFAULT"
-            "span.kind" "client"
+            defaultTags()
           }
         }
       }
@@ -356,11 +357,11 @@ class LettuceReactiveClientTest extends AgentTestRunner {
           errored false
 
           tags {
-            defaultTags()
-            "component" "redis"
-            "db.type" "redis"
+            "$Tags.COMPONENT" "redis"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "redis"
             "db.statement" "SHUTDOWN: NOSAVE"
-            "span.kind" "client"
+            defaultTags()
           }
         }
       }

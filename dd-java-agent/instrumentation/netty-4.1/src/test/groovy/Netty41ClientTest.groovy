@@ -4,7 +4,7 @@ import datadog.opentracing.DDSpan
 import datadog.trace.instrumentation.netty41.NettyUtils
 import datadog.trace.agent.test.base.HttpClientTest
 import datadog.trace.api.Trace
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.netty41.client.HttpClientTracingHandler
 import datadog.trace.instrumentation.netty41.client.NettyHttpClientDecorator
 import io.netty.channel.AbstractChannel
@@ -18,7 +18,9 @@ import org.asynchttpclient.AsyncCompletionHandler
 import org.asynchttpclient.AsyncHttpClient
 import org.asynchttpclient.DefaultAsyncHttpClientConfig
 import org.asynchttpclient.Response
+import spock.lang.Retry
 import spock.lang.Shared
+import spock.lang.Timeout
 
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
@@ -29,7 +31,9 @@ import static datadog.trace.agent.test.utils.TraceUtils.basicSpan
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 import static org.asynchttpclient.Dsl.asyncHttpClient
 
-class Netty41ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
+@Retry
+@Timeout(5)
+class Netty41ClientTest extends HttpClientTest {
 
   @Shared
   def clientConfig = DefaultAsyncHttpClientConfig.Builder.newInstance().setRequestTimeout(TimeUnit.SECONDS.toMillis(10).toInteger())
@@ -53,8 +57,8 @@ class Netty41ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
   }
 
   @Override
-  NettyHttpClientDecorator decorator() {
-    return NettyHttpClientDecorator.DECORATE
+  String component() {
+    return NettyHttpClientDecorator.DECORATE.component()
   }
 
   @Override
@@ -70,6 +74,11 @@ class Netty41ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
   @Override
   boolean testConnectionFailure() {
     false
+  }
+
+  @Override
+  boolean testRemoteConnection() {
+    return false
   }
 
   def "connection error (unopened port)"() {
@@ -198,13 +207,13 @@ class Netty41ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
         basicSpan(it, 0, "parent")
         span(1) {
           childOf((DDSpan) span(0))
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "trace.annotation"
           resourceName "AnnotatedClass.makeRequestUnderTrace"
           errored false
           tags {
-            defaultTags()
             "$Tags.COMPONENT" "trace"
+            defaultTags()
           }
         }
         clientSpan(it, 2, span(1), method)
@@ -288,7 +297,7 @@ class Netty41ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
           parent()
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "netty.client.request"
           resourceName "/post"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -318,8 +327,8 @@ class Netty41ClientTest extends HttpClientTest<NettyHttpClientDecorator> {
     }
 
     and:
-    server.lastRequest.headers.get("x-b3-traceid") == new BigInteger(TEST_WRITER.get(0).get(1).traceId).toString(16).toLowerCase()
-    server.lastRequest.headers.get("x-b3-spanid") == new BigInteger(TEST_WRITER.get(0).get(1).spanId).toString(16).toLowerCase()
+    server.lastRequest.headers.get("x-b3-traceid") == String.format("%016x", TEST_WRITER.get(0).get(1).traceId)
+    server.lastRequest.headers.get("x-b3-spanid") == String.format("%016x", TEST_WRITER.get(0).get(1).spanId)
 
     where:
     statusCode | error | rewrite

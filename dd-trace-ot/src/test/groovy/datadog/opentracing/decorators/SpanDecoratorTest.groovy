@@ -8,6 +8,7 @@ import datadog.trace.agent.test.utils.ConfigUtils
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
+import datadog.trace.api.sampling.PrioritySampling
 import datadog.trace.common.sampling.AllSampler
 import datadog.trace.common.writer.LoggingWriter
 import datadog.trace.util.test.DDSpecification
@@ -16,8 +17,7 @@ import io.opentracing.tag.Tags
 import spock.lang.Ignore
 
 import static datadog.trace.api.Config.DEFAULT_SERVICE_NAME
-import static datadog.trace.api.DDTags.EVENT_SAMPLE_RATE
-import static java.util.Collections.emptyMap
+import static datadog.trace.api.DDTags.ANALYTICS_SAMPLE_RATE
 
 class SpanDecoratorTest extends DDSpecification {
   static {
@@ -31,7 +31,7 @@ class SpanDecoratorTest extends DDSpecification {
       System.clearProperty("dd.$Config.SPLIT_BY_TAGS")
     }
   }
-  def tracer = new DDTracer(new LoggingWriter())
+  def tracer = DDTracer.builder().writer(new LoggingWriter()).build()
   def span = SpanFactory.newSpanOf(tracer)
 
   def "adding span personalisation using Decorators"() {
@@ -56,16 +56,12 @@ class SpanDecoratorTest extends DDSpecification {
 
   def "set service name"() {
     setup:
-    tracer = new DDTracer(
-      "wrong-service",
-      new LoggingWriter(),
-      new AllSampler(),
-      "some-runtime-id",
-      emptyMap(),
-      emptyMap(),
-      mapping,
-      emptyMap()
-    )
+    tracer = DDTracer.builder()
+      .serviceName("wrong-service")
+      .writer(new LoggingWriter())
+      .sampler(new AllSampler())
+      .serviceNameMappings(mapping)
+      .build()
 
     when:
     def span = tracer.buildSpan("some span").withTag(tag, name).start()
@@ -76,12 +72,12 @@ class SpanDecoratorTest extends DDSpecification {
 
     where:
     tag                   | name            | expected
-    //DDTags.SERVICE_NAME   | "some-service"  | "new-service"
-    //DDTags.SERVICE_NAME   | "other-service" | "other-service"
+    DDTags.SERVICE_NAME   | "some-service"  | "wrong-service"
+    DDTags.SERVICE_NAME   | "other-service" | "wrong-service"
     "service"             | "some-service"  | "wrong-service"
     "service"             | "other-service" | "wrong-service"
-    Tags.PEER_SERVICE.key | "some-service"  | "new-service"
-    Tags.PEER_SERVICE.key | "other-service" | "other-service"
+    Tags.PEER_SERVICE.key | "some-service"  | "wrong-service"
+    Tags.PEER_SERVICE.key | "other-service" | "wrong-service"
     "sn.tag1"             | "some-service"  | "wrong-service"
     "sn.tag1"             | "other-service" | "wrong-service"
     "sn.tag2"             | "some-service"  | "wrong-service"
@@ -92,16 +88,12 @@ class SpanDecoratorTest extends DDSpecification {
 
   def "default or configured service name can be remapped without setting tag"() {
     setup:
-    tracer = new DDTracer(
-      serviceName,
-      new LoggingWriter(),
-      new AllSampler(),
-      "some-runtime-id",
-      emptyMap(),
-      emptyMap(),
-      mapping,
-      emptyMap()
-    )
+    tracer = DDTracer.builder()
+      .serviceName(serviceName)
+      .writer(new LoggingWriter())
+      .sampler(new AllSampler())
+      .serviceNameMappings(mapping)
+      .build()
 
     when:
     def span = tracer.buildSpan("some span").start()
@@ -138,18 +130,14 @@ class SpanDecoratorTest extends DDSpecification {
     "other-context" | "my-service"         | "my-service"
   }
 
-  def "set service name from servlet.context with context '#context' for service #serviceName"() {
+  def "mapping causes servlet.context to not change service name"() {
     setup:
-    tracer = new DDTracer(
-      serviceName,
-      new LoggingWriter(),
-      new AllSampler(),
-      "some-runtime-id",
-      emptyMap(),
-      emptyMap(),
-      mapping,
-      emptyMap()
-    )
+    tracer = DDTracer.builder()
+      .serviceName(serviceName)
+      .writer(new LoggingWriter())
+      .sampler(new AllSampler())
+      .serviceNameMappings(mapping)
+      .build()
 
     when:
     def span = tracer.buildSpan("some span").start()
@@ -157,20 +145,85 @@ class SpanDecoratorTest extends DDSpecification {
     span.finish()
 
     then:
-    span.serviceName == expected
+    span.serviceName == "new-service"
 
     where:
-    context         | serviceName          | expected
-    "/"             | DEFAULT_SERVICE_NAME | "new-service"
-    ""              | DEFAULT_SERVICE_NAME | "new-service"
-    "/some-context" | DEFAULT_SERVICE_NAME | "some-context"
-    "other-context" | DEFAULT_SERVICE_NAME | "other-context"
-    "/"             | "my-service"         | "new-service"
-    ""              | "my-service"         | "new-service"
-    "/some-context" | "my-service"         | "new-service"
-    "other-context" | "my-service"         | "new-service"
+    context         | serviceName
+    "/some-context" | DEFAULT_SERVICE_NAME
+    "/some-context" | "my-service"
 
     mapping = [(serviceName): "new-service"]
+  }
+
+  static createSplittingTracer(tag) {
+    def tracer = DDTracer.builder()
+      .serviceName("my-service")
+      .writer(new LoggingWriter())
+      .sampler(new AllSampler())
+      .build()
+
+    // equivalent to split-by-tags: tag
+    tracer.addDecorator(new ServiceNameDecorator(tag, true))
+
+    return tracer
+  }
+
+  def "peer.service then split-by-tags via builder"() {
+    setup:
+    tracer = createSplittingTracer(Tags.MESSAGE_BUS_DESTINATION.key)
+
+    when:
+    def span = tracer.buildSpan("some span")
+      .withTag(Tags.PEER_SERVICE.key, "peer-service")
+      .withTag(Tags.MESSAGE_BUS_DESTINATION.key, "some-queue")
+      .start()
+    span.finish()
+
+    then:
+    span.serviceName == "my-service"
+  }
+
+  def "peer.service then split-by-tags via setTag"() {
+    setup:
+    tracer = createSplittingTracer(Tags.MESSAGE_BUS_DESTINATION.key)
+
+    when:
+    def span = tracer.buildSpan("some span").start()
+    span.setTag(Tags.PEER_SERVICE.key, "peer-service")
+    span.setTag(Tags.MESSAGE_BUS_DESTINATION.key, "some-queue")
+    span.finish()
+
+    then:
+    span.serviceName == "my-service"
+  }
+
+  def "split-by-tags then peer-service via builder"() {
+    setup:
+    tracer = createSplittingTracer(Tags.MESSAGE_BUS_DESTINATION.key)
+
+    when:
+    def span = tracer.buildSpan("some span")
+      .withTag(Tags.MESSAGE_BUS_DESTINATION.key, "some-queue")
+      .withTag(Tags.PEER_SERVICE.key, "peer-service")
+      .start()
+    span.finish()
+
+    then:
+    span.serviceName == "my-service"
+  }
+
+  def "split-by-tags then peer-service via setTag"() {
+    setup:
+    tracer = createSplittingTracer(Tags.MESSAGE_BUS_DESTINATION.key)
+
+    when:
+    def span = tracer.buildSpan("some span").start()
+    span.setTag(Tags.MESSAGE_BUS_DESTINATION.key, "some-queue")
+    span.setTag(Tags.PEER_SERVICE.key, "peer-service")
+    span.finish()
+
+    then:
+    span.serviceName == "my-service"
   }
 
   def "set operation name"() {
@@ -232,23 +285,51 @@ class SpanDecoratorTest extends DDSpecification {
     span.metrics == [:]
 
     when:
-    span.setTag(EVENT_SAMPLE_RATE, rate)
+    span.setTag(ANALYTICS_SAMPLE_RATE, rate)
 
     then:
     span.metrics == result
 
     where:
     rate  | result
-    00    | [(EVENT_SAMPLE_RATE): 0]
-    1     | [(EVENT_SAMPLE_RATE): 1]
-    0f    | [(EVENT_SAMPLE_RATE): 0]
-    1f    | [(EVENT_SAMPLE_RATE): 1]
-    0.1   | [(EVENT_SAMPLE_RATE): 0.1]
-    1.1   | [(EVENT_SAMPLE_RATE): 1.1]
-    -1    | [(EVENT_SAMPLE_RATE): -1]
-    10    | [(EVENT_SAMPLE_RATE): 10]
-    "00"  | [:]
+    00    | [(ANALYTICS_SAMPLE_RATE): 0]
+    1     | [(ANALYTICS_SAMPLE_RATE): 1]
+    0f    | [(ANALYTICS_SAMPLE_RATE): 0]
+    1f    | [(ANALYTICS_SAMPLE_RATE): 1]
+    0.1   | [(ANALYTICS_SAMPLE_RATE): 0.1]
+    1.1   | [(ANALYTICS_SAMPLE_RATE): 1.1]
+    -1    | [(ANALYTICS_SAMPLE_RATE): -1]
+    10    | [(ANALYTICS_SAMPLE_RATE): 10]
+    "00"  | [(ANALYTICS_SAMPLE_RATE): 0]
+    "1"   | [(ANALYTICS_SAMPLE_RATE): 1]
+    "1.0" | [(ANALYTICS_SAMPLE_RATE): 1]
+    "0"   | [(ANALYTICS_SAMPLE_RATE): 0]
+    "0.1" | [(ANALYTICS_SAMPLE_RATE): 0.1]
+    "1.1" | [(ANALYTICS_SAMPLE_RATE): 1.1]
+    "-1"  | [(ANALYTICS_SAMPLE_RATE): -1]
     "str" | [:]
+  }
+
+  def "set priority sampling via tag"() {
+    when:
+    span.setTag(tag, value)
+
+    then:
+    span.samplingPriority == expected
+
+    where:
+    tag                | value   | expected
+    DDTags.MANUAL_KEEP | true    | PrioritySampling.USER_KEEP
+    DDTags.MANUAL_KEEP | false   | null
+    DDTags.MANUAL_KEEP | "true"  | PrioritySampling.USER_KEEP
+    DDTags.MANUAL_KEEP | "false" | null
+    DDTags.MANUAL_KEEP | "asdf"  | null
+
+    DDTags.MANUAL_DROP | true    | PrioritySampling.USER_DROP
+    DDTags.MANUAL_DROP | false   | null
+    DDTags.MANUAL_DROP | "true"  | PrioritySampling.USER_DROP
+    DDTags.MANUAL_DROP | "false" | null
+    DDTags.MANUAL_DROP | "asdf"  | null
   }
 
   def "DBStatementAsResource should not interact on Mongo queries"() {
@@ -332,7 +413,7 @@ class SpanDecoratorTest extends DDSpecification {
     def span = tracer.buildSpan("decorator.test").withTag("sn.tag1", "some val").start()
 
     then:
-    span.serviceName == "unnamed-java-app"
+    span.serviceName == "unnamed-java-service"
 
     when:
     span = tracer.buildSpan("decorator.test").withTag("servlet.context", "/my-servlet").start()
@@ -369,5 +450,68 @@ class SpanDecoratorTest extends DDSpecification {
 
     then:
     span.resourceName == "decorator.test"
+  }
+
+  def "disable decorator via config"() {
+    setup:
+    ConfigUtils.updateConfig {
+      System.setProperty("dd.trace.${decorator}.enabled", "false")
+    }
+
+    tracer = DDTracer.builder()
+      .serviceName("some-service")
+      .writer(new LoggingWriter())
+      .sampler(new AllSampler())
+      .build()
+
+    when:
+    def span = tracer.buildSpan("some span").withTag(Tags.PEER_SERVICE.key, "peer-service").start()
+    span.finish()
+
+    then:
+    span.getServiceName() == "some-service"
+
+    cleanup:
+    ConfigUtils.updateConfig {
+      System.clearProperty("dd.trace.${decorator}.enabled")
+    }
+
+    where:
+    decorator                                          | _
+    PeerServiceDecorator.getSimpleName().toLowerCase() | _
+    PeerServiceDecorator.getSimpleName()               | _
+  }
+
+  def "disabling service decorator does not disable split by tags"() {
+    setup:
+    ConfigUtils.updateConfig {
+      System.setProperty("dd.trace." + ServiceNameDecorator.getSimpleName().toLowerCase() + ".enabled", "false")
+    }
+
+    tracer = DDTracer.builder()
+      .serviceName("some-service")
+      .writer(new LoggingWriter())
+      .sampler(new AllSampler())
+      .build()
+
+    when:
+    def span = tracer.buildSpan("some span").withTag(tag, name).start()
+    span.finish()
+
+    then:
+    span.getServiceName() == expected
+
+    cleanup:
+    ConfigUtils.updateConfig {
+      System.clearProperty("dd.trace." + ServiceNameDecorator.getSimpleName().toLowerCase() + ".enabled")
+    }
+
+    where: // SignalFx doesn't use ServiceNameDecorator logic
+    tag                 | name          | expected
+    DDTags.SERVICE_NAME | "new-service" | "some-service"
+    "service"           | "new-service" | "some-service"
+    "sn.tag1"           | "new-service" | "some-service"
+
+
   }
 }

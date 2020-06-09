@@ -1,23 +1,22 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.jdbc;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
-import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.implementsInterface;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.jdbc.JDBCDecorator.DECORATE;
 import static datadog.trace.instrumentation.jdbc.JDBCUtils.connectionFromStatement;
 import static java.util.Collections.singletonMap;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.nameStartsWith;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.CallDepthThreadLocalMap;
-import datadog.trace.instrumentation.api.AgentScope;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
@@ -37,13 +36,12 @@ public final class PreparedStatementInstrumentation extends Instrumenter.Default
 
   @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return not(isInterface()).and(safeHasSuperType(named("java.sql.PreparedStatement")));
+    return implementsInterface(named("java.sql.PreparedStatement"));
   }
 
   @Override
   public String[] helperClassNames() {
-    final List<String> helpers = new ArrayList<>(JDBCConnectionUrlParser.values().length + 9);
-
+    final List<String> helpers = new ArrayList<>(10);
     helpers.add(packageName + ".normalizer.Token");
     helpers.add(packageName + ".normalizer.ParseException");
     helpers.add(packageName + ".normalizer.SimpleCharStream");
@@ -52,20 +50,9 @@ public final class PreparedStatementInstrumentation extends Instrumenter.Default
     helpers.add(packageName + ".normalizer.SqlNormalizerTokenManager");
     helpers.add(packageName + ".normalizer.SqlNormalizer");
 
-    helpers.add(packageName + ".DBInfo");
-    helpers.add(packageName + ".DBInfo$Builder");
-    helpers.add(packageName + ".JDBCUtils");
     helpers.add(packageName + ".JDBCMaps");
-    helpers.add(packageName + ".JDBCConnectionUrlParser");
-
-    helpers.add("datadog.trace.agent.decorator.BaseDecorator");
-    helpers.add("datadog.trace.agent.decorator.ClientDecorator");
-    helpers.add("datadog.trace.agent.decorator.DatabaseClientDecorator");
+    helpers.add(packageName + ".JDBCUtils");
     helpers.add(packageName + ".JDBCDecorator");
-
-    for (final JDBCConnectionUrlParser parser : JDBCConnectionUrlParser.values()) {
-      helpers.add(parser.getClass().getName());
-    }
     return helpers.toArray(new String[0]);
   }
 
@@ -73,20 +60,20 @@ public final class PreparedStatementInstrumentation extends Instrumenter.Default
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
     return singletonMap(
         nameStartsWith("execute").and(takesArguments(0)).and(isPublic()),
-        PreparedStatementAdvice.class.getName());
+        PreparedStatementInstrumentation.class.getName() + "$PreparedStatementAdvice");
   }
 
   public static class PreparedStatementAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static AgentScope onEnter(@Advice.This final PreparedStatement statement) {
-      final int callDepth = CallDepthThreadLocalMap.incrementCallDepth(PreparedStatement.class);
-      if (callDepth > 0) {
+      final Connection connection = connectionFromStatement(statement);
+      if (connection == null) {
         return null;
       }
 
-      final Connection connection = connectionFromStatement(statement);
-      if (connection == null) {
+      final int callDepth = CallDepthThreadLocalMap.incrementCallDepth(PreparedStatement.class);
+      if (callDepth > 0) {
         return null;
       }
 

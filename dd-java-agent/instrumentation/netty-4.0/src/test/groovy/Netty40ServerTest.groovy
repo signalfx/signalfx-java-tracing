@@ -1,7 +1,7 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.base.HttpServerTest
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.netty40.NettyUtils
 import datadog.trace.instrumentation.netty40.server.NettyHttpServerDecorator
 import io.netty.bootstrap.ServerBootstrap
@@ -28,6 +28,7 @@ import io.netty.util.CharsetUtil
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.ERROR
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.NOT_FOUND
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.QUERY_PARAM
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.REDIRECT
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.UNAVAILABLE
@@ -36,7 +37,9 @@ import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1
 
-class Netty40ServerTest extends HttpServerTest<EventLoopGroup, NettyHttpServerDecorator> {
+class Netty40ServerTest extends HttpServerTest<EventLoopGroup> {
+
+  static final LoggingHandler LOGGING_HANDLER = new LoggingHandler(SERVER_LOGGER.name, LogLevel.DEBUG)
 
   @Override
   EventLoopGroup startServer(int port) {
@@ -44,16 +47,19 @@ class Netty40ServerTest extends HttpServerTest<EventLoopGroup, NettyHttpServerDe
 
     ServerBootstrap bootstrap = new ServerBootstrap()
       .group(eventLoopGroup)
-      .handler(new LoggingHandler(LogLevel.INFO))
+      .handler(LOGGING_HANDLER)
       .childHandler([
         initChannel: { ch ->
           ChannelPipeline pipeline = ch.pipeline()
+          pipeline.addFirst("logger", LOGGING_HANDLER)
+
           def handlers = [new HttpRequestDecoder(), new HttpResponseEncoder()]
           handlers.each { pipeline.addLast(it) }
           pipeline.addLast([
             channelRead0       : { ctx, msg ->
               if (msg instanceof HttpRequest) {
-                ServerEndpoint endpoint = ServerEndpoint.forPath((msg as HttpRequest).uri)
+                def uri = URI.create((msg as HttpRequest).uri)
+                ServerEndpoint endpoint = ServerEndpoint.forPath(uri.path)
                 ctx.write controller(endpoint) {
                   ByteBuf content = null
                   FullHttpResponse response = null
@@ -61,6 +67,10 @@ class Netty40ServerTest extends HttpServerTest<EventLoopGroup, NettyHttpServerDe
                     case SUCCESS:
                     case ERROR:
                       content = Unpooled.copiedBuffer(endpoint.body, CharsetUtil.UTF_8)
+                      response = new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.valueOf(endpoint.status), content)
+                      break
+                    case QUERY_PARAM:
+                      content = Unpooled.copiedBuffer(uri.query, CharsetUtil.UTF_8)
                       response = new DefaultFullHttpResponse(HTTP_1_1, HttpResponseStatus.valueOf(endpoint.status), content)
                       break
                     case REDIRECT:
@@ -108,8 +118,8 @@ class Netty40ServerTest extends HttpServerTest<EventLoopGroup, NettyHttpServerDe
   }
 
   @Override
-  NettyHttpServerDecorator decorator() {
-    NettyHttpServerDecorator.DECORATE
+  String component() {
+    NettyHttpServerDecorator.DECORATE.component()
   }
 
   @Override
@@ -143,7 +153,6 @@ class Netty40ServerTest extends HttpServerTest<EventLoopGroup, NettyHttpServerDe
               "$Tags.HTTP_STATUS" endpoint.status
             }
             "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
-            "$Tags.PEER_HOSTNAME" "localhost"
             "$Tags.PEER_HOST_IPV4" "127.0.0.1"
             "$Tags.PEER_PORT" Integer
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER

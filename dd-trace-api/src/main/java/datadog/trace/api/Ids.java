@@ -12,6 +12,32 @@ public class Ids {
     '8', '9', 'a', 'b',
     'c', 'd', 'e', 'f',
   };
+  private static final BigInteger maxLong = new BigInteger(String.valueOf(Long.MAX_VALUE));
+
+  public static char[] idToHexChars(final BigInteger id) {
+    if (id.compareTo(maxLong) <= 0) {
+      try {
+        long val = id.longValue();
+        char[] answer = new char[16];
+        for (int i = 0; i < 16; i++) {
+          long mask = (0x0FL << (i * 4));
+          long nybble = (val & mask) >> (i * 4);
+
+          answer[15 - i] = HexChars[(int) (nybble & 0xFF)];
+        }
+        return answer;
+      } catch (NumberFormatException thatsFine) {
+        // continue on to using BigInteger below
+      }
+    }
+    final String asHex = id.toString(16);
+    final int desiredLength = asHex.length() > 16 ? 32 : 16;
+    final int padLength = desiredLength - asHex.length();
+    final char[] s = new char[desiredLength];
+    System.arraycopy(pad, 0, s, 0, desiredLength - asHex.length());
+    asHex.getChars(0, asHex.length(), s, desiredLength - asHex.length());
+    return s;
+  }
 
   public static char[] idToHexChars(final String id) {
     if (id.length() <= 20) {

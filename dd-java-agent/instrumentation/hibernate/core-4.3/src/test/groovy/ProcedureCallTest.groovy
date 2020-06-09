@@ -2,7 +2,7 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import org.hibernate.Session
 import org.hibernate.SessionFactory
 import org.hibernate.cfg.Configuration
@@ -107,6 +107,16 @@ class ProcedureCallTest extends AgentTestRunner {
           serviceName "hsqldb"
           spanType "sql"
           childOf span(2)
+          tags {
+            "$Tags.COMPONENT" "java-jdbc-prepared_statement"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.DB_TYPE" "hsqldb"
+            "$Tags.DB_INSTANCE" "test"
+            "$Tags.DB_STATEMENT" String
+            "$Tags.DB_USER" "sa"
+            "span.origin.type" "org.hsqldb.jdbc.JDBCCallableStatement"
+            defaultTags()
+          }
         }
       }
     }
@@ -165,10 +175,10 @@ class ProcedureCallTest extends AgentTestRunner {
           childOf span(0)
           errored(true)
           tags {
-            errorTags(SQLGrammarException, "could not prepare statement")
             "$Tags.COMPONENT" "java-hibernate"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$DDTags.ENTITY_NAME" "TEST_PROC"
+            errorTags(SQLGrammarException, "could not prepare statement")
             defaultTags()
           }
         }

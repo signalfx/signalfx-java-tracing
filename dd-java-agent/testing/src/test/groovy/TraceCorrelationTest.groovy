@@ -13,8 +13,8 @@ class TraceCorrelationTest extends AgentTestRunner {
     DDSpan span = (DDSpan) scope.span()
 
     then:
-    CorrelationIdentifier.traceId == String.format("%016x", new BigInteger(span.traceId, 10))
-    CorrelationIdentifier.spanId == String.format("%016x", new BigInteger(span.spanId, 10))
+    CorrelationIdentifier.traceId == String.format("%016x", span.traceId)
+    CorrelationIdentifier.spanId == String.format("%016x", span.spanId)
 
     when:
     scope.close()

@@ -1,7 +1,8 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.trace_annotation;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.safeHasSuperType;
 import static datadog.trace.instrumentation.trace_annotation.TraceAnnotationUtils.PACKAGE_CLASS_NAME_REGEX;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.is;
@@ -80,6 +81,16 @@ public final class TraceAnnotationsInstrumentation extends Instrumenter.Default 
   }
 
   @Override
+  public ElementMatcher<ClassLoader> classLoaderMatcher() {
+    // Optimization for expensive typeMatcher.
+    ElementMatcher.Junction<ClassLoader> matcher = hasClassesNamed(Trace.class.getName());
+    for (final String name : additionalTraceAnnotations) {
+      matcher = matcher.or(hasClassesNamed(name));
+    }
+    return matcher;
+  }
+
+  @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
     return safeHasSuperType(declaresMethod(isAnnotatedWith(methodTraceMatcher)));
   }
@@ -87,7 +98,6 @@ public final class TraceAnnotationsInstrumentation extends Instrumenter.Default 
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
       packageName + ".TraceAnnotationUtils",
       packageName + ".TraceAnnotationUtils$ContainsEverythingSet",
       packageName + ".TraceDecorator",
@@ -97,6 +107,6 @@ public final class TraceAnnotationsInstrumentation extends Instrumenter.Default 
   @Override
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
     return Collections.singletonMap(
-        isAnnotatedWith(methodTraceMatcher), TraceAdvice.class.getName());
+        isAnnotatedWith(methodTraceMatcher), packageName + ".TraceAdvice");
   }
 }

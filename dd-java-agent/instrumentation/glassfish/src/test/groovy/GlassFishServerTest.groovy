@@ -2,7 +2,8 @@
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpServerTest
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.api.DDTags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.servlet3.Servlet3Decorator
 import org.apache.catalina.servlets.DefaultServlet
 import org.glassfish.embeddable.BootstrapProperties
@@ -20,7 +21,7 @@ import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCES
  * OSGi setup that required {@link datadog.trace.instrumentation.glassfish.GlassFishInstrumentation}.
  */
 // TODO: Figure out a better way to test with OSGi included.
-class GlassFishServerTest extends HttpServerTest<GlassFish, Servlet3Decorator> {
+class GlassFishServerTest extends HttpServerTest<GlassFish> {
 
 //  static {
 //    System.setProperty("dd.integration.grizzly.enabled", "true")
@@ -67,8 +68,8 @@ class GlassFishServerTest extends HttpServerTest<GlassFish, Servlet3Decorator> {
   }
 
   @Override
-  Servlet3Decorator decorator() {
-    return Servlet3Decorator.DECORATE
+  String component() {
+    return Servlet3Decorator.DECORATE.component()
   }
 
   @Override
@@ -87,7 +88,7 @@ class GlassFishServerTest extends HttpServerTest<GlassFish, Servlet3Decorator> {
   }
 
   @Override
-  void serverSpan(TraceAssert trace, int index, String traceID = null, String parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
+  void serverSpan(TraceAssert trace, int index, BigInteger traceID = null, BigInteger parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
     trace.span(index) {
       serviceName expectedServiceName()
       operationName expectedOperationName()
@@ -101,11 +102,16 @@ class GlassFishServerTest extends HttpServerTest<GlassFish, Servlet3Decorator> {
         parent()
       }
       tags {
+        "$Tags.COMPONENT" component
+        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
+        "$Tags.PEER_PORT" Integer
+        "$Tags.HTTP_STATUS" endpoint.status
+        "$Tags.HTTP_METHOD" method
+        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
         "servlet.context" "/$context"
+        "servlet.path" endpoint.path
         "span.origin.type" { it.startsWith("TestServlets\$") || it == DefaultServlet.name }
-
-        defaultTags(true)
-        "$Tags.COMPONENT" serverDecorator.component()
         if (endpoint.errored) {
           "$Tags.ERROR" endpoint.errored
           "sfx.error.message" { it == null || it == EXCEPTION.body }
@@ -113,13 +119,10 @@ class GlassFishServerTest extends HttpServerTest<GlassFish, Servlet3Decorator> {
           "sfx.error.kind" { it == null || it instanceof String }
           "sfx.error.stack" { it == null || it instanceof String }
         }
-        "$Tags.HTTP_STATUS" endpoint.status
-        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
-        "$Tags.PEER_HOSTNAME" { it == "localhost" || it == "127.0.0.1" }
-        "$Tags.PEER_PORT" Integer
-        "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
-        "$Tags.HTTP_METHOD" method
-        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        if (endpoint.query) {
+          "$DDTags.HTTP_QUERY" endpoint.query
+        }
+        defaultTags(true)
       }
     }
   }

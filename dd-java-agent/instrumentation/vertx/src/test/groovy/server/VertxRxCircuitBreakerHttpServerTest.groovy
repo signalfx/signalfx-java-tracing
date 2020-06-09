@@ -10,6 +10,7 @@ import spock.lang.Ignore
 
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.ERROR
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.QUERY_PARAM
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.REDIRECT
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
 
@@ -45,6 +46,19 @@ class VertxRxCircuitBreakerHttpServerTest extends VertxHttpServerTest {
           HttpServerTest.ServerEndpoint endpoint = it.result()
           controller(endpoint) {
             ctx.response().setStatusCode(endpoint.status).end(endpoint.body)
+          }
+        })
+      }
+      router.route(QUERY_PARAM.path).handler { ctx ->
+        breaker.executeCommand({ future ->
+          future.complete(QUERY_PARAM)
+        }, { it ->
+          if (it.failed()) {
+            throw it.cause()
+          }
+          HttpServerTest.ServerEndpoint endpoint = it.result()
+          controller(endpoint) {
+            ctx.response().setStatusCode(endpoint.status).end(ctx.request().query())
           }
         })
       }

@@ -14,7 +14,6 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
-import net.bytebuddy.matcher.ElementMatchers;
 
 /**
  * This instrumenter prevents a mechanism from GlassFish classloader to produces a class not found
@@ -39,15 +38,14 @@ public final class GlassFishInstrumentation extends Instrumenter.Default {
 
   @Override
   public ElementMatcher<? super TypeDescription> typeMatcher() {
-    return ElementMatchers.named(
-        "com.sun.enterprise.v3.server.APIClassLoaderServiceImpl$APIClassLoader");
+    return named("com.sun.enterprise.v3.server.APIClassLoaderServiceImpl$APIClassLoader");
   }
 
   @Override
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
     return singletonMap(
         isMethod().and(named("addToBlackList")).and(takesArguments(1)),
-        AvoidGlassFishBlacklistAdvice.class.getName());
+        GlassFishInstrumentation.class.getName() + "$AvoidGlassFishBlacklistAdvice");
   }
 
   public static class AvoidGlassFishBlacklistAdvice {

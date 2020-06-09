@@ -1,9 +1,9 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.springweb;
 
-import datadog.trace.agent.decorator.HttpServerDecorator;
 import datadog.trace.api.DDTags;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecorator;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -51,12 +51,14 @@ public class SpringWebHttpServerDecorator
 
   @Override
   protected URI url(final HttpServletRequest httpServletRequest) throws URISyntaxException {
-    return new URI(httpServletRequest.getRequestURL().toString());
-  }
-
-  @Override
-  protected String peerHostname(final HttpServletRequest httpServletRequest) {
-    return httpServletRequest.getRemoteHost();
+    return new URI(
+        httpServletRequest.getScheme(),
+        null,
+        httpServletRequest.getServerName(),
+        httpServletRequest.getServerPort(),
+        httpServletRequest.getRequestURI(),
+        httpServletRequest.getQueryString(),
+        null);
   }
 
   @Override
@@ -76,7 +78,6 @@ public class SpringWebHttpServerDecorator
 
   @Override
   public AgentSpan onRequest(final AgentSpan span, final HttpServletRequest request) {
-    super.onRequest(span, request);
     if (request != null) {
       final Object bestMatchingPattern =
           request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);

@@ -18,7 +18,6 @@ public final class Constants {
     "com.signalfx.tracing.api",
     "com.signalfx.tracing.context",
     "datadog.slf4j",
-    "datadog.trace.agent.TracingAgent",
     "datadog.trace.api",
     "datadog.trace.bootstrap",
     "datadog.trace.context",

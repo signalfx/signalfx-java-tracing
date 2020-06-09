@@ -2,7 +2,7 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -65,7 +65,7 @@ class RatpackOtherTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           resourceName "/$route"
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "netty.request"
           spanType DDSpanTypes.HTTP_SERVER
           parent()
@@ -73,29 +73,28 @@ class RatpackOtherTest extends AgentTestRunner {
           tags {
             "$Tags.COMPONENT" "netty"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
-            "$Tags.HTTP_METHOD" "GET"
-            "$Tags.HTTP_STATUS" 200
-            "$Tags.HTTP_URL" "${app.address.resolve(path)}"
-            "$Tags.PEER_HOSTNAME" "$app.address.host"
             "$Tags.PEER_HOST_IPV4" "127.0.0.1"
             "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "${app.address.resolve(path)}"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
             defaultTags()
           }
         }
         span(1) {
           resourceName "/$route"
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "ratpack.handler"
           spanType DDSpanTypes.HTTP_SERVER
           childOf(span(0))
           errored false
           tags {
             "$Tags.COMPONENT" "ratpack"
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "${app.address.resolve(path)}"
             "$Tags.HTTP_METHOD" "GET"
             "$Tags.HTTP_STATUS" 200
-            "$Tags.HTTP_URL" "${app.address.resolve(path)}"
-            "$Tags.PEER_HOSTNAME" "$app.address.host"
-            "$Tags.PEER_PORT" Integer
             defaultTags()
           }
         }

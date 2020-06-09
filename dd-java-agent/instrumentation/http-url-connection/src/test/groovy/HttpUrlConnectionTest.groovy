@@ -2,18 +2,20 @@
 import datadog.trace.agent.test.base.HttpClientTest
 import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionDecorator
 import spock.lang.Ignore
 import spock.lang.Requires
+import spock.lang.Timeout
 import sun.net.www.protocol.https.HttpsURLConnectionImpl
 
 import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
 import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
-import static datadog.trace.instrumentation.api.AgentTracer.activeScope
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeScope
 import static datadog.trace.instrumentation.http_url_connection.HttpUrlConnectionInstrumentation.HttpUrlState.OPERATION_NAME
 
-class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
+@Timeout(5)
+class HttpUrlConnectionTest extends HttpClientTest {
 
   static final RESPONSE = "Hello."
   static final STATUS = 200
@@ -26,6 +28,8 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
       headers.each { connection.setRequestProperty(it.key, it.value) }
       connection.setRequestProperty("Connection", "close")
       connection.useCaches = true
+      connection.connectTimeout = CONNECT_TIMEOUT_MS
+      connection.readTimeout = READ_TIMEOUT_MS
       def parentSpan = activeScope()
       def stream = connection.inputStream
       assert activeScope() == parentSpan
@@ -39,12 +43,12 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
   }
 
   @Override
-  HttpUrlConnectionDecorator decorator() {
-    return HttpUrlConnectionDecorator.DECORATE
+  String component() {
+    return HttpUrlConnectionDecorator.DECORATE.component()
   }
 
   @Override
-  boolean testRedirects() {
+  boolean testCircularRedirects() {
     false
   }
 
@@ -90,7 +94,7 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
           }
         }
         span(1) {
-          serviceName renameService ? "localhost" : "unnamed-java-app"
+          serviceName renameService ? "localhost" : "unnamed-java-service"
           operationName OPERATION_NAME
           resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -99,16 +103,16 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
           tags {
             "$Tags.COMPONENT" "http-url-connection"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             "$Tags.HTTP_URL" "$url"
             "$Tags.HTTP_METHOD" "GET"
             "$Tags.HTTP_STATUS" STATUS
-            "$Tags.PEER_HOSTNAME" "localhost"
-            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }
         span(2) {
-          serviceName renameService ? "localhost" : "unnamed-java-app"
+          serviceName renameService ? "localhost" : "unnamed-java-service"
           operationName OPERATION_NAME
           resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -117,11 +121,11 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
           tags {
             "$Tags.COMPONENT" "http-url-connection"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             "$Tags.HTTP_URL" "$url"
             "$Tags.HTTP_METHOD" "GET"
             "$Tags.HTTP_STATUS" STATUS
-            "$Tags.PEER_HOSTNAME" "localhost"
-            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }
@@ -175,7 +179,7 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
           }
         }
         span(1) {
-          serviceName renameService ? "localhost" : "unnamed-java-app"
+          serviceName renameService ? "localhost" : "unnamed-java-service"
           operationName OPERATION_NAME
           resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -184,16 +188,16 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
           tags {
             "$Tags.COMPONENT" "http-url-connection"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             "$Tags.HTTP_URL" "$url"
             "$Tags.HTTP_METHOD" "GET"
             "$Tags.HTTP_STATUS" STATUS
-            "$Tags.PEER_HOSTNAME" "localhost"
-            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }
         span(2) {
-          serviceName renameService ? "localhost" : "unnamed-java-app"
+          serviceName renameService ? "localhost" : "unnamed-java-service"
           operationName OPERATION_NAME
           resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -202,11 +206,11 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
           tags {
             "$Tags.COMPONENT" "http-url-connection"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             "$Tags.HTTP_URL" "$url"
             "$Tags.HTTP_METHOD" "GET"
             "$Tags.HTTP_STATUS" STATUS
-            "$Tags.PEER_HOSTNAME" "localhost"
-            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }
@@ -245,7 +249,7 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
           }
         }
         span(1) {
-          serviceName renameService ? "localhost" : "unnamed-java-app"
+          serviceName renameService ? "localhost" : "unnamed-java-service"
           operationName OPERATION_NAME
           resourceName "/"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -254,11 +258,11 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
           tags {
             "$Tags.COMPONENT" "http-url-connection"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             "$Tags.HTTP_URL" "$url"
             "$Tags.HTTP_METHOD" "GET"
             "$Tags.HTTP_STATUS" STATUS
-            "$Tags.PEER_HOSTNAME" "localhost"
-            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }
@@ -313,7 +317,7 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
           }
         }
         span(1) {
-          serviceName renameService ? "localhost" : "unnamed-java-app"
+          serviceName renameService ? "localhost" : "unnamed-java-service"
           operationName OPERATION_NAME
           resourceName "$url.path"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -322,11 +326,11 @@ class HttpUrlConnectionTest extends HttpClientTest<HttpUrlConnectionDecorator> {
           tags {
             "$Tags.COMPONENT" "http-url-connection"
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" server.address.port
             "$Tags.HTTP_URL" "$url"
             "$Tags.HTTP_METHOD" "POST"
             "$Tags.HTTP_STATUS" STATUS
-            "$Tags.PEER_HOSTNAME" "localhost"
-            "$Tags.PEER_PORT" server.address.port
             defaultTags()
           }
         }

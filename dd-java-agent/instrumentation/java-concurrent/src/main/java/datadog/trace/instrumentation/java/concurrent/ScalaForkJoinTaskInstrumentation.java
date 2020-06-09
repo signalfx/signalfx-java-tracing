@@ -1,8 +1,8 @@
 package datadog.trace.instrumentation.java.concurrent;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.extendsClass;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -11,6 +11,7 @@ import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
 import datadog.trace.bootstrap.ContextStore;
 import datadog.trace.bootstrap.InstrumentationContext;
+import datadog.trace.bootstrap.instrumentation.java.concurrent.AdviceUtils;
 import datadog.trace.bootstrap.instrumentation.java.concurrent.State;
 import datadog.trace.context.TraceScope;
 import java.util.Collections;
@@ -42,15 +43,14 @@ public final class ScalaForkJoinTaskInstrumentation extends Instrumenter.Default
   }
 
   @Override
-  public ElementMatcher<TypeDescription> typeMatcher() {
-    return not(isInterface()).and(safeHasSuperType(named(TASK_CLASS_NAME)));
+  public ElementMatcher<ClassLoader> classLoaderMatcher() {
+    // Optimization for expensive typeMatcher.
+    return hasClassesNamed(TASK_CLASS_NAME);
   }
 
   @Override
-  public String[] helperClassNames() {
-    return new String[] {
-      AdviceUtils.class.getName(),
-    };
+  public ElementMatcher<TypeDescription> typeMatcher() {
+    return extendsClass(named(TASK_CLASS_NAME));
   }
 
   @Override
@@ -67,7 +67,7 @@ public final class ScalaForkJoinTaskInstrumentation extends Instrumenter.Default
     final Map<ElementMatcher<? super MethodDescription>, String> transformers = new HashMap<>();
     transformers.put(
         named("exec").and(takesArguments(0)).and(not(isAbstract())),
-        ForkJoinTaskAdvice.class.getName());
+        ScalaForkJoinTaskInstrumentation.class.getName() + "$ForkJoinTaskAdvice");
     return transformers;
   }
 

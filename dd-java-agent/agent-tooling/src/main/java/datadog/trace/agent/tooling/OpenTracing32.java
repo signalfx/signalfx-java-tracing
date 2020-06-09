@@ -6,12 +6,12 @@ import static io.opentracing.propagation.Format.Builtin.TEXT_MAP_INJECT;
 import static java.util.Collections.singletonMap;
 
 import datadog.trace.api.interceptor.MutableSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentPropagation;
+import datadog.trace.bootstrap.instrumentation.api.AgentPropagation.Getter;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentTracer.TracerAPI;
 import datadog.trace.context.TraceScope;
-import datadog.trace.instrumentation.api.AgentPropagation;
-import datadog.trace.instrumentation.api.AgentPropagation.Getter;
-import datadog.trace.instrumentation.api.AgentScope;
-import datadog.trace.instrumentation.api.AgentSpan;
-import datadog.trace.instrumentation.api.AgentTracer.TracerAPI;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
@@ -298,7 +298,16 @@ public final class OpenTracing32 implements TracerAPI {
     private Extractor(final C carrier, final Getter<C> getter) {
       extracted = new HashMap<>();
       for (final String key : getter.keys(carrier)) {
-        extracted.put(key, getter.get(carrier, key));
+        // extracted header value
+        String value = getter.get(carrier, key);
+        // in case of multiple values in the header, need to parse
+        if (value != null) {
+          final String[] split = value.split(",");
+          if (split.length > 0) {
+            value = split[0].trim();
+          }
+        }
+        extracted.put(key, value);
       }
     }
 

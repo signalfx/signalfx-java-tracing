@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
-import static datadog.trace.instrumentation.api.AgentTracer.propagate;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.propagate;
 
 import datadog.trace.context.TraceScope;
 import io.vertx.core.AsyncResult;

@@ -2,11 +2,9 @@
 package datadog.trace.instrumentation.couchbase.client;
 
 import static java.util.Collections.singletonMap;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 
 import com.couchbase.client.java.CouchbaseCluster;
@@ -30,19 +28,14 @@ public class CouchbaseBucketInstrumentation extends Instrumenter.Default {
 
   @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return not(isInterface())
-        .and(
-            named("com.couchbase.client.java.bucket.DefaultAsyncBucketManager")
-                .or(named("com.couchbase.client.java.CouchbaseAsyncBucket")));
+    return named("com.couchbase.client.java.bucket.DefaultAsyncBucketManager")
+        .or(named("com.couchbase.client.java.CouchbaseAsyncBucket"));
   }
 
   @Override
   public String[] helperClassNames() {
     return new String[] {
       "rx.DDTracingUtil",
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
-      "datadog.trace.agent.decorator.DatabaseClientDecorator",
       "datadog.trace.instrumentation.rxjava.SpanFinishingSubscription",
       "datadog.trace.instrumentation.rxjava.TracedSubscriber",
       "datadog.trace.instrumentation.rxjava.TracedOnSubscribe",
@@ -55,7 +48,7 @@ public class CouchbaseBucketInstrumentation extends Instrumenter.Default {
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
     return singletonMap(
         isMethod().and(isPublic()).and(returns(named("rx.Observable"))),
-        CouchbaseClientAdvice.class.getName());
+        CouchbaseBucketInstrumentation.class.getName() + "$CouchbaseClientAdvice");
   }
 
   public static class CouchbaseClientAdvice {
@@ -65,7 +58,7 @@ public class CouchbaseBucketInstrumentation extends Instrumenter.Default {
       return CallDepthThreadLocalMap.incrementCallDepth(CouchbaseCluster.class);
     }
 
-    @Advice.OnMethodExit
+    @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class)
     public static void subscribeResult(
         @Advice.Enter final int callDepth,
         @Advice.Origin final Method method,

@@ -54,7 +54,7 @@ class KHttpClientTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "http.request"
           resourceName "http.request"
           spanType DDSpanTypes.HTTP_CLIENT
@@ -99,7 +99,7 @@ class KHttpClientTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "http.request"
           resourceName "http.request"
           spanType DDSpanTypes.HTTP_CLIENT

@@ -42,7 +42,6 @@ testSets {
 dependencies {
   main_java8Compile group: 'com.typesafe.play', name: "play_$scalaVersion", version: playVersion
 
-  testCompile project(':dd-java-agent:instrumentation:java-concurrent')
   testCompile project(':dd-java-agent:instrumentation:netty-4.0')
   testCompile project(':dd-java-agent:instrumentation:netty-4.1')
   testCompile project(':dd-java-agent:instrumentation:akka-http-10.0')
@@ -53,6 +52,7 @@ dependencies {
     exclude group: 'org.eclipse.jetty.websocket', module: 'websocket-client'
   }
 
+  // TODO: This should be changed to the latest in scala 2.13 instead of 2.11 since its ahead
   latestDepTestCompile group: 'com.typesafe.play', name: "play-java_$scalaVersion", version: '2.+'
   latestDepTestCompile(group: 'com.typesafe.play', name: "play-test_$scalaVersion", version: '2.+') {
     exclude group: 'org.eclipse.jetty.websocket', module: 'websocket-client'

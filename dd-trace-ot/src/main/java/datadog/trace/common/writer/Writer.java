@@ -3,9 +3,12 @@ package datadog.trace.common.writer;
 
 import static datadog.trace.api.Config.DD_AGENT_API_TYPE;
 import static datadog.trace.api.Config.ZIPKIN_V2_API_TYPE;
+import static datadog.trace.common.writer.DDAgentWriter.DDAgentWriterBuilder;
 
 import datadog.opentracing.DDSpan;
 import datadog.trace.api.Config;
+import datadog.trace.common.writer.ddagent.DDAgentApi;
+import datadog.trace.common.writer.ddagent.Monitor;
 import java.io.Closeable;
 import java.util.List;
 import java.util.Properties;
@@ -55,7 +58,7 @@ public interface Writer extends Closeable {
       } else {
         log.warn(
             "Writer type not configured correctly: No config provided! Defaulting to DDAgentWriter.");
-        writer = new DDAgentWriter();
+        writer = DDAgentWriter.builder().build();
       }
 
       return writer;
@@ -66,29 +69,31 @@ public interface Writer extends Closeable {
     }
 
     private static Writer createAgentWriter(final Config config) {
+      DDAgentWriterBuilder agentWriterBuilder = DDAgentWriter.builder();
+      Api api;
       if (DD_AGENT_API_TYPE.equals(config.getApiType())) {
-        return new DDAgentWriter(createApi(config), createMonitor(config));
+        api = createApi(config);
       } else if (ZIPKIN_V2_API_TYPE.equals(config.getApiType())) {
-        return new DDAgentWriter(
+        api =
             new ZipkinV2Api(
                 config.getAgentHost(),
                 config.getAgentPort(),
                 config.getAgentPath(),
-                config.getAgentUseHTTPS()),
-            createMonitor(config));
+                config.getAgentUseHTTPS());
       } else {
         throw new IllegalArgumentException("Unknown api type: " + config.getApiType());
       }
+      return agentWriterBuilder.agentApi(api).monitor(createMonitor(config)).build();
     }
 
-    private static final DDApi createApi(final Config config) {
-      return new DDApi(
+    private static DDAgentApi createApi(final Config config) {
+      return new DDAgentApi(
           config.getAgentHost(), config.getAgentPort(), config.getAgentUnixDomainSocket());
     }
 
-    private static final DDAgentWriter.Monitor createMonitor(final Config config) {
+    private static Monitor createMonitor(final Config config) {
       if (!config.isHealthMetricsEnabled()) {
-        return new DDAgentWriter.NoopMonitor();
+        return new Monitor.Noop();
       } else {
         String host = config.getHealthMetricsStatsdHost();
         if (host == null) {
@@ -103,7 +108,7 @@ public interface Writer extends Closeable {
           port = config.getJmxFetchStatsdPort();
         }
 
-        return new DDAgentWriter.StatsDMonitor(host, port);
+        return new Monitor.StatsD(host, port);
       }
     }
 

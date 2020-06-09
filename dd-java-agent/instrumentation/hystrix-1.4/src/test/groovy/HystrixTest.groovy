@@ -1,7 +1,7 @@
 import com.netflix.hystrix.HystrixCommand
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.Trace
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import spock.lang.Timeout
 
 import java.util.concurrent.BlockingQueue
@@ -37,14 +37,14 @@ class HystrixTest extends AgentTestRunner {
       operation(command)
     }
     expect:
-    TRANSFORMED_CLASSES.contains("com.netflix.hystrix.strategy.concurrency.HystrixContextScheduler\$ThreadPoolWorker")
-    TRANSFORMED_CLASSES.contains("HystrixTest\$1")
+    TRANSFORMED_CLASSES_NAMES.contains("com.netflix.hystrix.strategy.concurrency.HystrixContextScheduler\$ThreadPoolWorker")
+    TRANSFORMED_CLASSES_NAMES.contains("HystrixTest\$1")
     result == "Hello!"
 
     assertTraces(1) {
       trace(0, 3) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "parent"
           resourceName "parent"
           spanType null
@@ -55,22 +55,22 @@ class HystrixTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "hystrix.cmd"
           resourceName "ExampleGroup.HystrixTest\$1.execute"
           spanType null
           childOf span(0)
           errored false
           tags {
+            "$Tags.COMPONENT" "hystrix"
             "hystrix.command" "HystrixTest\$1"
             "hystrix.group" "ExampleGroup"
             "hystrix.circuit-open" false
-            "$Tags.COMPONENT" "hystrix"
             defaultTags()
           }
         }
         span(2) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "trace.annotation"
           resourceName "HystrixTest\$1.tracedMethod"
           spanType null
@@ -115,14 +115,14 @@ class HystrixTest extends AgentTestRunner {
       operation(command)
     }
     expect:
-    TRANSFORMED_CLASSES.contains("com.netflix.hystrix.strategy.concurrency.HystrixContextScheduler\$ThreadPoolWorker")
-    TRANSFORMED_CLASSES.contains("HystrixTest\$2")
+    TRANSFORMED_CLASSES_NAMES.contains("com.netflix.hystrix.strategy.concurrency.HystrixContextScheduler\$ThreadPoolWorker")
+    TRANSFORMED_CLASSES_NAMES.contains("HystrixTest\$2")
     result == "Fallback!"
 
     assertTraces(1) {
       trace(0, 3) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "parent"
           resourceName "parent"
           spanType null
@@ -133,33 +133,33 @@ class HystrixTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "hystrix.cmd"
           resourceName "ExampleGroup.HystrixTest\$2.execute"
           spanType null
           childOf span(0)
           errored true
           tags {
+            "$Tags.COMPONENT" "hystrix"
             "hystrix.command" "HystrixTest\$2"
             "hystrix.group" "ExampleGroup"
             "hystrix.circuit-open" false
-            "$Tags.COMPONENT" "hystrix"
             errorTags(IllegalArgumentException)
             defaultTags()
           }
         }
         span(2) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "hystrix.cmd"
           resourceName "ExampleGroup.HystrixTest\$2.fallback"
           spanType null
           childOf span(1)
           errored false
           tags {
+            "$Tags.COMPONENT" "hystrix"
             "hystrix.command" "HystrixTest\$2"
             "hystrix.group" "ExampleGroup"
             "hystrix.circuit-open" false
-            "$Tags.COMPONENT" "hystrix"
             defaultTags()
           }
         }

@@ -13,7 +13,7 @@ import spock.lang.Subject
 class URLAsResourceNameTest extends DDSpecification {
 
   def writer = new ListWriter()
-  def tracer = new DDTracer(writer)
+  def tracer = DDTracer.builder().writer(writer).build()
 
   @Subject
   def decorator = new URLAsResourceName()
@@ -114,20 +114,21 @@ class URLAsResourceNameTest extends DDSpecification {
     when:
     final DDSpanContext context =
       new DDSpanContext(
-        "1",
-        "1",
-        "0",
+        1G,
+        1G,
+        0G,
         "fakeService",
         "fakeOperation",
         "fakeResource",
         PrioritySampling.UNSET,
         null,
-        Collections.<String, String> emptyMap(),
+        [:],
         false,
         "fakeType",
         tags,
-        new PendingTrace(tracer, "1", [:]),
-        tracer)
+        new PendingTrace(tracer, 1G),
+        tracer,
+        [:])
 
     then:
     decorator.shouldSetTag(context, Tags.HTTP_URL.getKey(), value)

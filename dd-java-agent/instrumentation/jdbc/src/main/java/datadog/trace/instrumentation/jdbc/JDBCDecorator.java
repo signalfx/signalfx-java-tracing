@@ -1,11 +1,13 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.jdbc;
 
-import datadog.trace.agent.decorator.DatabaseClientDecorator;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
-import datadog.trace.instrumentation.api.AgentSpan;
-import datadog.trace.instrumentation.api.Tags;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.Tags;
+import datadog.trace.bootstrap.instrumentation.decorator.DatabaseClientDecorator;
+import datadog.trace.bootstrap.instrumentation.jdbc.DBInfo;
+import datadog.trace.bootstrap.instrumentation.jdbc.JDBCConnectionUrlParser;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -70,7 +72,12 @@ public class JDBCDecorator extends DatabaseClientDecorator<DBInfo> {
           final DatabaseMetaData metaData = connection.getMetaData();
           final String url = metaData.getURL();
           if (url != null) {
-            dbInfo = JDBCConnectionUrlParser.parse(url, connection.getClientInfo());
+            try {
+              dbInfo = JDBCConnectionUrlParser.parse(url, connection.getClientInfo());
+            } catch (final Exception ex) {
+              // getClientInfo is likely not allowed.
+              dbInfo = JDBCConnectionUrlParser.parse(url, null);
+            }
           } else {
             dbInfo = DBInfo.DEFAULT;
           }

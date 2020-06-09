@@ -1,9 +1,9 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.jetty8;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.implementsInterface;
 import static java.util.Collections.singletonMap;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.not;
@@ -24,18 +24,25 @@ public final class JettyHandlerInstrumentation extends Instrumenter.Default {
   }
 
   @Override
+  public boolean defaultEnabled() {
+    return false;
+  }
+
+  @Override
+  public ElementMatcher<ClassLoader> classLoaderMatcher() {
+    // Optimization for expensive typeMatcher.
+    return hasClassesNamed("org.eclipse.jetty.server.Handler");
+  }
+
+  @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return not(isInterface())
-        .and(safeHasSuperType(named("org.eclipse.jetty.server.Handler")))
-        .and(not(named("org.eclipse.jetty.server.handler.HandlerWrapper")));
+    return not(named("org.eclipse.jetty.server.handler.HandlerWrapper"))
+        .and(implementsInterface(named("org.eclipse.jetty.server.Handler")));
   }
 
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ServerDecorator",
-      "datadog.trace.agent.decorator.HttpServerDecorator",
       packageName + ".JettyDecorator",
       packageName + ".HttpServletRequestExtractAdapter",
       packageName + ".TagSettingAsyncListener"
@@ -51,6 +58,6 @@ public final class JettyHandlerInstrumentation extends Instrumenter.Default {
             .and(takesArgument(2, named("javax.servlet.http.HttpServletRequest")))
             .and(takesArgument(3, named("javax.servlet.http.HttpServletResponse")))
             .and(isPublic()),
-        JettyHandlerAdvice.class.getName());
+        packageName + ".JettyHandlerAdvice");
   }
 }

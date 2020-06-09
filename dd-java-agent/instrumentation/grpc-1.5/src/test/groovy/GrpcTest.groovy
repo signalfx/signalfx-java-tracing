@@ -1,11 +1,14 @@
 // Modified by SignalFx
+import datadog.common.exec.CommonTaskExecutor
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
+import datadog.trace.instrumentation.grpc.server.GrpcExtractAdapter
 import example.GreeterGrpc
 import example.Helloworld
 import io.grpc.BindableService
 import io.grpc.ManagedChannel
+import io.grpc.Metadata
 import io.grpc.Server
 import io.grpc.Status
 import io.grpc.StatusRuntimeException
@@ -14,6 +17,9 @@ import io.grpc.inprocess.InProcessServerBuilder
 import io.grpc.stub.StreamObserver
 
 import java.util.concurrent.TimeUnit
+
+import static datadog.trace.agent.test.utils.TraceUtils.basicSpan
+import static datadog.trace.agent.test.utils.TraceUtils.runUnderTrace
 
 class GrpcTest extends AgentTestRunner {
 
@@ -24,8 +30,14 @@ class GrpcTest extends AgentTestRunner {
       void sayHello(
         final Helloworld.Request req, final StreamObserver<Helloworld.Response> responseObserver) {
         final Helloworld.Response reply = Helloworld.Response.newBuilder().setMessage("Hello $req.name").build()
-        responseObserver.onNext(reply)
-        responseObserver.onCompleted()
+        CommonTaskExecutor.INSTANCE.execute {
+          if (testTracer.activeSpan() == null) {
+            responseObserver.onError(new IllegalStateException("no active span"))
+          } else {
+            responseObserver.onNext(reply)
+            responseObserver.onCompleted()
+          }
+        }
       }
     }
     Server server = InProcessServerBuilder.forName(getClass().name).addService(greeter).directExecutor().build().start()
@@ -34,28 +46,32 @@ class GrpcTest extends AgentTestRunner {
     GreeterGrpc.GreeterBlockingStub client = GreeterGrpc.newBlockingStub(channel)
 
     when:
-    def response = client.sayHello(Helloworld.Request.newBuilder().setName(name).build())
+    def response = runUnderTrace("parent") {
+      def resp = client.sayHello(Helloworld.Request.newBuilder().setName(name).build())
+      TEST_WRITER.waitForTraces(1) // Wait for the server span to be reported.
+      return resp
+    }
 
     then:
     response.message == "Hello $name"
     assertTraces(2) {
       trace(0, 2) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "grpc.server"
           resourceName "example.Greeter/SayHello"
           spanType DDSpanTypes.RPC
-          childOf trace(1).get(0)
+          childOf trace(1).get(1)
           errored false
           tags {
-            "status.code" "OK"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "$Tags.COMPONENT" "grpc-server"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "status.code" "OK"
             defaultTags(true)
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "grpc.message"
           resourceName "grpc.message"
           spanType DDSpanTypes.RPC
@@ -68,31 +84,32 @@ class GrpcTest extends AgentTestRunner {
           }
         }
       }
-      trace(1, 2) {
-        span(0) {
-          serviceName "unnamed-java-app"
+      trace(1, 3) {
+        basicSpan(it, 0, "parent")
+        span(1) {
+          serviceName "unnamed-java-service"
           operationName "grpc.client"
           resourceName "example.Greeter/SayHello"
-          spanType DDSpanTypes.RPC
-          parent()
-          errored false
-          tags {
-            "status.code" "OK"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
-            "$Tags.COMPONENT" "grpc-client"
-            defaultTags()
-          }
-        }
-        span(1) {
-          serviceName "unnamed-java-app"
-          operationName "grpc.message"
-          resourceName "grpc.message"
           spanType DDSpanTypes.RPC
           childOf span(0)
           errored false
           tags {
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.COMPONENT" "grpc-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "status.code" "OK"
+            defaultTags()
+          }
+        }
+        span(2) {
+          serviceName "unnamed-java-service"
+          operationName "grpc.message"
+          resourceName "grpc.message"
+          spanType DDSpanTypes.RPC
+          childOf span(1)
+          errored false
+          tags {
+            "$Tags.COMPONENT" "grpc-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "message.type" "example.Helloworld\$Response"
             defaultTags()
           }
@@ -132,17 +149,17 @@ class GrpcTest extends AgentTestRunner {
     assertTraces(2) {
       trace(0, 2) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "grpc.server"
           resourceName "example.Greeter/SayHello"
           spanType DDSpanTypes.RPC
           childOf trace(1).get(0)
           errored true
           tags {
+            "$Tags.COMPONENT" "grpc-server"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "status.code" "${status.code.name()}"
             "status.description" description
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
-            "$Tags.COMPONENT" "grpc-server"
             if (status.cause != null) {
               errorTags status.cause.class, status.cause.message
             } else {
@@ -152,7 +169,7 @@ class GrpcTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "grpc.message"
           resourceName "grpc.message"
           spanType DDSpanTypes.RPC
@@ -167,17 +184,17 @@ class GrpcTest extends AgentTestRunner {
       }
       trace(1, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "grpc.client"
           resourceName "example.Greeter/SayHello"
           spanType DDSpanTypes.RPC
           parent()
           errored true
           tags {
+            "$Tags.COMPONENT" "grpc-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "status.code" "${status.code.name()}"
             "status.description" description
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
-            "$Tags.COMPONENT" "grpc-client"
             tag "error", true
             defaultTags()
           }
@@ -223,21 +240,21 @@ class GrpcTest extends AgentTestRunner {
     assertTraces(2) {
       trace(0, 2) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "grpc.server"
           resourceName "example.Greeter/SayHello"
           spanType DDSpanTypes.RPC
           childOf trace(1).get(0)
           errored true
           tags {
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "$Tags.COMPONENT" "grpc-server"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             errorTags error.class, error.message
             defaultTags(true)
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "grpc.message"
           resourceName "grpc.message"
           spanType DDSpanTypes.RPC
@@ -252,16 +269,16 @@ class GrpcTest extends AgentTestRunner {
       }
       trace(1, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "grpc.client"
           resourceName "example.Greeter/SayHello"
           spanType DDSpanTypes.RPC
           parent()
           errored true
           tags {
-            "status.code" "UNKNOWN"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
             "$Tags.COMPONENT" "grpc-client"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "status.code" "UNKNOWN"
             tag "error", true
             defaultTags()
           }
@@ -281,5 +298,18 @@ class GrpcTest extends AgentTestRunner {
     "Runtime - description"       | Status.UNKNOWN.withDescription("some description")
     "Status - description"        | Status.PERMISSION_DENIED.withDescription("some description")
     "StatusRuntime - description" | Status.UNIMPLEMENTED.withDescription("some description")
+  }
+
+  def "skip binary headers"() {
+    setup:
+    def meta = new Metadata()
+    meta.put(Metadata.Key.<String> of("test", Metadata.ASCII_STRING_MARSHALLER), "val")
+    meta.put(Metadata.Key.<byte[]> of("test-bin", Metadata.BINARY_BYTE_MARSHALLER), "bin-val".bytes)
+
+    when:
+    def keys = GrpcExtractAdapter.GETTER.keys(meta)
+
+    then:
+    keys == ["test"]
   }
 }

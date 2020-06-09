@@ -52,8 +52,8 @@ class VertxServerTest extends AgentTestRunner {
       trace(0, 7) {
         span(0) {
           childOf span(2)
-          traceId "123"
-          serviceName "unnamed-java-app"
+          traceId 123G
+          serviceName "unnamed-java-service"
           operationName "server.VertxWebTestServer\$\$Lambda.handle"
           resourceName "server.VertxWebTestServer\$\$Lambda.handle"
           errored false
@@ -62,7 +62,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
             "$Tags.HTTP_URL.key" "http://localhost:$port/test"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "handler.type" "io.vertx.ext.web.impl.RoutingContextImpl"
@@ -70,8 +69,8 @@ class VertxServerTest extends AgentTestRunner {
           }
         }
         span(1) {
-          traceId "123"
-          parentId "456"
+          traceId 123G
+          parentId 456G
           operationName "netty.request"
           resourceName "/test"
           spanType DDSpanTypes.HTTP_SERVER
@@ -80,7 +79,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
             "$Tags.HTTP_URL.key" "http://localhost:$port/test"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
@@ -88,7 +86,7 @@ class VertxServerTest extends AgentTestRunner {
           }
         }
         span(2) {
-          traceId "123"
+          traceId 123G
           childOf span(5)
           operationName "server.VertxWebTestServer\$MyHandler.handle"
           resourceName "server.VertxWebTestServer\$MyHandler.handle"
@@ -97,7 +95,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
             "$Tags.HTTP_URL.key" "http://localhost:$port/test"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "handler.type" "io.vertx.ext.web.impl.RoutingContextDecorator"
@@ -106,7 +103,7 @@ class VertxServerTest extends AgentTestRunner {
         }
         span(3) {
           childOf span(2)
-          traceId "123"
+          traceId 123G
           operationName "VertxWebTestServer.tracedMethod"
           resourceName "VertxWebTestServer.tracedMethod"
           tags {
@@ -116,14 +113,13 @@ class VertxServerTest extends AgentTestRunner {
         }
         span(4) {
           childOf span(1)
-          traceId "123"
+          traceId 123G
           operationName "server.VertxWebTestServer\$\$Lambda.handle"
           tags {
             "$Tags.COMPONENT.key" "vertx"
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
             "$Tags.HTTP_URL.key" "http://localhost:$port/test"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "handler.type" "io.vertx.ext.web.impl.RoutingContextImpl"
@@ -132,7 +128,7 @@ class VertxServerTest extends AgentTestRunner {
         }
         span(5) {
           childOf span(4)
-          traceId "123"
+          traceId 123G
           operationName "io.vertx.ext.web.impl.BlockingHandlerDecorator.handle"
           resourceName "io.vertx.ext.web.impl.BlockingHandlerDecorator.handle"
           tags {
@@ -140,7 +136,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" 200
             "$Tags.HTTP_URL.key" "http://localhost:$port/test"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "handler.type" "io.vertx.ext.web.impl.RoutingContextImpl"
@@ -149,7 +144,7 @@ class VertxServerTest extends AgentTestRunner {
         }
         span(6) {
           childOf span(4)
-          traceId "123"
+          traceId 123G
           operationName "VertxWebTestServer.tracedMethod"
           resourceName "VertxWebTestServer.tracedMethod"
           tags {
@@ -173,7 +168,7 @@ class VertxServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "netty.request"
           resourceName name
           spanType DDSpanTypes.HTTP_SERVER
@@ -183,7 +178,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" responseCode.code()
             "$Tags.HTTP_URL.key" "http://localhost:$port/$path"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
@@ -214,7 +208,7 @@ class VertxServerTest extends AgentTestRunner {
       trace(0, 2) {
         span(0) {
           childOf span(1)
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "server.VertxWebTestServer\$\$Lambda.handle"
           resourceName  "server.VertxWebTestServer\$\$Lambda.handle"
           errored error
@@ -223,7 +217,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" responseCode.code()
             "$Tags.HTTP_URL.key" "http://localhost:$port/$path"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "handler.type" "io.vertx.ext.web.impl.RoutingContextImpl"
@@ -235,7 +228,7 @@ class VertxServerTest extends AgentTestRunner {
           }
         }
         span(1) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "netty.request"
           resourceName name
           spanType DDSpanTypes.HTTP_SERVER
@@ -245,7 +238,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "GET"
             "$Tags.HTTP_STATUS.key" responseCode.code()
             "$Tags.HTTP_URL.key" "http://localhost:$port/$path"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
@@ -277,7 +269,7 @@ class VertxServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "server.VertxServerTest.handle"
           resourceName "server.VertxServerTest.handle"
           tags {
@@ -314,8 +306,8 @@ class VertxServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 2) {
         span(0) {
-          traceId "123"
-          serviceName "unnamed-java-app"
+          traceId 123G
+          serviceName "unnamed-java-service"
           operationName "server.VertxWebTestServer\$\$Lambda.handle"
           resourceName "server.VertxWebTestServer\$\$Lambda.handle"
           errored false
@@ -324,7 +316,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "POST"
             "$Tags.HTTP_STATUS.key" 201
             "$Tags.HTTP_URL.key" "http://localhost:$port/test/post"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "handler.type" "io.vertx.ext.web.impl.RoutingContextImpl"
@@ -332,9 +323,9 @@ class VertxServerTest extends AgentTestRunner {
           }
         }
         span(1) {
-          traceId "123"
-          parentId "456"
-          serviceName "unnamed-java-app"
+          traceId 123G
+          parentId 456G
+          serviceName "unnamed-java-service"
           operationName "netty.request"
           resourceName "/test/post"
           spanType DDSpanTypes.HTTP_SERVER
@@ -344,7 +335,6 @@ class VertxServerTest extends AgentTestRunner {
             "$Tags.HTTP_METHOD.key" "POST"
             "$Tags.HTTP_STATUS.key" 201
             "$Tags.HTTP_URL.key" "http://localhost:$port/test/post"
-            "$Tags.PEER_HOSTNAME.key" "localhost"
             "$Tags.PEER_HOST_IPV4.key" "127.0.0.1"
             "$Tags.PEER_PORT.key" Integer
             "$Tags.SPAN_KIND.key" Tags.SPAN_KIND_SERVER
@@ -368,7 +358,7 @@ class VertxServerTest extends AgentTestRunner {
     assertTraces(1) {
       trace(0, 1) {
         span(0) {
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "server.VertxServerTest.handle"
           resourceName "server.VertxServerTest.handle"
           errored false

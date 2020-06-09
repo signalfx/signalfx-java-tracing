@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.springweb;
 
-import datadog.trace.instrumentation.api.AgentPropagation;
+import datadog.trace.bootstrap.instrumentation.api.AgentPropagation;
 import org.springframework.http.HttpHeaders;
 
 public class InjectAdapter implements AgentPropagation.Setter<HttpHeaders> {

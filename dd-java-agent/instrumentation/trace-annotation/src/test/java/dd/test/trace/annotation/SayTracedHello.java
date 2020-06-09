@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package dd.test.trace.annotation;
 
-import static datadog.trace.instrumentation.api.AgentTracer.activeSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeSpan;
 
 import datadog.trace.api.DDTags;
 import datadog.trace.api.Trace;
@@ -68,7 +68,7 @@ public class SayTracedHello {
     return sayHello() + sayHAWithResource();
   }
 
-  @Trace(operationName = "ERROR")
+  // We are testing `-Dsignalfx.trace.methods` over annotating directly
   public static String sayERROR() {
     throw new RuntimeException();
   }
@@ -98,13 +98,12 @@ public class SayTracedHello {
     }.call();
   }
 
+  // We are testing `-Dsignalfx.trace.methods` instead of annotating directly
   public static class SomeInnerClass {
-    @Trace
     public static String one() {
       return two();
     }
 
-    @Trace
     public static String two() {
       return "Two!";
     }

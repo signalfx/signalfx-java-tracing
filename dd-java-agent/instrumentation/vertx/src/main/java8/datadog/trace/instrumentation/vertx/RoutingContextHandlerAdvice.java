@@ -1,7 +1,7 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
-import datadog.trace.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
 import io.vertx.ext.web.RoutingContext;
 import net.bytebuddy.asm.Advice;
 

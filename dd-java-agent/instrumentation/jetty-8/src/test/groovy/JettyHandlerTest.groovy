@@ -2,7 +2,8 @@
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpServerTest
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.api.DDTags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.jetty8.JettyDecorator
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.Server
@@ -17,10 +18,11 @@ import javax.servlet.http.HttpServletResponse
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.ERROR
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.NOT_FOUND
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.QUERY_PARAM
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.REDIRECT
 import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
 
-class JettyHandlerTest extends HttpServerTest<Server, JettyDecorator> {
+class JettyHandlerTest extends HttpServerTest<Server> {
 
   static {
     System.setProperty("dd.integration.jetty.enabled", "true")
@@ -56,8 +58,8 @@ class JettyHandlerTest extends HttpServerTest<Server, JettyDecorator> {
   }
 
   @Override
-  JettyDecorator decorator() {
-    return JettyDecorator.DECORATE
+  String component() {
+    return JettyDecorator.DECORATE.component()
   }
 
   @Override
@@ -78,6 +80,10 @@ class JettyHandlerTest extends HttpServerTest<Server, JettyDecorator> {
         case SUCCESS:
           response.status = endpoint.status
           response.writer.print(endpoint.body)
+          break
+        case QUERY_PARAM:
+          response.status = endpoint.status
+          response.writer.print(request.queryString)
           break
         case REDIRECT:
           response.sendRedirect(endpoint.body)
@@ -110,7 +116,7 @@ class JettyHandlerTest extends HttpServerTest<Server, JettyDecorator> {
   }
 
   @Override
-  void serverSpan(TraceAssert trace, int index, String traceID = null, String parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
+  void serverSpan(TraceAssert trace, int index, BigInteger traceID = null, BigInteger parentID = null, String method = "GET", ServerEndpoint endpoint = SUCCESS) {
     def handlerName = handler().class.name
     trace.span(index) {
       serviceName expectedServiceName()
@@ -125,9 +131,14 @@ class JettyHandlerTest extends HttpServerTest<Server, JettyDecorator> {
         parent()
       }
       tags {
+        "$Tags.COMPONENT" component
+        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
+        "$Tags.PEER_PORT" Integer
+        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
+        "$Tags.HTTP_METHOD" method
+        "$Tags.HTTP_STATUS" endpoint.status
         "span.origin.type" handlerName
-        defaultTags(true)
-        "$Tags.COMPONENT" serverDecorator.component()
         if (endpoint.errored) {
           "$Tags.ERROR" endpoint.errored
           "sfx.error.message" { it == null || it == EXCEPTION.body }
@@ -135,13 +146,10 @@ class JettyHandlerTest extends HttpServerTest<Server, JettyDecorator> {
           "sfx.error.kind" { it == null || it instanceof String }
           "sfx.error.stack" { it == null || it instanceof String }
         }
-        "$Tags.HTTP_STATUS" endpoint.status
-        "$Tags.HTTP_URL" "${endpoint.resolve(address)}"
-        "$Tags.PEER_HOSTNAME" { it == "localhost" || it == "127.0.0.1" }
-        "$Tags.PEER_PORT" Integer
-        "$Tags.PEER_HOST_IPV4" { it == null || it == "127.0.0.1" } // Optional
-        "$Tags.HTTP_METHOD" method
-        "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+        if (endpoint.query) {
+          "$DDTags.HTTP_QUERY" endpoint.query
+        }
+        defaultTags(true)
       }
     }
   }

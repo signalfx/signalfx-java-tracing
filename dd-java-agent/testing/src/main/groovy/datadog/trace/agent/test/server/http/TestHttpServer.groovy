@@ -3,8 +3,8 @@ package datadog.trace.agent.test.server.http
 
 import datadog.opentracing.DDSpan
 import datadog.trace.agent.test.asserts.ListWriterAssert
-import datadog.trace.instrumentation.api.AgentSpan
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import org.eclipse.jetty.http.HttpMethods
 import org.eclipse.jetty.server.Handler
 import org.eclipse.jetty.server.Request
@@ -18,22 +18,19 @@ import javax.servlet.http.HttpServletResponse
 import java.util.concurrent.atomic.AtomicReference
 
 import static datadog.trace.agent.test.server.http.HttpServletRequestExtractAdapter.GETTER
-import static datadog.trace.instrumentation.api.AgentTracer.propagate
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.propagate
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan
 
 class TestHttpServer implements AutoCloseable {
 
-  static TestHttpServer httpServer(boolean start = true,
-                                   @DelegatesTo(value = TestHttpServer, strategy = Closure.DELEGATE_FIRST) Closure spec) {
+  static TestHttpServer httpServer(@DelegatesTo(value = TestHttpServer, strategy = Closure.DELEGATE_FIRST) Closure spec) {
 
     def server = new TestHttpServer()
     def clone = (Closure) spec.clone()
     clone.delegate = server
     clone.resolveStrategy = Closure.DELEGATE_FIRST
     clone(server)
-    if (start) {
-      server.start()
-    }
+    server.start()
     return server
   }
 

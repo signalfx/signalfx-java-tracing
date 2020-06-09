@@ -1,6 +1,7 @@
 package datadog.trace.instrumentation.hystrix;
 
-import static datadog.trace.agent.tooling.ByteBuddyElementMatchers.safeHasSuperType;
+import static datadog.trace.agent.tooling.ClassLoaderMatcher.hasClassesNamed;
+import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.extendsClass;
 import static datadog.trace.instrumentation.hystrix.HystrixDecorator.DECORATE;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
@@ -8,7 +9,7 @@ import static net.bytebuddy.matcher.ElementMatchers.returns;
 import com.google.auto.service.AutoService;
 import com.netflix.hystrix.HystrixInvokableInfo;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.instrumentation.rxjava.TracedOnSubscribe;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,8 +29,14 @@ public class HystrixInstrumentation extends Instrumenter.Default {
   }
 
   @Override
+  public ElementMatcher<ClassLoader> classLoaderMatcher() {
+    // Optimization for expensive typeMatcher.
+    return hasClassesNamed("com.netflix.hystrix.HystrixCommand");
+  }
+
+  @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return safeHasSuperType(
+    return extendsClass(
         named("com.netflix.hystrix.HystrixCommand")
             .or(named("com.netflix.hystrix.HystrixObservableCommand")));
   }
@@ -38,7 +45,6 @@ public class HystrixInstrumentation extends Instrumenter.Default {
   public String[] helperClassNames() {
     return new String[] {
       "rx.DDTracingUtil",
-      "datadog.trace.agent.decorator.BaseDecorator",
       "datadog.trace.instrumentation.rxjava.SpanFinishingSubscription",
       "datadog.trace.instrumentation.rxjava.TracedSubscriber",
       "datadog.trace.instrumentation.rxjava.TracedOnSubscribe",
@@ -52,10 +58,10 @@ public class HystrixInstrumentation extends Instrumenter.Default {
     final Map<ElementMatcher.Junction<MethodDescription>, String> transformers = new HashMap<>();
     transformers.put(
         named("getExecutionObservable").and(returns(named("rx.Observable"))),
-        ExecuteAdvice.class.getName());
+        HystrixInstrumentation.class.getName() + "$ExecuteAdvice");
     transformers.put(
         named("getFallbackObservable").and(returns(named("rx.Observable"))),
-        FallbackAdvice.class.getName());
+        HystrixInstrumentation.class.getName() + "$FallbackAdvice");
     return transformers;
   }
 

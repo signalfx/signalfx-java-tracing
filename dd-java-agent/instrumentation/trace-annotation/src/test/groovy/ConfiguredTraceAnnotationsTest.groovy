@@ -1,6 +1,7 @@
 // Modified by SignalFx
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.ConfigUtils
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.trace_annotation.TraceAnnotationsInstrumentation
 import dd.test.trace.annotation.SayTracedHello
 
@@ -16,7 +17,7 @@ class ConfiguredTraceAnnotationsTest extends AgentTestRunner {
     }
   }
 
-  def specCleanup() {
+  def cleanupSpec() {
     System.clearProperty("dd.trace.annotations")
   }
 
@@ -41,6 +42,10 @@ class ConfiguredTraceAnnotationsTest extends AgentTestRunner {
         span(0) {
           resourceName "AnnotationTracedCallable.call"
           operationName "AnnotationTracedCallable.call"
+          tags {
+            "$Tags.COMPONENT" "trace"
+            defaultTags()
+          }
         }
       }
     }

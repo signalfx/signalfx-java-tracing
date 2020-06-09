@@ -2,7 +2,7 @@
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
-import datadog.trace.instrumentation.api.Tags
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import io.netty.channel.AbstractChannel
 import io.vertx.core.Vertx
 import io.vertx.core.VertxOptions
@@ -71,7 +71,7 @@ class VertxHttpClientTest extends AgentTestRunner {
       trace(1, 1) {
         span(0) {
           parent()
-          serviceName "unnamed-java-app"
+          serviceName "unnamed-java-service"
           operationName "netty.client.request"
           resourceName "/$route"
           spanType DDSpanTypes.HTTP_CLIENT

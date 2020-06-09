@@ -1,10 +1,10 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.vertx;
 
-import datadog.trace.agent.decorator.HttpServerDecorator;
+import datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecorator;
 import datadog.trace.api.Config;
 import datadog.trace.api.DDSpanTypes;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import java.net.URI;
@@ -17,7 +17,7 @@ public class RoutingContextDecorator
 
   public static final RoutingContextDecorator DECORATE = new RoutingContextDecorator();
   private boolean setKind =
-    !Config.get().integrationEnabled(new TreeSet<>(Arrays.asList("netty")), true);
+    !Config.get().isIntegrationEnabled(new TreeSet<>(Arrays.asList("netty")), true);
 
   public boolean shouldSetKind() {
     return this.setKind;
@@ -41,11 +41,6 @@ public class RoutingContextDecorator
   @Override
   protected URI url(final HttpServerRequest httpServerRequest) throws URISyntaxException {
     return new URI(httpServerRequest.absoluteURI());
-  }
-
-  @Override
-  protected String peerHostname(final HttpServerRequest httpServerRequest) {
-    return httpServerRequest.getHeader("Host").split(":")[0];
   }
 
   @Override

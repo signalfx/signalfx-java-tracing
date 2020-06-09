@@ -16,21 +16,21 @@ import static datadog.opentracing.propagation.B3HttpCodec.TRACE_ID_KEY
 import static datadog.opentracing.propagation.B3HttpCodec.SPAN_ID_KEY
 import static datadog.opentracing.propagation.B3HttpCodec.FLAGS_KEY
 import static datadog.opentracing.propagation.B3HttpCodec.UINT128_MAX
-import static datadog.opentracing.propagation.HttpCodec.UINT64_MAX
 
 class B3HttpInjectorTest extends DDSpecification {
 
   HttpCodec.Injector injector = new B3HttpCodec.Injector()
+  static BigInteger uint64Max = 2G.pow(64).subtract(1G)
 
   def "inject http headers #samplingPriority : #expectedSamplingPriority"() {
     setup:
     def writer = new ListWriter()
-    def tracer = new DDTracer(writer)
+    def tracer = DDTracer.builder().writer(writer).build()
     final DDSpanContext mockedContext =
       new DDSpanContext(
         traceId,
         spanId,
-        "0",
+        0G,
         "fakeService",
         "fakeOperation",
         "fakeResource",
@@ -45,8 +45,9 @@ class B3HttpInjectorTest extends DDSpecification {
         false,
         "fakeType",
         null,
-        new PendingTrace(tracer, "1", [:]),
-        tracer)
+        new PendingTrace(tracer, 1G),
+        tracer,
+        [:])
 
     final Map<String, String> carrier = Mock()
 
@@ -54,9 +55,9 @@ class B3HttpInjectorTest extends DDSpecification {
     injector.inject(mockedContext, new TextMapInjectAdapter(carrier))
 
     then:
-    1 * carrier.put(TRACE_ID_KEY, new BigInteger(traceId).toString(16).toLowerCase())
-    1 * carrier.put(SPAN_ID_KEY, new BigInteger(spanId).toString(16).toLowerCase())
-    1 * carrier.put(PARENT_SPAN_ID_KEY, 0G.toString())
+    1 * carrier.put(TRACE_ID_KEY, String.format("%016x", traceId))
+    1 * carrier.put(SPAN_ID_KEY, String.format("%016x", spanId))
+    1 * carrier.put(PARENT_SPAN_ID_KEY, '0' * 16)
     1 * carrier.put(OT_BAGGAGE_PREFIX + "k1", "v1")
     1 * carrier.put(OT_BAGGAGE_PREFIX + "k2", "v2")
     if (samplingPriority == PrioritySampling.USER_KEEP) {
@@ -67,55 +68,15 @@ class B3HttpInjectorTest extends DDSpecification {
     0 * _
 
     where:
-    traceId                         | spanId                          | samplingPriority              | expectedSamplingPriority
-    "1"                             | "2"                             | PrioritySampling.UNSET        | null
-    "2"                             | "3"                             | PrioritySampling.SAMPLER_KEEP | 1
-    "4"                             | "5"                             | PrioritySampling.SAMPLER_DROP | 0
-    "5"                             | "6"                             | PrioritySampling.USER_KEEP    | 1
-    "6"                             | "7"                             | PrioritySampling.USER_DROP    | 0
-    UINT64_MAX.toString()           | UINT64_MAX.minus(1).toString()  | PrioritySampling.UNSET        | null
-    UINT64_MAX.minus(1).toString()  | UINT64_MAX.toString()           | PrioritySampling.SAMPLER_KEEP | 1
-    UINT128_MAX.toString()          | UINT128_MAX.minus(1).toString() | PrioritySampling.UNSET        | null
-    UINT128_MAX.minus(1).toString() | UINT128_MAX.toString()          | PrioritySampling.SAMPLER_KEEP | 1
-  }
-
-  def "unparseable ids"() {
-    setup:
-    def writer = new ListWriter()
-    def tracer = new DDTracer(writer)
-    final DDSpanContext mockedContext =
-      new DDSpanContext(
-        traceId,
-        spanId,
-        "0",
-        "fakeService",
-        "fakeOperation",
-        "fakeResource",
-        samplingPriority,
-        "fakeOrigin",
-        new HashMap<String, String>() {
-          {
-            put("k1", "v1")
-            put("k2", "v2")
-          }
-        },
-        false,
-        "fakeType",
-        null,
-        new PendingTrace(tracer, "1", [:]),
-        tracer)
-
-    final Map<String, String> carrier = Mock()
-
-    when:
-    injector.inject(mockedContext, new TextMapInjectAdapter(carrier))
-
-    then:
-    0 * _
-
-    where:
-    traceId | spanId | samplingPriority
-    "abc"   | "1"    | PrioritySampling.UNSET
-    "1"     | "cbd"  | PrioritySampling.SAMPLER_KEEP
+    traceId              | spanId               | samplingPriority              | expectedSamplingPriority
+    1G                   | 2G                   | PrioritySampling.UNSET        | null
+    2G                   | 3G                   | PrioritySampling.SAMPLER_KEEP | 1
+    4G                   | 5G                   | PrioritySampling.SAMPLER_DROP | 0
+    5G                   | 6G                   | PrioritySampling.USER_KEEP    | 1
+    6G                   | 7G                   | PrioritySampling.USER_DROP    | 0
+    uint64Max            | uint64Max.minus(1)   | PrioritySampling.UNSET        | null
+    uint64Max.minus(1)   | uint64Max            | PrioritySampling.SAMPLER_KEEP | 1
+    UINT128_MAX          | UINT128_MAX.minus(1) | PrioritySampling.UNSET        | null
+    UINT128_MAX.minus(1) | UINT128_MAX          | PrioritySampling.SAMPLER_KEEP | 1
   }
 }

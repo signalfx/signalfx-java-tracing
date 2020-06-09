@@ -1,10 +1,10 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.elasticsearch;
 
-import datadog.trace.agent.decorator.DatabaseClientDecorator;
 import datadog.trace.api.DDSpanTypes;
 import datadog.trace.api.DDTags;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.decorator.DatabaseClientDecorator;
 
 public class ElasticsearchTransportClientDecorator extends DatabaseClientDecorator {
   public static final ElasticsearchTransportClientDecorator DECORATE =

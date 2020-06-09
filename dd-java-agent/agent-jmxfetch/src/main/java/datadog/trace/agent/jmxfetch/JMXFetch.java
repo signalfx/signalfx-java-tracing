@@ -55,11 +55,9 @@ public class JMXFetch {
     final Integer refreshBeansPeriod = config.getJmxFetchRefreshBeansPeriod();
     final Map<String, String> globalTags = config.getMergedJmxTags();
     final String reporter = getReporter(config);
-    final String logLocation = getLogLocation();
-    final String logLevel = getLogLevel();
 
     log.info(
-        "JMXFetch config: {} {} {} {} {} {} {} {} {} {}",
+        "JMXFetch config: {} {} {} {} {} {} {} {}",
         jmxFetchConfigDir,
         jmxFetchConfigs,
         internalMetricsConfigs,
@@ -67,9 +65,7 @@ public class JMXFetch {
         checkPeriod,
         refreshBeansPeriod,
         globalTags,
-        reporter,
-        logLocation,
-        logLevel);
+        reporter);
 
     final AppConfig.AppConfigBuilder configBuilder =
         AppConfig.builder()
@@ -108,7 +104,7 @@ public class JMXFetch {
                   } catch (final InterruptedException e) {
                     // It looks like JMXFetch itself eats up InterruptedException, so we will do
                     // same here for consistency
-                    log.error("JMXFetch was interupted, ignoring", e);
+                    log.error("JMXFetch was interrupted, ignoring", e);
                   }
                 }
               }
@@ -139,38 +135,39 @@ public class JMXFetch {
   }
 
   private static List<String> getInternalMetricFiles() {
-    try {
-      final InputStream metricConfigsStream =
-          JMXFetch.class.getResourceAsStream("metricconfigs.txt");
-      if (metricConfigsStream == null) {
-        log.debug("metricconfigs not found. returning empty set");
-        return Collections.emptyList();
-      } else {
-        final String configs = IOUtils.toString(metricConfigsStream, StandardCharsets.UTF_8);
-        final String[] split = configs.split("\n");
-        final List<String> result = new ArrayList<>(split.length);
-        final SortedSet<String> integrationName = new TreeSet<>();
-        for (final String config : split) {
-          integrationName.clear();
-          integrationName.add(config.replace(".yaml", ""));
-          if (Config.get().isJmxFetchIntegrationEnabled(integrationName, false)) {
-            final URL resource = JMXFetch.class.getResource("metricconfigs/" + config);
+    final InputStream metricConfigsStream = JMXFetch.class.getResourceAsStream("metricconfigs.txt");
+    if (metricConfigsStream == null) {
+      log.debug("metricconfigs not found. returning empty set");
+      return Collections.emptyList();
+    }
 
-            // jar!/ means a file internal to a jar, only add the part after if it exists
-            final String path = resource.getPath();
-            final int filenameIndex = path.indexOf("jar!/");
-            if (filenameIndex != -1) {
-              result.add(path.substring(filenameIndex + 5));
-            } else {
-              result.add(path.substring(1));
-            }
+    try {
+      final String configs = IOUtils.toString(metricConfigsStream, StandardCharsets.UTF_8);
+      final String[] split = configs.split("\n");
+      final List<String> result = new ArrayList<>(split.length);
+      final SortedSet<String> integrationName = new TreeSet<>();
+      for (final String config : split) {
+        integrationName.clear();
+        integrationName.add(config.replace(".yaml", ""));
+        if (Config.get().isJmxFetchIntegrationEnabled(integrationName, false)) {
+          final URL resource = JMXFetch.class.getResource("metricconfigs/" + config);
+
+          // jar!/ means a file internal to a jar, only add the part after if it exists
+          final String path = resource.getPath();
+          final int filenameIndex = path.indexOf("jar!/");
+          if (filenameIndex != -1) {
+            result.add(path.substring(filenameIndex + 5));
+          } else {
+            result.add(path.substring(1));
           }
         }
-        return result;
       }
+      return result;
     } catch (final IOException e) {
       log.debug("error reading metricconfigs. returning empty set", e);
       return Collections.emptyList();
+    } finally {
+      IOUtils.closeQuietly(metricConfigsStream);
     }
   }
 

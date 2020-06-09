@@ -1,4 +1,13 @@
 // Modified by SignalFx
+muzzle {
+  pass {
+    group = "com.signalfx.public"
+    module = "signalfx-trace-api"
+    versions = "[0.36.0-sfx4,]"
+    assertInverse = true
+  }
+}
+
 apply from: "${rootDir}/gradle/java.gradle"
 apply plugin: 'org.unbroken-dome.test-sets'
 
@@ -10,6 +19,10 @@ testSets {
   propertyTest {
     dirName = 'test'
   }
+}
+
+tasks.withType(Test).all {
+  jvmArgs '-Dsignalfx.trace.methods=dd.test.trace.annotation.SayTracedHello[sayERROR];dd.test.trace.annotation.SayTracedHello$SomeInnerClass[*];'
 }
 
 tasks.getByName('propertyTest').configure {

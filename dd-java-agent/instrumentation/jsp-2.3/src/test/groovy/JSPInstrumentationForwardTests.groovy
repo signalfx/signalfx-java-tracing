@@ -3,6 +3,7 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -92,16 +93,16 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/$forwardFromFileName"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/$forwardFromFileName"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 200
+            "servlet.path" "/$forwardFromFileName"
             defaultTags()
           }
         }
@@ -112,7 +113,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/$forwardFromFileName"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" jspForwardFromClassName
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -126,7 +127,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/$forwardDestFileName"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" jspForwardDestClassName
             "servlet.context" "/$jspWebappContext"
             "jsp.forwardOrigin" "/$forwardFromFileName"
@@ -141,7 +142,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/$forwardDestFileName"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.$jspForwardDestClassPrefix$jspForwardDestClassName"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -155,7 +156,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/$forwardFromFileName"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.$jspForwardFromClassPrefix$jspForwardFromClassName"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -194,16 +195,16 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToHtml.jsp"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/forwards/forwardToHtml.jsp"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 200
+            "servlet.path" "/forwards/forwardToHtml.jsp"
             defaultTags()
           }
         }
@@ -214,7 +215,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToHtml.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "forwardToHtml_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -228,7 +229,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToHtml.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.forwards.forwardToHtml_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -262,16 +263,16 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToIncludeMulti.jsp"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/forwards/forwardToIncludeMulti.jsp"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 200
+            "servlet.path" "/forwards/forwardToIncludeMulti.jsp"
             defaultTags()
           }
         }
@@ -282,7 +283,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToIncludeMulti.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "forwardToIncludeMulti_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -296,7 +297,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/includes/includeMulti.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "includeMulti_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.forwardOrigin" "/forwards/forwardToIncludeMulti.jsp"
@@ -311,7 +312,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/common/javaLoopH2.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "javaLoopH2_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.forwardOrigin" "/forwards/forwardToIncludeMulti.jsp"
@@ -326,7 +327,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/common/javaLoopH2.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.common.javaLoopH2_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -340,7 +341,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/common/javaLoopH2.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "javaLoopH2_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.forwardOrigin" "/forwards/forwardToIncludeMulti.jsp"
@@ -355,7 +356,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/common/javaLoopH2.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.common.javaLoopH2_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -369,7 +370,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/includes/includeMulti.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.includes.includeMulti_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -383,7 +384,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToIncludeMulti.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.forwards.forwardToIncludeMulti_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -417,16 +418,16 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToJspForward.jsp"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/forwards/forwardToJspForward.jsp"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 200
+            "servlet.path" "/forwards/forwardToJspForward.jsp"
             defaultTags()
           }
         }
@@ -437,7 +438,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToJspForward.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "forwardToJspForward_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -451,7 +452,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToSimpleJava.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "forwardToSimpleJava_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.forwardOrigin" "/forwards/forwardToJspForward.jsp"
@@ -466,7 +467,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/common/loop.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "loop_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.forwardOrigin" "/forwards/forwardToJspForward.jsp"
@@ -481,7 +482,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/common/loop.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.common.loop_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -495,7 +496,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToSimpleJava.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.forwards.forwardToSimpleJava_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -509,7 +510,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToJspForward.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.forwards.forwardToJspForward_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -543,16 +544,16 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToCompileError.jsp"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/forwards/forwardToCompileError.jsp"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 500
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 500
+            "servlet.path" "/forwards/forwardToCompileError.jsp"
             errorTags(JasperException, String)
             defaultTags()
           }
@@ -564,7 +565,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToCompileError.jsp"
           errored true
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "forwardToCompileError_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -579,7 +580,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/compileError.jsp"
           errored true
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.compileError_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -594,7 +595,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToCompileError.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.forwards.forwardToCompileError_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -628,16 +629,16 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/forwards/forwardToNonExistent.jsp"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/forwards/forwardToNonExistent.jsp"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 404
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 404
+            "servlet.path" "/forwards/forwardToNonExistent.jsp"
             defaultTags()
           }
         }
@@ -648,7 +649,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToNonExistent.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "forwardToNonExistent_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -662,7 +663,7 @@ class JSPInstrumentationForwardTests extends AgentTestRunner {
           resourceName "/forwards/forwardToNonExistent.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.forwards.forwardToNonExistent_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"

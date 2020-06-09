@@ -1,10 +1,10 @@
 // Modified by SignalFx
 package datadog.trace.instrumentation.play26;
 
-import datadog.trace.agent.decorator.HttpServerDecorator;
 import datadog.trace.api.DDTags;
-import datadog.trace.instrumentation.api.AgentSpan;
-import datadog.trace.instrumentation.api.Tags;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.Tags;
+import datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecorator;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
@@ -40,11 +40,6 @@ public class PlayHttpServerDecorator extends HttpServerDecorator<Request, Reques
   @Override
   protected URI url(final Request request) throws URISyntaxException {
     return new URI((request.secure() ? "https://" : "http://") + request.host() + request.uri());
-  }
-
-  @Override
-  protected String peerHostname(final Request request) {
-    return null;
   }
 
   @Override

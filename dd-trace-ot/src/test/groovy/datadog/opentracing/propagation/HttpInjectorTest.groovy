@@ -1,3 +1,4 @@
+// Modified by SignalFx
 package datadog.opentracing.propagation
 
 import datadog.opentracing.DDSpanContext
@@ -21,16 +22,16 @@ class HttpInjectorTest extends DDSpecification {
     }
     HttpCodec.Injector injector = HttpCodec.createInjector(config)
 
-    def traceId = "1"
-    def spanId = "2"
+    def traceId = 1G
+    def spanId = 2G
 
     def writer = new ListWriter()
-    def tracer = new DDTracer(writer)
+    def tracer = DDTracer.builder().writer(writer).build()
     final DDSpanContext mockedContext =
       new DDSpanContext(
         traceId,
         spanId,
-        "0",
+        0G,
         "fakeService",
         "fakeOperation",
         "fakeResource",
@@ -45,8 +46,14 @@ class HttpInjectorTest extends DDSpecification {
         false,
         "fakeType",
         null,
-        new PendingTrace(tracer, "1", [:]),
-        tracer)
+        new PendingTrace(tracer, 1G),
+        tracer,
+        [:])
+
+    def tid = traceId.toString(16).toLowerCase()
+    def tidRep = tid.padLeft((tid.length() > 16 ? 32 : 16), '0')
+    def sid = spanId.toString(16).toLowerCase()
+    def sidRep = sid.padLeft((sid.length() > 16 ? 32 : 16), '0')
 
     final Map<String, String> carrier = Mock()
 
@@ -55,8 +62,8 @@ class HttpInjectorTest extends DDSpecification {
 
     then:
     if (styles.contains(DATADOG)) {
-      1 * carrier.put(DatadogHttpCodec.TRACE_ID_KEY, traceId)
-      1 * carrier.put(DatadogHttpCodec.SPAN_ID_KEY, spanId)
+      1 * carrier.put(DatadogHttpCodec.TRACE_ID_KEY, traceId.toString())
+      1 * carrier.put(DatadogHttpCodec.SPAN_ID_KEY, spanId.toString())
       1 * carrier.put(DatadogHttpCodec.OT_BAGGAGE_PREFIX + "k1", "v1")
       1 * carrier.put(DatadogHttpCodec.OT_BAGGAGE_PREFIX + "k2", "v2")
       if (samplingPriority != PrioritySampling.UNSET) {
@@ -67,9 +74,9 @@ class HttpInjectorTest extends DDSpecification {
       }
     }
     if (styles.contains(B3)) {
-      1 * carrier.put(B3HttpCodec.TRACE_ID_KEY, traceId)
-      1 * carrier.put(B3HttpCodec.SPAN_ID_KEY, spanId)
-      1 * carrier.put(B3HttpCodec.PARENT_SPAN_ID_KEY, "0")
+      1 * carrier.put(B3HttpCodec.TRACE_ID_KEY, tidRep)
+      1 * carrier.put(B3HttpCodec.SPAN_ID_KEY, sidRep)
+      1 * carrier.put(B3HttpCodec.PARENT_SPAN_ID_KEY, '0' * 16)
       1 * carrier.put(B3HttpCodec.OT_BAGGAGE_PREFIX + "k1", "v1")
       1 * carrier.put(B3HttpCodec.OT_BAGGAGE_PREFIX + "k2", "v2")
       if (samplingPriority != PrioritySampling.UNSET) {

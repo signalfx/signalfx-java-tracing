@@ -5,6 +5,7 @@ import datadog.trace.agent.test.base.HttpClientTest
 import datadog.trace.instrumentation.netty41.client.NettyHttpClientDecorator
 import io.vertx.core.VertxOptions
 import io.vertx.core.http.HttpMethod
+import io.vertx.ext.web.client.WebClientOptions
 import io.vertx.reactivex.core.Vertx
 import io.vertx.reactivex.ext.web.client.WebClient
 import spock.lang.Ignore
@@ -13,12 +14,14 @@ import spock.lang.Timeout
 
 @Ignore
 @Timeout(10)
-class VertxRxWebClientTest extends HttpClientTest<NettyHttpClientDecorator> {
+class VertxRxWebClientTest extends HttpClientTest {
 
   @Shared
   Vertx vertx = Vertx.vertx(new VertxOptions())
   @Shared
-  WebClient client = WebClient.create(vertx)
+  def clientOptions = new WebClientOptions().setConnectTimeout(CONNECT_TIMEOUT_MS).setIdleTimeout(READ_TIMEOUT_MS)
+  @Shared
+  WebClient client = WebClient.create(vertx, clientOptions)
 
   @Override
   int doRequest(String method, URI uri, Map<String, String> headers, Closure callback) {
@@ -33,8 +36,8 @@ class VertxRxWebClientTest extends HttpClientTest<NettyHttpClientDecorator> {
   }
 
   @Override
-  NettyHttpClientDecorator decorator() {
-    return NettyHttpClientDecorator.DECORATE
+  String component() {
+    return NettyHttpClientDecorator.DECORATE.component()
   }
 
   @Override
@@ -49,6 +52,11 @@ class VertxRxWebClientTest extends HttpClientTest<NettyHttpClientDecorator> {
 
   @Override
   boolean testConnectionFailure() {
+    false
+  }
+
+  boolean testRemoteConnection() {
+    // FIXME: figure out how to configure timeouts.
     false
   }
 }

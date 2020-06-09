@@ -2,18 +2,16 @@
 
 package datadog.trace.instrumentation.springdata;
 
-import static datadog.trace.instrumentation.api.AgentTracer.activateSpan;
-import static datadog.trace.instrumentation.api.AgentTracer.startSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
+import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
 import static datadog.trace.instrumentation.springdata.SpringDataDecorator.DECORATOR;
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
-import static net.bytebuddy.matcher.ElementMatchers.isInterface;
 import static net.bytebuddy.matcher.ElementMatchers.named;
-import static net.bytebuddy.matcher.ElementMatchers.not;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
-import datadog.trace.instrumentation.api.AgentScope;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentScope;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
@@ -38,15 +36,12 @@ public final class SpringRepositoryInstrumentation extends Instrumenter.Default 
 
   @Override
   public ElementMatcher<TypeDescription> typeMatcher() {
-    return not(isInterface())
-        .and(named("org.springframework.data.repository.core.support.RepositoryFactorySupport"));
+    return named("org.springframework.data.repository.core.support.RepositoryFactorySupport");
   }
 
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
       packageName + ".SpringDataDecorator",
       getClass().getName() + "$RepositoryInterceptor",
       getClass().getName() + "$InterceptingRepositoryProxyPostProcessor",
@@ -56,7 +51,8 @@ public final class SpringRepositoryInstrumentation extends Instrumenter.Default 
   @Override
   public Map<? extends ElementMatcher<? super MethodDescription>, String> transformers() {
     return Collections.singletonMap(
-        isConstructor(), RepositoryFactorySupportAdvice.class.getName());
+        isConstructor(),
+        SpringRepositoryInstrumentation.class.getName() + "$RepositoryFactorySupportAdvice");
   }
 
   public static class RepositoryFactorySupportAdvice {

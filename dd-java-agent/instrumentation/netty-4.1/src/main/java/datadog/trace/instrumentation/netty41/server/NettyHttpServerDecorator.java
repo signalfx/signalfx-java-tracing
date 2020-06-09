@@ -1,10 +1,11 @@
+// Modified by SignalFx
 package datadog.trace.instrumentation.netty41.server;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.HOST;
 
-import datadog.trace.agent.decorator.HttpServerDecorator;
 import datadog.trace.api.Config;
-import datadog.trace.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecorator;
 import datadog.trace.instrumentation.netty41.NettyUtils;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.HttpRequest;
@@ -43,15 +44,6 @@ public class NettyHttpServerDecorator
     } else {
       return uri;
     }
-  }
-
-  @Override
-  protected String peerHostname(final Channel channel) {
-    final SocketAddress socketAddress = channel.remoteAddress();
-    if (socketAddress instanceof InetSocketAddress) {
-      return ((InetSocketAddress) socketAddress).getHostName();
-    }
-    return null;
   }
 
   @Override

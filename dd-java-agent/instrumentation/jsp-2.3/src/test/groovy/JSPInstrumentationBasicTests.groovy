@@ -4,6 +4,7 @@ import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.api.DDSpanTypes
+import datadog.trace.bootstrap.instrumentation.api.Tags
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -94,16 +95,16 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/$jspFileName"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/$jspFileName"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 200
+            "servlet.path" "/$jspFileName"
             defaultTags()
           }
         }
@@ -114,7 +115,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/$jspFileName"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" jspClassName
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -128,7 +129,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/$jspFileName"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.$jspClassNamePrefix$jspClassName"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -169,16 +170,16 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/getQuery.jsp"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/getQuery.jsp"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 200
+            "servlet.path" "/getQuery.jsp"
             defaultTags()
           }
         }
@@ -189,7 +190,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/getQuery.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "getQuery_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -203,7 +204,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/getQuery.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.getQuery_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -241,16 +242,16 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/post.jsp"
-            "http.method" "POST"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/post.jsp"
+            "$Tags.HTTP_METHOD" "POST"
+            "$Tags.HTTP_STATUS" 200
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 200
+            "servlet.path" "/post.jsp"
             defaultTags()
           }
         }
@@ -261,7 +262,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/post.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "post_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -275,7 +276,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/post.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.post_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -310,16 +311,16 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/$jspFileName"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/$jspFileName"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 500
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 500
+            "servlet.path" "/$jspFileName"
             "error" true
             "sfx.error.object" { String tagExceptionType ->
               return tagExceptionType == exceptionClass.getName() || tagExceptionType.contains(exceptionClass.getSimpleName())
@@ -339,7 +340,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/$jspFileName"
           errored true
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" jspClassName
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -362,7 +363,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/$jspFileName"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.$jspClassName"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -402,16 +403,16 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/includes/includeHtml.jsp"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/includes/includeHtml.jsp"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 200
+            "servlet.path" "/includes/includeHtml.jsp"
             defaultTags()
           }
         }
@@ -422,7 +423,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/includes/includeHtml.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "includeHtml_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -436,7 +437,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/includes/includeHtml.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.includes.includeHtml_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -470,16 +471,16 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored false
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/includes/includeMulti.jsp"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/includes/includeMulti.jsp"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 200
+            "servlet.path" "/includes/includeMulti.jsp"
             defaultTags()
           }
         }
@@ -490,7 +491,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/includes/includeMulti.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "includeMulti_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -504,7 +505,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/common/javaLoopH2.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "javaLoopH2_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -518,7 +519,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/common/javaLoopH2.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.common.javaLoopH2_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -532,7 +533,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/common/javaLoopH2.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "span.origin.type" "javaLoopH2_jsp"
             "servlet.context" "/$jspWebappContext"
             "jsp.requestURL" reqUrl
@@ -546,7 +547,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/common/javaLoopH2.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.common.javaLoopH2_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -560,7 +561,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/includes/includeMulti.jsp"
           errored false
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.includes.includeMulti_jsp"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -594,16 +595,16 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           spanType DDSpanTypes.HTTP_SERVER
           errored true
           tags {
-            "http.url" "http://localhost:$port/$jspWebappContext/$jspFileName"
-            "http.method" "GET"
-            "peer.hostname" "127.0.0.1"
-            "peer.ipv4" "127.0.0.1"
-            "peer.port" Integer
-            "span.kind" "server"
-            "component" "java-web-servlet"
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/$jspFileName"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 500
             "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
             "servlet.context" "/$jspWebappContext"
-            "http.status_code" 500
+            "servlet.path" "/$jspFileName"
             errorTags(JasperException, String)
             defaultTags()
           }
@@ -615,7 +616,7 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
           resourceName "/$jspFileName"
           errored true
           tags {
-            "component" "jsp-http-servlet"
+            "$Tags.COMPONENT" "jsp-http-servlet"
             "servlet.context" "/$jspWebappContext"
             "jsp.classFQCN" "org.apache.jsp.$jspClassNamePrefix$jspClassName"
             "jsp.compiler" "org.apache.jasper.compiler.JDTCompiler"
@@ -634,5 +635,49 @@ class JSPInstrumentationBasicTests extends AgentTestRunner {
     test      | jspFileName                            | jspClassName                  | jspClassNamePrefix
     "normal"  | "compileError.jsp"                     | "compileError_jsp"            | ""
     "forward" | "forwards/forwardWithCompileError.jsp" | "forwardWithCompileError_jsp" | "forwards."
+  }
+
+  def "direct static file reference"() {
+    setup:
+    String reqUrl = baseUrl + "/$staticFile"
+    def req = new Request.Builder().url(new URL(reqUrl)).get().build()
+
+    when:
+    Response res = client.newCall(req).execute()
+
+    then:
+    res.code() == HttpStatus.OK_200
+    assertTraces(1) {
+      trace(0, 1) {
+        span(0) {
+          parent()
+          serviceName jspWebappContext
+          operationName "servlet.request"
+          // FIXME: this is not a great resource name for serving static content.
+          resourceName "/$jspWebappContext/$staticFile"
+          spanType DDSpanTypes.HTTP_SERVER
+          errored false
+          tags {
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_HOST_IPV4" "127.0.0.1"
+            "$Tags.PEER_PORT" Integer
+            "$Tags.HTTP_URL" "http://localhost:$port/$jspWebappContext/$staticFile"
+            "$Tags.HTTP_METHOD" "GET"
+            "$Tags.HTTP_STATUS" 200
+            "span.origin.type" "org.apache.catalina.core.ApplicationFilterChain"
+            "servlet.context" "/$jspWebappContext"
+            "servlet.path" "/$staticFile"
+            defaultTags()
+          }
+        }
+      }
+    }
+
+    cleanup:
+    res.close()
+
+    where:
+    staticFile = "common/hello.html"
   }
 }

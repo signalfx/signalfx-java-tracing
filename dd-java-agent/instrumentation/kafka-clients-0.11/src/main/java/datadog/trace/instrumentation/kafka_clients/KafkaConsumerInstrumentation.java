@@ -35,8 +35,6 @@ public final class KafkaConsumerInstrumentation extends Instrumenter.Default {
   @Override
   public String[] helperClassNames() {
     return new String[] {
-      "datadog.trace.agent.decorator.BaseDecorator",
-      "datadog.trace.agent.decorator.ClientDecorator",
       packageName + ".KafkaDecorator",
       packageName + ".KafkaDecorator$1",
       packageName + ".KafkaDecorator$2",
@@ -56,21 +54,21 @@ public final class KafkaConsumerInstrumentation extends Instrumenter.Default {
             .and(named("records"))
             .and(takesArgument(0, String.class))
             .and(returns(Iterable.class)),
-        IterableAdvice.class.getName());
+        KafkaConsumerInstrumentation.class.getName() + "$IterableAdvice");
     transformers.put(
         isMethod()
             .and(isPublic())
             .and(named("records"))
             .and(takesArgument(0, named("org.apache.kafka.common.TopicPartition")))
             .and(returns(List.class)),
-        ListAdvice.class.getName());
+        KafkaConsumerInstrumentation.class.getName() + "$ListAdvice");
     transformers.put(
         isMethod()
             .and(isPublic())
             .and(named("iterator"))
             .and(takesArguments(0))
             .and(returns(Iterator.class)),
-        IteratorAdvice.class.getName());
+        KafkaConsumerInstrumentation.class.getName() + "$IteratorAdvice");
     return transformers;
   }
 

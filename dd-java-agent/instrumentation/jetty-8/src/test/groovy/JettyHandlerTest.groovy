@@ -9,7 +9,6 @@ import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
 import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.jetty8.JettyDecorator
-import okhttp3.Response
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.handler.AbstractHandler
@@ -164,7 +163,7 @@ class JettyHandlerTest extends HttpServerTest<Server> {
     def response = null
     withConfigOverride(Config.SERVER_TIMING_CONTEXT, "true") {
       def request = request(HttpServerTest.ServerEndpoint.SUCCESS, "GET", null).build()
-      response = client.newCall(request).execute();
+      response = client.newCall(request).execute()
     }
 
     expect:

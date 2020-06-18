@@ -185,7 +185,7 @@ class Netty40ServerTest extends HttpServerTest<EventLoopGroup> {
     def response = null
     withConfigOverride(Config.SERVER_TIMING_CONTEXT, "true") {
       def request = request(HttpServerTest.ServerEndpoint.SUCCESS, "GET", null).build()
-      response = client.newCall(request).execute();
+      response = client.newCall(request).execute()
     }
 
     expect:

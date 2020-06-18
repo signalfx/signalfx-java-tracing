@@ -8,9 +8,12 @@ import static datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecora
 import static datadog.trace.instrumentation.jetty6.HttpServletRequestExtractAdapter.GETTER;
 import static datadog.trace.instrumentation.jetty6.JettyDecorator.DECORATE;
 
+import datadog.trace.api.Config;
 import datadog.trace.api.DDTags;
+import datadog.trace.bootstrap.instrumentation.TraceParentHeaderFormatter;
 import datadog.trace.bootstrap.instrumentation.api.AgentScope;
 import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
+import io.opentracing.SpanContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import net.bytebuddy.asm.Advice;
@@ -19,7 +22,7 @@ public class JettyHandlerAdvice {
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static AgentScope onEnter(
-      @Advice.This final Object source, @Advice.Argument(1) final HttpServletRequest req) {
+      @Advice.This final Object source, @Advice.Argument(1) final HttpServletRequest req, @Advice.Argument(2) final HttpServletResponse res) {
 
     if (req.getAttribute(DD_SPAN_ATTRIBUTE) != null) {
       // Request already being traced elsewhere.
@@ -42,6 +45,11 @@ public class JettyHandlerAdvice {
 
     final AgentScope scope = activateSpan(span, false);
     scope.setAsyncPropagation(true);
+
+    if (Config.get().isEmitServerTimingContext() && res != null) {
+      res.addHeader("Server-Timing", TraceParentHeaderFormatter.format((SpanContext)span.context()));
+    }
+
     req.setAttribute(DD_SPAN_ATTRIBUTE, span);
     return scope;
   }

@@ -1,10 +1,15 @@
 // Modified by SignalFx
+
+import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
+
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpServerTest
+import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
 import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.jetty8.JettyDecorator
+import okhttp3.Response
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.handler.AbstractHandler
@@ -152,5 +157,17 @@ class JettyHandlerTest extends HttpServerTest<Server> {
         defaultTags(true)
       }
     }
+  }
+
+  def "server-timing traceparent is emitted when configured"() {
+    setup:
+    def response = null
+    withConfigOverride(Config.SERVER_TIMING_CONTEXT, "true") {
+      def request = request(HttpServerTest.ServerEndpoint.SUCCESS, "GET", null).build()
+      response = client.newCall(request).execute();
+    }
+
+    expect:
+    response.headers().toMultimap().get("Server-Timing").join(',').contains("traceparent")
   }
 }

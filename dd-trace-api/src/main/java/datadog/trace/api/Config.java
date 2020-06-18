@@ -175,6 +175,9 @@ public class Config {
   public static final String MAX_CONTINUATION_DEPTH = "max.continuation.depth";
   public static final Integer DEFAULT_MAX_CONTINUATION_DEPTH = 100;
 
+  public static final String SERVER_TIMING_CONTEXT = "server.timing.context";
+  public static final boolean DEFAULT_SERVER_TIMING_CONTEXT = false;
+
   public static final String DEFAULT_SITE = "datadoghq.com";
   public static final String DEFAULT_SERVICE_NAME = "unnamed-java-service";
 
@@ -360,6 +363,7 @@ public class Config {
 
   @Getter private final Integer maxSpansPerTrace;
   @Getter private final Integer maxContinuationDepth;
+  @Getter private final boolean emitServerTimingContext;
   @Getter private final Map<String, String> traceSamplingServiceRules;
   @Getter private final Map<String, String> traceSamplingOperationRules;
   @Getter private final Double traceSampleRate;
@@ -545,6 +549,9 @@ public class Config {
         getIntegerSettingFromEnvironment(MAX_SPANS_PER_TRACE, DEFAULT_MAX_SPANS_PER_TRACE);
     maxContinuationDepth =
         getIntegerSettingFromEnvironment(MAX_CONTINUATION_DEPTH, DEFAULT_MAX_CONTINUATION_DEPTH);
+    emitServerTimingContext =
+        getBooleanSettingFromEnvironment(SERVER_TIMING_CONTEXT, DEFAULT_SERVER_TIMING_CONTEXT);
+
     traceSamplingServiceRules = getMapSettingFromEnvironment(TRACE_SAMPLING_SERVICE_RULES, null);
     traceSamplingOperationRules =
         getMapSettingFromEnvironment(TRACE_SAMPLING_OPERATION_RULES, null);
@@ -772,6 +779,8 @@ public class Config {
         getPropertyIntegerValue(properties, MAX_SPANS_PER_TRACE, DEFAULT_MAX_SPANS_PER_TRACE);
     maxContinuationDepth =
         getPropertyIntegerValue(properties, MAX_CONTINUATION_DEPTH, DEFAULT_MAX_CONTINUATION_DEPTH);
+    emitServerTimingContext =
+        getPropertyBooleanValue(properties, SERVER_TIMING_CONTEXT, DEFAULT_SERVER_TIMING_CONTEXT);
     traceSamplingServiceRules =
         getPropertyMapValue(
             properties, TRACE_SAMPLING_SERVICE_RULES, parent.traceSamplingServiceRules);

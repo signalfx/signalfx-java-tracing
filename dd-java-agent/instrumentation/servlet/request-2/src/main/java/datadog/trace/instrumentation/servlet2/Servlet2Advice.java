@@ -7,13 +7,16 @@ import static datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecora
 import static datadog.trace.instrumentation.servlet2.HttpServletRequestExtractAdapter.GETTER;
 import static datadog.trace.instrumentation.servlet2.Servlet2Decorator.DECORATE;
 
+import datadog.trace.api.Config;
 import datadog.trace.api.CorrelationIdentifier;
 import datadog.trace.api.DDTags;
 import datadog.trace.api.GlobalTracer;
 import datadog.trace.bootstrap.InstrumentationContext;
+import datadog.trace.bootstrap.instrumentation.TraceParentHeaderFormatter;
 import datadog.trace.bootstrap.instrumentation.api.AgentScope;
 import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.bootstrap.instrumentation.api.Tags;
+import io.opentracing.SpanContext;
 import java.security.Principal;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -60,6 +63,11 @@ public class Servlet2Advice {
 
     final AgentScope scope = activateSpan(span, true);
     scope.setAsyncPropagation(true);
+
+    if (Config.get().isEmitServerTimingContext() && response instanceof HttpServletResponse) {
+      HttpServletResponse hsr = (HttpServletResponse) response;
+      hsr.addHeader("Server-Timing", TraceParentHeaderFormatter.format((SpanContext)span.context()));
+    }
 
     httpServletRequest.setAttribute(DD_SPAN_ATTRIBUTE, span);
     httpServletRequest.setAttribute(

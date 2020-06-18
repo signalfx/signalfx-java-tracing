@@ -13,11 +13,14 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
 import com.google.auto.service.AutoService;
 import datadog.trace.agent.tooling.Instrumenter;
+import datadog.trace.api.Config;
 import datadog.trace.api.CorrelationIdentifier;
 import datadog.trace.api.GlobalTracer;
+import datadog.trace.bootstrap.instrumentation.TraceParentHeaderFormatter;
 import datadog.trace.bootstrap.instrumentation.api.AgentScope;
 import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.bootstrap.instrumentation.api.AgentSpan.Context;
+import io.opentracing.SpanContext;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -25,6 +28,7 @@ import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import org.glassfish.grizzly.http.server.AfterServiceListener;
 import org.glassfish.grizzly.http.server.Request;
+import org.glassfish.grizzly.http.server.Response;
 
 @AutoService(Instrumenter.class)
 public class GrizzlyHttpHandlerInstrumentation extends Instrumenter.Default {
@@ -65,7 +69,7 @@ public class GrizzlyHttpHandlerInstrumentation extends Instrumenter.Default {
   public static class HandleAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static AgentScope methodEnter(@Advice.Argument(0) final Request request) {
+    public static AgentScope methodEnter(@Advice.Argument(0) final Request request, @Advice.Argument(1) final Response response) {
       if (request.getAttribute(DD_SPAN_ATTRIBUTE) != null) {
         return null;
       }
@@ -78,6 +82,10 @@ public class GrizzlyHttpHandlerInstrumentation extends Instrumenter.Default {
 
       final AgentScope scope = activateSpan(span, false);
       scope.setAsyncPropagation(true);
+
+      if (Config.get().isEmitServerTimingContext() && response != null) {
+        response.addHeader("Server-Timing", TraceParentHeaderFormatter.format((SpanContext)span.context()));
+      }
 
       request.setAttribute(DD_SPAN_ATTRIBUTE, span);
       request.setAttribute(CorrelationIdentifier.getTraceIdKey(), GlobalTracer.get().getTraceId());

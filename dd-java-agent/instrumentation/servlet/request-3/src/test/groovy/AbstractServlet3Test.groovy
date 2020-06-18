@@ -1,6 +1,10 @@
 // Modified by SignalFx
+
+import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
+
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpServerTest
+import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
 import datadog.trace.bootstrap.instrumentation.api.Tags
@@ -110,4 +114,17 @@ abstract class AbstractServlet3Test<SERVER, CONTEXT> extends HttpServerTest<SERV
       }
     }
   }
+
+  def "server-timing traceparent is emitted when configured"() {
+    setup:
+    def response = null
+    withConfigOverride(Config.SERVER_TIMING_CONTEXT, "true") {
+      def request = request(SUCCESS, "GET", null).build()
+      response = client.newCall(request).execute()
+    }
+    expect:
+    response.code() == SUCCESS.status
+    response.headers("Server-Timing").join(',').contains('traceparent')
+  }
+
 }

@@ -2,10 +2,13 @@ package datadog.trace.instrumentation.netty38.server;
 
 import static datadog.trace.instrumentation.netty38.server.NettyHttpServerDecorator.DECORATE;
 
+import datadog.trace.api.Config;
 import datadog.trace.bootstrap.ContextStore;
+import datadog.trace.bootstrap.instrumentation.TraceParentHeaderFormatter;
 import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.bootstrap.instrumentation.api.Tags;
 import datadog.trace.instrumentation.netty38.ChannelTraceContext;
+import io.opentracing.SpanContext;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.MessageEvent;
@@ -34,6 +37,9 @@ public class HttpServerResponseTracingHandler extends SimpleChannelDownstreamHan
     }
 
     final HttpResponse response = (HttpResponse) msg.getMessage();
+    if (Config.get().isEmitServerTimingContext() && response != null) {
+      response.headers().add("Server-Timing", TraceParentHeaderFormatter.format((SpanContext)span.context()));
+    }
 
     try {
       ctx.sendDownstream(msg);

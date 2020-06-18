@@ -38,7 +38,9 @@ public class HttpServerResponseTracingHandler extends SimpleChannelDownstreamHan
 
     final HttpResponse response = (HttpResponse) msg.getMessage();
     if (Config.get().isEmitServerTimingContext() && response != null) {
-      response.headers().add("Server-Timing", TraceParentHeaderFormatter.format((SpanContext)span.context()));
+      response
+          .headers()
+          .add("Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
     }
 
     try {

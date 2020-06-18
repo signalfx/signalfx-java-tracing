@@ -26,7 +26,9 @@ public class HttpServerResponseTracingHandler extends ChannelOutboundHandlerAdap
 
     final HttpResponse response = (HttpResponse) msg;
     if (Config.get().isEmitServerTimingContext() && response != null) {
-      response.headers().add("Server-Timing", TraceParentHeaderFormatter.format((SpanContext)span.context()));
+      response
+          .headers()
+          .add("Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
     }
 
     try {

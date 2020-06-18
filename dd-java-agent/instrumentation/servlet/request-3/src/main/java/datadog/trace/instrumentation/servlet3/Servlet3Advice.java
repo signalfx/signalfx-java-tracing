@@ -61,7 +61,8 @@ public class Servlet3Advice {
 
     if (Config.get().isEmitServerTimingContext() && response instanceof HttpServletResponse) {
       HttpServletResponse hsr = (HttpServletResponse) response;
-      hsr.addHeader("Server-Timing", TraceParentHeaderFormatter.format((SpanContext)span.context()));
+      hsr.addHeader(
+          "Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
     }
 
     httpServletRequest.setAttribute(DD_SPAN_ATTRIBUTE, span);

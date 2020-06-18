@@ -69,7 +69,8 @@ public class GrizzlyHttpHandlerInstrumentation extends Instrumenter.Default {
   public static class HandleAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static AgentScope methodEnter(@Advice.Argument(0) final Request request, @Advice.Argument(1) final Response response) {
+    public static AgentScope methodEnter(
+        @Advice.Argument(0) final Request request, @Advice.Argument(1) final Response response) {
       if (request.getAttribute(DD_SPAN_ATTRIBUTE) != null) {
         return null;
       }
@@ -84,7 +85,8 @@ public class GrizzlyHttpHandlerInstrumentation extends Instrumenter.Default {
       scope.setAsyncPropagation(true);
 
       if (Config.get().isEmitServerTimingContext() && response != null) {
-        response.addHeader("Server-Timing", TraceParentHeaderFormatter.format((SpanContext)span.context()));
+        response.addHeader(
+            "Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
       }
 
       request.setAttribute(DD_SPAN_ATTRIBUTE, span);

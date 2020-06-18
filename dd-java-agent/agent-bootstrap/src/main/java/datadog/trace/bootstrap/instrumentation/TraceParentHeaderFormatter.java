@@ -7,6 +7,8 @@ import java.math.BigInteger;
 public class TraceParentHeaderFormatter {
 
   public static String format(SpanContext context) {
+    // https://www.w3.org/TR/server-timing/
+    // https://www.w3.org/TR/trace-context/#traceparent-header
     StringBuffer traceParent = new StringBuffer();
     // FIXME Allocations/transformations here are unnecessary given better internal interfaces
     String traceIdDec = context.toTraceId();

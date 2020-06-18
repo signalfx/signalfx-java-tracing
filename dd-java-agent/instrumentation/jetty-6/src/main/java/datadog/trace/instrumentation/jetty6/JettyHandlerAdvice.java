@@ -22,7 +22,9 @@ public class JettyHandlerAdvice {
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static AgentScope onEnter(
-      @Advice.This final Object source, @Advice.Argument(1) final HttpServletRequest req, @Advice.Argument(2) final HttpServletResponse res) {
+      @Advice.This final Object source,
+      @Advice.Argument(1) final HttpServletRequest req,
+      @Advice.Argument(2) final HttpServletResponse res) {
 
     if (req.getAttribute(DD_SPAN_ATTRIBUTE) != null) {
       // Request already being traced elsewhere.
@@ -47,7 +49,8 @@ public class JettyHandlerAdvice {
     scope.setAsyncPropagation(true);
 
     if (Config.get().isEmitServerTimingContext() && res != null) {
-      res.addHeader("Server-Timing", TraceParentHeaderFormatter.format((SpanContext)span.context()));
+      res.addHeader(
+          "Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
     }
 
     req.setAttribute(DD_SPAN_ATTRIBUTE, span);

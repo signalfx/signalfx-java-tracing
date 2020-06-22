@@ -5,6 +5,12 @@ import io.opentracing.SpanContext;
 import java.math.BigInteger;
 import java.util.Arrays;
 
+/**
+ * Formats a <a href="https://www.w3.org/TR/server-timing/">Server-Timing</a> header
+ * value carrying a trace context in the
+ * <a href="https://www.w3.org/TR/trace-context/#traceparent-header">traceparent</a>
+ * format.
+ */
 public class TraceParentHeaderFormatter {
 
   public static char[] padTo128(final char[] id) {

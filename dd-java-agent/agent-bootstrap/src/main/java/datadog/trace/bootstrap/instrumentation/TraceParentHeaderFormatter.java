@@ -12,7 +12,7 @@ import java.util.Arrays;
  */
 public class TraceParentHeaderFormatter {
 
-  public static char[] padTo128(final char[] id) {
+  private static char[] padTo128(final char[] id) {
     if (id.length == 32) {
       return id;
     }

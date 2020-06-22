@@ -29,6 +29,7 @@ public class HttpServerResponseTracingHandler extends ChannelOutboundHandlerAdap
       response
           .headers()
           .add("Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
+      response.headers().add("Access-Control-Expose-Headers", "Server-Timing");
     }
 
     try {

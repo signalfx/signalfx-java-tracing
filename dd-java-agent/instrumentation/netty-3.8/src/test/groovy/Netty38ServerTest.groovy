@@ -159,6 +159,7 @@ class Netty38ServerTest extends HttpServerTest<ServerBootstrap> {
 
     expect:
     response.headers().toMultimap().get("Server-Timing").join(',').contains("traceparent")
+    response.headers().toMultimap().get("Access-Control-Expose-Headers").join(',').contains("Server-Timing")
   }
 
 }

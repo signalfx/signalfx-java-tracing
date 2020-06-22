@@ -87,6 +87,7 @@ public class GrizzlyHttpHandlerInstrumentation extends Instrumenter.Default {
       if (Config.get().isEmitServerTimingContext() && response != null) {
         response.addHeader(
             "Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
+        response.addHeader("Access-Control-Expose-Headers", "Server-Timing");
       }
 
       request.setAttribute(DD_SPAN_ATTRIBUTE, span);

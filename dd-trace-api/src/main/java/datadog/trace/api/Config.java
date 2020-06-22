@@ -363,6 +363,10 @@ public class Config {
 
   @Getter private final Integer maxSpansPerTrace;
   @Getter private final Integer maxContinuationDepth;
+
+  // Feature for RUM that emits the trace context to the browser in a Server-Timing header
+  // on the *response* (most other propagation relies on the client to propagate on
+  // the *request*).
   @Getter private final boolean emitServerTimingContext;
   @Getter private final Map<String, String> traceSamplingServiceRules;
   @Getter private final Map<String, String> traceSamplingOperationRules;

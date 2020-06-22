@@ -136,6 +136,7 @@ class JettyServlet2Test extends HttpServerTest<Server> {
     expect:
     response.code() == SUCCESS.status
     response.headers("Server-Timing").join(',').contains('traceparent')
+    response.headers("Access-Control-Expose-Headers").join(',').contains('Server-Timing')
   }
 
   /**

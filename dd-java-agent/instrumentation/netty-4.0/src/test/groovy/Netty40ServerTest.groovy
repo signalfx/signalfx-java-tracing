@@ -190,6 +190,7 @@ class Netty40ServerTest extends HttpServerTest<EventLoopGroup> {
 
     expect:
     response.headers().toMultimap().get("Server-Timing").join(',').contains("traceparent")
+    response.headers().toMultimap().get("Access-Control-Expose-Headers").join(',').contains("Server-Timing")
   }
 
 }

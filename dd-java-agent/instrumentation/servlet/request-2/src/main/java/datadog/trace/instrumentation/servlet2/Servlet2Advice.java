@@ -68,6 +68,7 @@ public class Servlet2Advice {
       HttpServletResponse hsr = (HttpServletResponse) response;
       hsr.addHeader(
           "Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
+      hsr.addHeader("Access-Control-Expose-Headers", "Server-Timing");
     }
 
     httpServletRequest.setAttribute(DD_SPAN_ATTRIBUTE, span);

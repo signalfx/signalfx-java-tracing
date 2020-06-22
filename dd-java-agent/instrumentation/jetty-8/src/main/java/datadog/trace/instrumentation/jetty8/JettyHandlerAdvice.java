@@ -55,6 +55,7 @@ public class JettyHandlerAdvice {
     if (Config.get().isEmitServerTimingContext() && res != null) {
       res.addHeader(
           "Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
+      res.addHeader("Access-Control-Expose-Headers", "Server-Timing");
     }
 
     req.setAttribute(DD_SPAN_ATTRIBUTE, span);

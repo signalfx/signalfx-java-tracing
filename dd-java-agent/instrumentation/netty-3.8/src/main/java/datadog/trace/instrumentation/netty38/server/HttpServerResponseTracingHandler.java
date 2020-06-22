@@ -41,6 +41,7 @@ public class HttpServerResponseTracingHandler extends SimpleChannelDownstreamHan
       response
           .headers()
           .add("Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
+      response.headers().add("Access-Control-Expose-Headers", "Server-Timing");
     }
 
     try {

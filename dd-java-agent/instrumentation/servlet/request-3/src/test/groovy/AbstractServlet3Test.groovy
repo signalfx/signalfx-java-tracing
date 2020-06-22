@@ -125,6 +125,7 @@ abstract class AbstractServlet3Test<SERVER, CONTEXT> extends HttpServerTest<SERV
     expect:
     response.code() == SUCCESS.status
     response.headers("Server-Timing").join(',').contains('traceparent')
+    response.headers("Server-Timing").join(',').matches(".*traceparent;desc=\"00-[0-9a-f]{32}-[0-9a-f]{16}-01\".*")
   }
 
 }

@@ -1,4 +1,7 @@
+import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
+
 import datadog.trace.agent.test.base.HttpServerTest
+import datadog.trace.api.Config
 import datadog.trace.instrumentation.grizzly.GrizzlyDecorator
 import org.glassfish.grizzly.http.server.HttpServer
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory
@@ -101,4 +104,18 @@ class GrizzlyTest extends HttpServerTest<HttpServer> {
       return null
     }
   }
+
+  def "server-timing traceparent is emitted when configured"() {
+    setup:
+    def response = null
+    withConfigOverride(Config.SERVER_TIMING_CONTEXT, "true") {
+      def request = request(HttpServerTest.ServerEndpoint.SUCCESS, "GET", null).build()
+      response = client.newCall(request).execute()
+    }
+
+    expect:
+    response.headers().toMultimap().get("Server-Timing").join(',').contains("traceparent")
+    response.headers().toMultimap().get("Access-Control-Expose-Headers").join(',').contains("Server-Timing")
+  }
+
 }

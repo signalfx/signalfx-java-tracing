@@ -8,12 +8,15 @@ import static datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecora
 import static datadog.trace.instrumentation.jetty8.HttpServletRequestExtractAdapter.GETTER;
 import static datadog.trace.instrumentation.jetty8.JettyDecorator.DECORATE;
 
+import datadog.trace.api.Config;
 import datadog.trace.api.CorrelationIdentifier;
 import datadog.trace.api.DDTags;
 import datadog.trace.api.GlobalTracer;
+import datadog.trace.bootstrap.instrumentation.TraceParentHeaderFormatter;
 import datadog.trace.bootstrap.instrumentation.api.AgentScope;
 import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.bootstrap.instrumentation.api.Tags;
+import io.opentracing.SpanContext;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -23,7 +26,9 @@ public class JettyHandlerAdvice {
 
   @Advice.OnMethodEnter(suppress = Throwable.class)
   public static AgentScope onEnter(
-      @Advice.This final Object source, @Advice.Argument(2) final HttpServletRequest req) {
+      @Advice.This final Object source,
+      @Advice.Argument(2) final HttpServletRequest req,
+      @Advice.Argument(3) final HttpServletResponse res) {
 
     if (req.getAttribute(DD_SPAN_ATTRIBUTE) != null) {
       // Request already being traced elsewhere.
@@ -46,6 +51,13 @@ public class JettyHandlerAdvice {
 
     final AgentScope scope = activateSpan(span, false);
     scope.setAsyncPropagation(true);
+
+    if (Config.get().isEmitServerTimingContext() && res != null) {
+      res.addHeader(
+          "Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
+      res.addHeader("Access-Control-Expose-Headers", "Server-Timing");
+    }
+
     req.setAttribute(DD_SPAN_ATTRIBUTE, span);
     req.setAttribute(CorrelationIdentifier.getTraceIdKey(), GlobalTracer.get().getTraceId());
     req.setAttribute(CorrelationIdentifier.getSpanIdKey(), GlobalTracer.get().getSpanId());

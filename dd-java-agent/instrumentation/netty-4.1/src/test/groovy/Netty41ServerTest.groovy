@@ -1,5 +1,21 @@
 // Modified by SignalFx
+
+
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.ERROR
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.NOT_FOUND
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.QUERY_PARAM
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.REDIRECT
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
+import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.UNAVAILABLE
+import static datadog.trace.agent.test.utils.ConfigUtils.withConfigOverride
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1
+
 import datadog.trace.agent.test.base.HttpServerTest
+import datadog.trace.api.Config
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.bootstrap.instrumentation.api.Tags
 import datadog.trace.instrumentation.netty41.NettyUtils
@@ -23,18 +39,6 @@ import io.netty.handler.codec.http.HttpServerCodec
 import io.netty.handler.logging.LogLevel
 import io.netty.handler.logging.LoggingHandler
 import io.netty.util.CharsetUtil
-
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.ERROR
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.EXCEPTION
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.NOT_FOUND
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.QUERY_PARAM
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.REDIRECT
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCESS
-import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.UNAVAILABLE
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_LENGTH
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR
-import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1
 
 class Netty41ServerTest extends HttpServerTest<EventLoopGroup> {
 
@@ -174,4 +178,18 @@ class Netty41ServerTest extends HttpServerTest<EventLoopGroup> {
     UNAVAILABLE | true  | false
     UNAVAILABLE | false | true
   }
+
+  def "server-timing traceparent is emitted when configured"() {
+    setup:
+    def response = null
+    withConfigOverride(Config.SERVER_TIMING_CONTEXT, "true") {
+      def request = request(HttpServerTest.ServerEndpoint.SUCCESS, "GET", null).build()
+      response = client.newCall(request).execute()
+    }
+
+    expect:
+    response.headers().toMultimap().get("Server-Timing").join(',').contains("traceparent")
+    response.headers().toMultimap().get("Access-Control-Expose-Headers").join(',').contains("Server-Timing")
+  }
+
 }

@@ -3,6 +3,8 @@ package datadog.trace.instrumentation.netty41.server;
 
 import static datadog.trace.instrumentation.netty41.server.NettyHttpServerDecorator.DECORATE;
 
+import datadog.trace.api.Config;
+import datadog.trace.bootstrap.instrumentation.TraceParentHeaderFormatter;
 import datadog.trace.bootstrap.instrumentation.api.AgentSpan;
 import datadog.trace.instrumentation.netty41.AttributeKeys;
 import datadog.trace.instrumentation.netty41.NettyUtils;
@@ -10,6 +12,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpResponse;
+import io.opentracing.SpanContext;
 
 public class HttpServerResponseTracingHandler extends ChannelOutboundHandlerAdapter {
 
@@ -22,6 +25,12 @@ public class HttpServerResponseTracingHandler extends ChannelOutboundHandlerAdap
     }
 
     final HttpResponse response = (HttpResponse) msg;
+    if (Config.get().isEmitServerTimingContext() && response != null) {
+      response
+          .headers()
+          .add("Server-Timing", TraceParentHeaderFormatter.format((SpanContext) span.context()));
+      response.headers().add("Access-Control-Expose-Headers", "Server-Timing");
+    }
 
     try {
       ctx.write(msg, prm);

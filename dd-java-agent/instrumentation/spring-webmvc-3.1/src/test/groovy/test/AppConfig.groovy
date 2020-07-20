@@ -56,13 +56,13 @@ class AppConfig extends WebMvcConfigurerAdapter {
     registry.addInterceptor(new BrokenInterceptor())
   }
 
-  public static class BrokenInterceptor extends HandlerInterceptorAdapter {
+  static class BrokenInterceptor extends HandlerInterceptorAdapter {
     @Override
     boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
       if ((handler as HandlerMethod).method.name == 'broken') {
         throw new IllegalArgumentException("Broken interceptor")
       }
-      return true;
+      return true
     }
   }
 }

@@ -86,54 +86,49 @@ jobs:
       - store_test_results:
           path: ./results
 
-  test_7:
+  test_zulu_7:
     <<: *default_test_job
     environment:
       - TEST_TASK: testJava7
 
-  test_8:
+  test_zulu_8:
     <<: *default_test_job
     environment:
-      # We are building on Java8, this is our default JVM so no need to set more homes
-      - TEST_TASK: test jacocoTestReport jacocoTestCoverageVerification
+      # default JDK provider is ZULU, hence home set
+      - TEST_TASK: testJavaZULU8 jacocoTestReport jacocoTestCoverageVerification
 
-  test_latest8:
+  test_latest_8:
     <<: *default_test_job
     environment:
       # We are building on Java8, this is our default JVM so no need to set more homes
       - TEST_TASK: latestDepTest
 
-  test_ibm8:
+  test_zulu_9:
     <<: *default_test_job
     environment:
-      - TEST_TASK: testJavaIBM8
+      - TEST_TASK: testJava9
 
-  test_zulu8:
+  test_zulu_10:
     <<: *default_test_job
     environment:
-      - TEST_TASK: testJavaZULU8
+      - TEST_TASK: testJava10
 
-  test_11:
-    <<: *default_test_job
-    environment:
-      - TEST_TASK: testJava11
-
-  test_zulu11:
+  test_zulu_11:
     <<: *default_test_job
     environment:
       - TEST_TASK: testJavaZULU11
 
-  test_12:
+  test_zulu_12:
     <<: *default_test_job
     environment:
       - TEST_TASK: testJava12
 
-  test_13:
+  test_zulu_13:
     <<: *default_test_job
     environment:
       - TEST_TASK: testJava13
 
-  test_14:
+  test_zulu_14:
     <<: *default_test_job
     environment:
       - TEST_TASK: testJava14
@@ -265,61 +260,55 @@ workflows:
           tags:
             only: /.*/
 
-    - test_7:
+    - test_zulu_7:
         requires:
         - build
         filters:
           tags:
             only: /.*/
-    - test_8:
+    - test_zulu_8:
         requires:
         - build
         filters:
           tags:
             only: /.*/
-    - test_latest8:
+    - test_latest_8:
         requires:
         - build
         filters:
           tags:
             only: /.*/
-    - test_ibm8:
+    - test_zulu_9:
+        requires:
+          - build
+        filters:
+          tags:
+            only: /.*/
+    - test_zulu_10:
+        requires:
+          - build
+        filters:
+          tags:
+            only: /.*/
+    - test_zulu_11:
         requires:
         - build
         filters:
           tags:
             only: /.*/
-    - test_zulu8:
+    - test_zulu_12:
         requires:
         - build
         filters:
           tags:
             only: /.*/
-    - test_11:
+    - test_zulu_13:
         requires:
         - build
         filters:
           tags:
             only: /.*/
-    - test_zulu11:
-        requires:
-        - build
-        filters:
-          tags:
-            only: /.*/
-    - test_12:
-        requires:
-        - build
-        filters:
-          tags:
-            only: /.*/
-    - test_13:
-        requires:
-        - build
-        filters:
-          tags:
-            only: /.*/
-    - test_14:
+    - test_zulu_14:
         requires:
           - build
         filters:

@@ -14,6 +14,8 @@ import datadog.trace.instrumentation.servlet3.Servlet3Decorator
 import datadog.trace.instrumentation.springweb.SpringWebHttpServerDecorator
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
+import okhttp3.HttpUrl
+import okhttp3.Request
 import org.apache.catalina.core.ApplicationFilterChain
 import org.springframework.boot.SpringApplication
 import org.springframework.context.ConfigurableApplicationContext
@@ -51,6 +53,31 @@ class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext>
     exception                | error
     IllegalArgumentException | false
     Exception                | true
+  }
+
+  def "update server name even if preHandle throws"(){
+    setup:
+    def requestUrl = address.resolve("/broken/SomeRandomString4278")
+    def url = HttpUrl.get(requestUrl)
+    def request = new Request.Builder().url(url).method("GET", null).build()
+
+    when:
+    client.newCall(request).execute()
+
+    then:
+    cleanAndAssertTraces(1) {
+      trace(0, 1) {
+        it.span(0) {
+          serviceName expectedServiceName()
+          operationName expectedOperationName()
+          resourceName "/broken/{variable}"
+          spanType DDSpanTypes.HTTP_SERVER
+          errored false
+          parent()
+          //Don't care about tags
+        }
+      }
+    }
   }
 
   @Override

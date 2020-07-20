@@ -1,5 +1,8 @@
 package test
 
+
+import javax.servlet.http.HttpServletRequest
+import javax.servlet.http.HttpServletResponse
 import org.apache.catalina.connector.Connector
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory
@@ -10,8 +13,11 @@ import org.springframework.http.MediaType
 import org.springframework.web.HttpMediaTypeNotAcceptableException
 import org.springframework.web.accept.ContentNegotiationStrategy
 import org.springframework.web.context.request.NativeWebRequest
+import org.springframework.web.method.HandlerMethod
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
+import org.springframework.web.servlet.handler.HandlerInterceptorAdapter
 
 @SpringBootApplication
 class AppConfig extends WebMvcConfigurerAdapter {
@@ -43,5 +49,20 @@ class AppConfig extends WebMvcConfigurerAdapter {
       })
 
     return factory
+  }
+
+  @Override
+  void addInterceptors(InterceptorRegistry registry) {
+    registry.addInterceptor(new BrokenInterceptor())
+  }
+
+  public static class BrokenInterceptor extends HandlerInterceptorAdapter {
+    @Override
+    boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+      if ((handler as HandlerMethod).method.name == 'broken') {
+        throw new IllegalArgumentException("Broken interceptor")
+      }
+      return true;
+    }
   }
 }

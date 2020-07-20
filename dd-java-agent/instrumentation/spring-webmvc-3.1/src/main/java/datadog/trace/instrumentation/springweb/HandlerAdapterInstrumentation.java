@@ -5,7 +5,6 @@ import static datadog.trace.agent.tooling.bytebuddy.matcher.DDElementMatchers.im
 import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activateSpan;
 import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.activeSpan;
 import static datadog.trace.bootstrap.instrumentation.api.AgentTracer.startSpan;
-import static datadog.trace.bootstrap.instrumentation.decorator.HttpServerDecorator.DD_SPAN_ATTRIBUTE;
 import static datadog.trace.instrumentation.springweb.SpringWebHttpServerDecorator.DECORATE;
 import static java.util.Collections.singletonMap;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
@@ -68,14 +67,9 @@ public final class HandlerAdapterInstrumentation extends Instrumenter.Default {
   public static class ControllerAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static AgentScope nameResourceAndStartSpan(
+    public static AgentScope onEnter(
         @Advice.Argument(0) final HttpServletRequest request,
         @Advice.Argument(2) final Object handler) {
-      // Name the parent span based on the matching pattern
-      final Object parentSpan = request.getAttribute(DD_SPAN_ATTRIBUTE);
-      if (parentSpan instanceof AgentSpan) {
-        DECORATE.onRequest((AgentSpan) parentSpan, request);
-      }
 
       if (activeSpan() == null) {
         return null;

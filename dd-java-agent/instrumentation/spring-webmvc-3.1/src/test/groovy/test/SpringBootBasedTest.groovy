@@ -7,6 +7,7 @@ import datadog.trace.agent.test.asserts.ListWriterAssert
 import datadog.trace.agent.test.asserts.SpanAssert
 import datadog.trace.agent.test.asserts.TraceAssert
 import datadog.trace.agent.test.base.HttpServerTest
+import datadog.trace.agent.test.utils.ConfigUtils
 import datadog.trace.api.DDSpanTypes
 import datadog.trace.api.DDTags
 import datadog.trace.bootstrap.instrumentation.api.Tags
@@ -27,6 +28,18 @@ import static datadog.trace.agent.test.base.HttpServerTest.ServerEndpoint.SUCCES
 import static java.util.Collections.singletonMap
 
 class SpringBootBasedTest extends HttpServerTest<ConfigurableApplicationContext> {
+
+  static {
+    ConfigUtils.updateConfig {
+      System.setProperty("dd.trace.classes.exclude", 'org.springframework.boot.autoconfigure.web.WebMvcAutoConfiguration$WelcomePageHandlerMapping')
+    }
+  }
+
+  def cleanupSpec(){
+    ConfigUtils.updateConfig {
+      System.clearProperty("dd.trace.classes.exclude")
+    }
+  }
 
   def "allowedExceptions=IllegalArgument should tag error=#error when exception=#exception is thrown"() {
     setup:

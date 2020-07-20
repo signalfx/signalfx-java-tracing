@@ -22,7 +22,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 
 /**
  * Instruments {@link org.springframework.web.servlet.HandlerMapping} to update SERVER span name
- * based on the mapping string of the Spring controller the was chosen to handle given request.
+ * based on the mapping string of the Spring controller that was chosen to handle given request.
  */
 @AutoService(Instrumenter.class)
 public final class HandlerMappingInstrumentation extends Instrumenter.Default {

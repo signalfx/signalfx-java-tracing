@@ -43,7 +43,8 @@ dependencies {
   // Required for older versions of finatra on JDKs >= 11
   testCompile group: 'com.sun.activation', name: 'javax.activation', version: '1.2.0'
 
-  latestDepTestCompile group: 'com.twitter', name: 'finatra-http_2.11', version: '+'
+  // temporarily locked version as "newest" breaks the build
+  latestDepTestCompile group: 'com.twitter', name: 'finatra-http_2.11', version: '20.6.+'
   latestDepTestCompile(group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.0') {
     force = true
   }

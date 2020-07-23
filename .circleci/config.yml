@@ -97,10 +97,10 @@ jobs:
       # default JDK provider is ZULU, hence home set
       - TEST_TASK: testJavaZULU8 jacocoTestReport jacocoTestCoverageVerification
 
-  test_latest_8:
+  test_openjdk_8_latest_deps:
     <<: *default_test_job
     environment:
-      # We are building on Java8, this is our default JVM so no need to set more homes
+      # We are building on OpenJDK Java8, this is our default JVM so no need to set JDK home
       - TEST_TASK: latestDepTest
 
   test_zulu_9:
@@ -272,7 +272,7 @@ workflows:
         filters:
           tags:
             only: /.*/
-    - test_latest_8:
+    - test_openjdk_8_latest_deps:
         requires:
         - build
         filters:

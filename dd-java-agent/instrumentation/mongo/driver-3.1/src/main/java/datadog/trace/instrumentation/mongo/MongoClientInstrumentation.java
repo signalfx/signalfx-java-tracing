@@ -1,6 +1,7 @@
 package datadog.trace.instrumentation.mongo;
 
 import static java.util.Collections.singletonMap;
+import static net.bytebuddy.matcher.ElementMatchers.declaresField;
 import static net.bytebuddy.matcher.ElementMatchers.declaresMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
@@ -9,9 +10,11 @@ import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
 
 import com.google.auto.service.AutoService;
 import com.mongodb.MongoClientOptions;
+import com.mongodb.event.CommandListener;
 import datadog.trace.agent.tooling.Instrumenter;
 import java.lang.reflect.Modifier;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.method.MethodDescription;
@@ -38,7 +41,8 @@ public final class MongoClientInstrumentation extends Instrumenter.Default {
                                 Modifier.PUBLIC,
                                 null,
                                 Collections.<TypeDescription.Generic>emptyList())))
-                    .and(isPublic())));
+                    .and(isPublic())))
+        .and(declaresField(named("commandListeners")));
   }
 
   @Override
@@ -58,7 +62,13 @@ public final class MongoClientInstrumentation extends Instrumenter.Default {
   public static class MongoClientAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void injectTraceListener(@Advice.This final Object dis) {
+    public static void injectTraceListener(@Advice.This final Object dis,
+                                           @Advice.FieldValue("commandListeners") final List<CommandListener> commandListeners) {
+      for (final CommandListener commandListener : commandListeners) {
+        if (commandListener instanceof TracingCommandListener) {
+          return;
+        }
+      }
       // referencing "this" in the method args causes the class to load under a transformer.
       // This bypasses the Builder instrumentation. Casting as a workaround.
       final MongoClientOptions.Builder builder = (MongoClientOptions.Builder) dis;

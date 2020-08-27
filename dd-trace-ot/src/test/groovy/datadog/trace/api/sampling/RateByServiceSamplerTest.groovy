@@ -145,4 +145,45 @@ class RateByServiceSamplerTest extends DDSpecification {
     'manual.drop' | 1
     'manual.keep' | 1
   }
+
+  def "sampler priority determines span decision"() {
+    when:
+    def sampler = new RateByServiceSampler()
+    String response = "{\"rate_by_service\": {\"service:,env:\":${samplerPriority}}}"
+    sampler.onResponse("traces", serializer.fromJson(response))
+    def tracer = DDTracer.builder().writer(new LoggingWriter()).sampler(sampler).build()
+    def span = tracer.buildSpan("root").start()
+    span.finish()
+
+    then:
+    sampler.sample(span) == expectedSampleDecision
+
+    where:
+    samplerPriority | expectedSampleDecision
+    0.0             | false
+    1.0             | true
+  }
+
+  def "setting forced tracing overrides sampler priority for span decision"() {
+    when:
+    def sampler = new RateByServiceSampler()
+    String response = "{\"rate_by_service\": {\"service:,env:\":${samplerPriority}}}"
+    sampler.onResponse("traces", serializer.fromJson(response))
+    def tracer = DDTracer.builder().writer(new LoggingWriter()).sampler(sampler).build()
+    def span = tracer.buildSpan("root").start()
+    if (tagName) {
+      span.setTag(tagName, tagValue)
+    }
+    span.finish()
+
+    then:
+    sampler.sample(span) == expectedSampleDecision
+
+    where:
+    tagName       | samplerPriority | tagValue | expectedSampleDecision
+    'manual.drop' | 0.0             | true     | false
+    'manual.drop' | 1.0             | true     | false
+    'manual.keep' | 0.0             | true     | true
+    'manual.keep' | 1.0             | true     | true
+  }
 }

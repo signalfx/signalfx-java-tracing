@@ -186,4 +186,63 @@ class RuleBasedSamplingTest extends DDSpecification {
     span2.getMetrics().get(RateByServiceSampler.SAMPLING_AGENT_RATE) == null
     span2.getSamplingPriority() == SAMPLER_DROP
   }
+
+  def "sampler priority determines span decision"() {
+    given:
+    Properties properties = new Properties()
+    if (serviceRules != null) {
+      properties.setProperty(TRACE_SAMPLING_SERVICE_RULES, serviceRules)
+    }
+
+    when:
+    Sampler sampler = Sampler.Builder.forConfig(properties)
+
+    then:
+    sampler instanceof PrioritySampler
+
+    when:
+    DDSpan span = SpanFactory.newSpanOf("service", "bar")
+    span.setOperationName("operation")
+    ((PrioritySampler) sampler).setSamplingPriority(span)
+
+    then:
+    sampler.sample(span) == expectedSampleDecision
+
+    where:
+    serviceRules | expectedSampleDecision
+    "service:0"  | false
+    "service:1"  | true
+  }
+
+  def "setting forced tracing overrides sampler priority for span decision"() {
+    given:
+    Properties properties = new Properties()
+    if (serviceRules != null) {
+      properties.setProperty(TRACE_SAMPLING_SERVICE_RULES, serviceRules)
+    }
+
+    when:
+    Sampler sampler = Sampler.Builder.forConfig(properties)
+
+    then:
+    sampler instanceof PrioritySampler
+
+    when:
+    DDSpan span = SpanFactory.newSpanOf("service", "bar")
+    span.setOperationName("operation")
+    ((PrioritySampler) sampler).setSamplingPriority(span)
+    if (tagName) {
+      span.setTag(tagName, tagValue)
+    }
+
+    then:
+    sampler.sample(span) == expectedSampleDecision
+
+    where:
+    serviceRules | tagName       | tagValue | expectedSampleDecision
+    "service:0"  | 'manual.drop' | true     | false
+    "service:1"  | 'manual.drop' | true     | false
+    "service:0"  | 'manual.keep' | true     | true
+    "service:1"  | 'manual.keep' | true     | true
+  }
 }

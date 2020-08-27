@@ -30,9 +30,8 @@ public class RateByServiceSampler implements Sampler, PrioritySampler, ResponseL
 
   @Override
   public boolean sample(final DDSpan span) {
-    // Priority sampling sends all traces to the core agent, including traces marked dropped.
-    // This allows the core agent to collect stats on all traces.
-    return true;
+    final Integer samplingPriority = span.getSamplingPriority();
+    return (samplingPriority != null && samplingPriority > 0);
   }
 
   /** If span is a root span, set the span context samplingPriority to keep or drop */

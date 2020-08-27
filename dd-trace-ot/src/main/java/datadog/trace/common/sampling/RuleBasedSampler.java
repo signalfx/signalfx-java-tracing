@@ -77,7 +77,8 @@ public class RuleBasedSampler implements Sampler, PrioritySampler {
 
   @Override
   public boolean sample(final DDSpan span) {
-    return true;
+    final Integer samplingPriority = span.getSamplingPriority();
+    return (samplingPriority != null && samplingPriority > 0);
   }
 
   @Override

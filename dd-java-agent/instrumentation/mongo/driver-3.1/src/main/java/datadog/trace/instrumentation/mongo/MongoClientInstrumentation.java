@@ -62,8 +62,9 @@ public final class MongoClientInstrumentation extends Instrumenter.Default {
   public static class MongoClientAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void injectTraceListener(@Advice.This final Object dis,
-                                           @Advice.FieldValue("commandListeners") final List<CommandListener> commandListeners) {
+    public static void injectTraceListener(
+        @Advice.This final Object dis,
+        @Advice.FieldValue("commandListeners") final List<CommandListener> commandListeners) {
       for (final CommandListener commandListener : commandListeners) {
         if (commandListener instanceof TracingCommandListener) {
           return;

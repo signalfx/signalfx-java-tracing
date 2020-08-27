@@ -62,8 +62,9 @@ public final class MongoAsyncClientInstrumentation extends Instrumenter.Default 
   public static class MongoAsyncClientAdvice {
 
     @Advice.OnMethodEnter(suppress = Throwable.class)
-    public static void injectTraceListener(@Advice.This final Object dis,
-                                           @Advice.FieldValue("commandListeners") final List<CommandListener> commandListeners) {
+    public static void injectTraceListener(
+        @Advice.This final Object dis,
+        @Advice.FieldValue("commandListeners") final List<CommandListener> commandListeners) {
       for (final CommandListener commandListener : commandListeners) {
         if (commandListener instanceof TracingCommandListener) {
           return;

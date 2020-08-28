@@ -57,6 +57,30 @@ class MongoClientTest extends MongoBaseTest {
     renameService << [false, true]
   }
 
+  // Tests the fix for double-tracing, based on a similar fixed applied to opentelemetry-java-instrumentation
+  // TracingCommandListener might get added multiple times if ClientSettings are built using existing ClientSettings or when calling  a build method twice.
+  // This test asserts that duplicate traces are not created in those cases.
+  def "test create collection with already built ClientOptions"() {
+    setup:
+    def clientOptions = client.mongoClientOptions
+    def newClientOptions = MongoClientOptions.builder(clientOptions).build()
+    MongoDatabase db = new MongoClient(new ServerAddress("localhost", port), newClientOptions).getDatabase(dbName)
+
+    when:
+    db.createCollection(collectionName)
+
+    then:
+    assertTraces(1) {
+      trace(0, 1) {
+        mongoSpan(it, 0, "{\"create\":\"$collectionName\",\"capped\":\"?\"}")
+      }
+    }
+
+    where:
+    dbName = "test_db"
+    collectionName = "testCollection"
+  }
+
   def "test create collection no description"() {
     setup:
     MongoDatabase db = new MongoClient("localhost", port).getDatabase(dbName)

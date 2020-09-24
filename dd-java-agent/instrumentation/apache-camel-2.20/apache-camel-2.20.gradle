@@ -1,0 +1,56 @@
+// Set properties before any plugins get loaded
+ext {
+  minJavaVersionForTests = JavaVersion.VERSION_1_8
+}
+
+muzzle {
+  pass {
+    group = "org.apache.camel"
+    module = "camel-core"
+    versions = "[2.20.0,3)"
+  }
+}
+
+apply from: "${rootDir}/gradle/java.gradle"
+apply plugin: 'org.unbroken-dome.test-sets'
+
+testSets {
+  latestDepTest {
+    dirName = 'test'
+  }
+}
+
+latestDepTest {
+  sourceCompatibility = "1.8"
+  targetCompatibility = "1.8"
+}
+
+compileTestJava {
+  sourceCompatibility = "1.8"
+  targetCompatibility = "1.8"
+}
+
+compileJava {
+  sourceCompatibility = "1.8"
+  targetCompatibility = "1.8"
+}
+
+dependencies {
+  compileOnly group: 'org.apache.camel', name: 'camel-core', version: '2.20.0'
+
+  testCompile group: 'org.spockframework', name: 'spock-spring', version: "$versions.spock"
+
+  testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: '1.5.17.RELEASE'
+  testCompile group: 'org.springframework.boot', name: 'spring-boot-starter', version: '1.5.17.RELEASE'
+
+  testCompile group: 'org.apache.camel', name: 'camel-spring-boot-starter', version: '2.20.0'
+  testCompile group: 'org.apache.camel', name: 'camel-spring-boot-starter', version: '2.20.0'
+  testCompile group: 'org.apache.camel', name: 'camel-jetty-starter', version: '2.20.0'
+  testCompile group: 'org.apache.camel', name: 'camel-http-starter', version: '2.20.0'
+  testCompile group: 'org.apache.camel', name: 'camel-jaxb-starter', version: '2.20.0'
+  testCompile group: 'org.apache.camel', name: 'camel-undertow', version: '2.20.0'
+
+  testCompile 'javax.xml.bind:jaxb-api:2.3.1'
+
+  latestDepTestCompile group: 'org.apache.camel', name: 'camel-core', version: '2.20.4'
+}

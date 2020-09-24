@@ -32,12 +32,12 @@ public class DefaultLogHandler implements LogHandler {
 
   @Override
   public void log(String event, DDSpan span) {
-    this.log(Collections.singletonMap("event", event), span);
+    log(Collections.singletonMap("event", event), span);
   }
 
   @Override
   public void log(long timestampMicroseconds, String event, DDSpan span) {
-    this.log(timestampMicroseconds, Collections.singletonMap("event", event), span);
+    log(timestampMicroseconds, Collections.singletonMap("event", event), span);
   }
 
   private boolean extractError(final Map<String, ?> map, DDSpan span) {

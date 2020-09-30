@@ -15,6 +15,7 @@
 package org.apache.camel.opentracing;
 
 import io.opentracing.Span;
+import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import io.opentracing.Tracer.SpanBuilder;
 import io.opentracing.propagation.Format;
@@ -150,6 +151,10 @@ public class OpenTracingTracer extends ServiceSupport
     public void notify(EventObject event) throws Exception {
 
       try {
+        /**
+         * Camel about to send something (outbound). Execution stays within CAMEL, hence parent from
+         * CAMEL holder.
+         */
         if (event instanceof ExchangeSendingEvent) {
           ExchangeSendingEvent ese = (ExchangeSendingEvent) event;
           SpanDecorator sd = getSpanDecorator(ese.getEndpoint());
@@ -171,11 +176,12 @@ public class OpenTracingTracer extends ServiceSupport
               span.context(),
               Format.Builtin.TEXT_MAP,
               new CamelHeadersInjectAdapter(ese.getExchange().getIn().getHeaders()));
-          ActiveSpanManager.activate(ese.getExchange(), span);
+          ActiveSpanManager.activate(ese.getExchange(), span, tracer);
 
           if (LOG.isTraceEnabled()) {
             LOG.trace("OpenTracing: start client span=" + span);
           }
+          /** Camel finished sending (outbound). Finish span and remove it from CAMEL holder. */
         } else if (event instanceof ExchangeSentEvent) {
           ExchangeSentEvent ese = (ExchangeSentEvent) event;
           SpanDecorator sd = getSpanDecorator(ese.getEndpoint());
@@ -185,7 +191,7 @@ public class OpenTracingTracer extends ServiceSupport
           Span span = ActiveSpanManager.getSpan(ese.getExchange());
           if (span != null) {
             if (LOG.isTraceEnabled()) {
-              LOG.trace("OpenTracing: start client span=" + span);
+              LOG.trace("OpenTracing: finish client span=" + span);
             }
             sd.post(span, ese.getExchange(), ese.getEndpoint());
             span.finish();
@@ -215,22 +221,33 @@ public class OpenTracingTracer extends ServiceSupport
 
     OpenTracingRoutePolicy(String routeId) {}
 
+    /**
+     * Route exchange started, ie request could have been already captured by upper layer
+     * instrumentation. Find parent (already created takes priority over the one from CAMEL
+     * headers).
+     */
     @Override
     public void onExchangeBegin(Route route, Exchange exchange) {
       try {
 
         SpanDecorator sd = getSpanDecorator(route.getEndpoint());
+        Span activeSpan = tracer.activeSpan();
+        SpanContext parentContext =
+            (activeSpan == null
+                ? tracer.extract(
+                    Format.Builtin.TEXT_MAP,
+                    new CamelHeadersExtractAdapter(exchange.getIn().getHeaders()))
+                : activeSpan.context());
+
         Span span =
             tracer
                 .buildSpan(sd.getOperationName(exchange, route.getEndpoint()))
-                .asChildOf(
-                    tracer.extract(
-                        Format.Builtin.TEXT_MAP,
-                        new CamelHeadersExtractAdapter(exchange.getIn().getHeaders())))
+                .asChildOf(parentContext)
                 .withTag(Tags.SPAN_KIND.getKey(), sd.getReceiverSpanKind())
                 .start();
+
         sd.pre(span, exchange, route.getEndpoint());
-        ActiveSpanManager.activate(exchange, span);
+        ActiveSpanManager.activate(exchange, span, tracer);
         if (LOG.isTraceEnabled()) {
           LOG.trace("OpenTracing: start server span=" + span);
         }
@@ -240,6 +257,7 @@ public class OpenTracingTracer extends ServiceSupport
       }
     }
 
+    /** Route exchange done. Get active CAMEL span, finish, remove from CAMEL holder. */
     @Override
     public void onExchangeDone(Route route, Exchange exchange) {
       try {

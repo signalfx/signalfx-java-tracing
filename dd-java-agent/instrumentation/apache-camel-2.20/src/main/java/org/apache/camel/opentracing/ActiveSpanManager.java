@@ -15,6 +15,7 @@
 package org.apache.camel.opentracing;
 
 import io.opentracing.Span;
+import io.opentracing.Tracer;
 import org.apache.camel.Exchange;
 
 /** Utility class for managing active spans as a stack associated with an exchange. */
@@ -45,8 +46,9 @@ public final class ActiveSpanManager {
    * @param exchange The exchange
    * @param span The span
    */
-  public static void activate(Exchange exchange, Span span) {
+  public static void activate(Exchange exchange, Span span, Tracer tracer) {
 
+    tracer.activateSpan(span);
     exchange.setProperty(
         ACTIVE_SPAN_PROPERTY,
         new Holder((Holder) exchange.getProperty(ACTIVE_SPAN_PROPERTY), span));

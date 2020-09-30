@@ -1,5 +1,6 @@
 package test
 
+
 import com.google.common.collect.ImmutableMap
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.ListWriterAssert
@@ -73,8 +74,79 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
     template.sendBody("direct:input", "Example request")
 
     then:
-    cleanAndAssertTraces(1) {
-      trace(0, 10) {
+    // should be 3 (2*service + client) but Servlet3 instrumentation does not play well with Camel generating extra span
+    cleanAndAssertTraces(4) {
+      trace(0, 4) {
+        it.span(0) {
+          serviceName "camel-sample-SERVICE-1"
+          operationName "input"
+          resourceName "input"
+          tags {
+            "$Tags.COMPONENT" "camel-direct"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "camel.uri" "direct://input"
+            defaultTags(true)
+          }
+        }
+        it.span(1) {
+          serviceName "camel-sample-SERVICE-1"
+          operationName "input"
+          resourceName "input"
+          tags {
+            "$Tags.COMPONENT" "camel-direct"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "camel.uri" "direct://input"
+            defaultTags(false)
+          }
+        }
+        it.span(2) {
+          serviceName "camel-sample-SERVICE-1"
+          operationName "POST"
+          resourceName "/serviceOne"
+          tags {
+            "$Tags.COMPONENT" "camel-http"
+            "$Tags.HTTP_METHOD" "POST"
+            "$Tags.HTTP_URL" "http://localhost:$portOne/serviceOne"
+            "$Tags.HTTP_STATUS" 200
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "camel.uri" "http://localhost:$portOne/serviceOne"
+            defaultTags(false)
+          }
+        }
+        it.span(3) {
+          serviceName "camel-sample-SERVICE-1"
+          operationName "http.request"
+          resourceName "/serviceOne"
+          spanType "http"
+          tags {
+            "$Tags.COMPONENT" "commons-http-client"
+            "$Tags.HTTP_METHOD" "POST"
+            "$Tags.HTTP_URL" "http://localhost:$portOne/serviceOne"
+            "$Tags.HTTP_STATUS" 200
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "localhost"
+            "$Tags.PEER_PORT" portOne
+            defaultTags(false)
+          }
+        }
+      }
+      trace(1, 3) {
+        it.span(0) {
+          serviceName "camel-sample-SERVICE-1"
+          operationName "POST"
+          resourceName "/camelService"
+          tags {
+            "$Tags.COMPONENT" "camel-http"
+            "$Tags.HTTP_METHOD" "POST"
+            "$Tags.HTTP_URL" "${address.resolve("/camelService")}"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "camel.uri" "${address.resolve("/camelService")}".replace("localhost", "0.0.0.0")
+
+            defaultTags(true)
+          }
+        }
+      }
+      trace(2, 2) {
         it.span(0) {
           serviceName "camel-sample-SERVICE-1"
           operationName "POST"
@@ -100,6 +172,23 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
     final Closure spec) {
 
     TEST_WRITER.waitForTraces(size)
-    assertTraces(size, spec)
+
+    // remove extra Servlet3 trace
+    def toRemove = TEST_WRITER.findAll {
+      it.size() == 1 && it.get(0).tags.get("component") == "java-web-servlet"
+    }
+    TEST_WRITER.removeAll(toRemove)
+
+    // sort - client / service one / service two
+    def first = TEST_WRITER.find { it.size() == 4 }
+    TEST_WRITER.remove(first)
+    def third = TEST_WRITER.find { it.size() == 2 }
+    TEST_WRITER.remove(third)
+    def second = TEST_WRITER.find { it.size() == 3 }
+    TEST_WRITER.remove(second)
+
+    TEST_WRITER.addAll(Arrays.asList(first, second, third))
+
+    assertTraces(size - 1, spec)
   }
 }

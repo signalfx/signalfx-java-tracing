@@ -1,10 +1,8 @@
 package test;
 
 import org.apache.camel.builder.RouteBuilder;
-import org.springframework.stereotype.Component;
 
-@Component
-public class ServiceRoute extends RouteBuilder {
+public class SingleServiceRoute extends RouteBuilder {
 
   @Override
   public void configure() throws Exception {

@@ -221,6 +221,27 @@ public class OpenTracingTracer extends ServiceSupport
 
     OpenTracingRoutePolicy(String routeId) {}
 
+    private Span spanOnExchangeBegin(Route route, Exchange exchange, SpanDecorator sd) {
+      Span activeSpan = tracer.activeSpan();
+
+      SpanContext parentContext =
+          (activeSpan == null
+              ? tracer.extract(
+                  Format.Builtin.TEXT_MAP,
+                  new CamelHeadersExtractAdapter(exchange.getIn().getHeaders()))
+              : activeSpan.context());
+
+      SpanBuilder builder =
+          tracer
+              .buildSpan(sd.getOperationName(exchange, route.getEndpoint()))
+              .asChildOf(parentContext);
+      if (activeSpan == null) {
+        // root operation, set kind
+        builder.withTag(Tags.SPAN_KIND.getKey(), sd.getReceiverSpanKind());
+      }
+      return builder.start();
+    }
+
     /**
      * Route exchange started, ie request could have been already captured by upper layer
      * instrumentation. Find parent (already created takes priority over the one from CAMEL
@@ -229,23 +250,9 @@ public class OpenTracingTracer extends ServiceSupport
     @Override
     public void onExchangeBegin(Route route, Exchange exchange) {
       try {
-
         SpanDecorator sd = getSpanDecorator(route.getEndpoint());
-        Span activeSpan = tracer.activeSpan();
-        SpanContext parentContext =
-            (activeSpan == null
-                ? tracer.extract(
-                    Format.Builtin.TEXT_MAP,
-                    new CamelHeadersExtractAdapter(exchange.getIn().getHeaders()))
-                : activeSpan.context());
 
-        Span span =
-            tracer
-                .buildSpan(sd.getOperationName(exchange, route.getEndpoint()))
-                .asChildOf(parentContext)
-                .withTag(Tags.SPAN_KIND.getKey(), sd.getReceiverSpanKind())
-                .start();
-
+        Span span = spanOnExchangeBegin(route, exchange, sd);
         sd.pre(span, exchange, route.getEndpoint());
         ActiveSpanManager.activate(exchange, span, tracer);
         if (LOG.isTraceEnabled()) {

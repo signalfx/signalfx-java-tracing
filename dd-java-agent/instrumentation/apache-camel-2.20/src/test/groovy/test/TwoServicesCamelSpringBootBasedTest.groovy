@@ -1,15 +1,12 @@
 package test
 
-
 import com.google.common.collect.ImmutableMap
 import datadog.trace.agent.test.AgentTestRunner
 import datadog.trace.agent.test.asserts.ListWriterAssert
-import datadog.trace.agent.test.utils.OkHttpUtils
 import datadog.trace.agent.test.utils.PortUtils
 import datadog.trace.bootstrap.instrumentation.api.Tags
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.SimpleType
-import okhttp3.OkHttpClient
 import org.apache.camel.CamelContext
 import org.apache.camel.ProducerTemplate
 import org.apache.camel.builder.RouteBuilder
@@ -21,16 +18,11 @@ import spock.lang.Shared
 class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
 
   @Shared
-  ConfigurableApplicationContext server
-  @Shared
-  OkHttpClient client = OkHttpUtils.client()
-  @Shared
   int portOne = PortUtils.randomOpenPort()
   @Shared
   int portTwo = PortUtils.randomOpenPort()
   @Shared
-  URI address = new URI("http://localhost:$portOne/")
-
+  ConfigurableApplicationContext server
   @Shared
   CamelContext clientContext
 
@@ -94,7 +86,6 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
           resourceName "input"
           tags {
             "$Tags.COMPONENT" "camel-direct"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
             "camel.uri" "direct://input"
             defaultTags(false)
           }
@@ -134,31 +125,82 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
         it.span(0) {
           serviceName "camel-sample-SERVICE-1"
           operationName "POST"
-          resourceName "/camelService"
+          resourceName "/serviceOne"
           tags {
             "$Tags.COMPONENT" "camel-http"
             "$Tags.HTTP_METHOD" "POST"
-            "$Tags.HTTP_URL" "${address.resolve("/camelService")}"
+            "$Tags.HTTP_URL" "http://localhost:$portOne/serviceOne"
+            "$Tags.HTTP_STATUS" 200
             "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
-            "camel.uri" "${address.resolve("/camelService")}".replace("localhost", "0.0.0.0")
+            "camel.uri" "http://0.0.0.0:$portOne/serviceOne"
+            defaultTags(true)
+          }
+        }
+        it.span(1) {
+          serviceName "camel-sample-SERVICE-1"
+          operationName "POST"
+          resourceName "/serviceTwo"
+          tags {
+            "$Tags.COMPONENT" "camel-http"
+            "$Tags.HTTP_METHOD" "POST"
+            "$Tags.HTTP_URL" "http://0.0.0.0:$portTwo/serviceTwo"
+            "$Tags.HTTP_STATUS" 200
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "camel.uri" "http://0.0.0.0:$portTwo/serviceTwo"
+            defaultTags(false)
+          }
+        }
+        it.span(2) {
+          serviceName "camel-sample-SERVICE-1"
+          operationName "http.request"
+          resourceName "/serviceTwo"
+          spanType "http"
+          tags {
+            "$Tags.COMPONENT" "commons-http-client"
+            "$Tags.HTTP_METHOD" "POST"
+            "$Tags.HTTP_URL" "http://0.0.0.0:$portTwo/serviceTwo"
+            "$Tags.HTTP_STATUS" 200
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_CLIENT
+            "$Tags.PEER_HOSTNAME" "0.0.0.0"
+            "$Tags.PEER_PORT" portTwo
+            defaultTags(false)
+          }
+        }
+      }
+      /**
+       * [DDSpan [ t_id=2919741081692840118, s_id=4235390804490658618, p_id=5646558563826891970] trace=unnamed-java-service/servlet.request//serviceTwo metrics={_sampling_priority_v1=1} tags={component=java-web-servlet, http.method=POST, http.status_code=200, http.url=http://0.0.0.0:55714/serviceTwo, peer.ipv4=192.168.88.13, peer.port=55716, signalfx.tracing.library=java-tracing, signalfx.tracing.version=0.48.0-sfx1, span.kind=server, span.origin.type=org.eclipse.jetty.servlet.ServletHandler$CachedChain, thread.id=66, thread.name=qtp487379041-66} logs=[], duration_ns=1582550595, servlet.dispatch=true
+       * DDSpan [ t_id=2919741081692840118, s_id=2692995172356936164, p_id=4235390804490658618] trace=unnamed-java-service/POST//serviceTwo metrics={} tags={camel.uri=jetty:http://0.0.0.0:55714/serviceTwo, component=camel-jetty, http.method=POST, http.url=http://0.0.0.0:55714/serviceTwo, span.kind=server, thread.id=66, thread.name=qtp487379041-66} logs=[], duration_ns=1545955571],
+       */
+      trace(2, 2) {
+        it.span(0) {
+          serviceName "camel-sample-SERVICE-1"
+          operationName "servlet.request"
+          resourceName "/serviceTwo"
+          spanType "web"
+          tags {
+            "$Tags.COMPONENT" "java-web-servlet"
+            "$Tags.HTTP_METHOD" "POST"
+            "$Tags.HTTP_STATUS" 200
+            "$Tags.HTTP_URL" "http://0.0.0.0:$portTwo/serviceTwo"
+            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
+            "$Tags.PEER_PORT" Number
+            "$Tags.PEER_HOST_IPV4" InetAddress.getLocalHost().getHostAddress().toString()
+            "span.origin.type" "org.eclipse.jetty.servlet.ServletHandler\$CachedChain"
+            "servlet.dispatch" "true"
 
             defaultTags(true)
           }
         }
-      }
-      trace(2, 2) {
-        it.span(0) {
+        it.span(1) {
           serviceName "camel-sample-SERVICE-1"
           operationName "POST"
-          resourceName "/camelService"
+          resourceName "/serviceTwo"
           tags {
-            "$Tags.COMPONENT" "camel-http"
+            "$Tags.COMPONENT" "camel-jetty"
             "$Tags.HTTP_METHOD" "POST"
-            "$Tags.HTTP_URL" "${address.resolve("/camelService")}"
-            "$Tags.SPAN_KIND" Tags.SPAN_KIND_SERVER
-            "camel.uri" "${address.resolve("/camelService")}".replace("localhost", "0.0.0.0")
-
-            defaultTags(true)
+            "$Tags.HTTP_URL" "http://0.0.0.0:$portTwo/serviceTwo"
+            "camel.uri" "jetty:http://0.0.0.0:$portTwo/serviceTwo"
+            defaultTags(false)
           }
         }
       }

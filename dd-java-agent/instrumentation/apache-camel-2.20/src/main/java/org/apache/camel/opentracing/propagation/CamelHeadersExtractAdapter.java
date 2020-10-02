@@ -11,6 +11,8 @@
  * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * <p>Modified by Splunk
  */
 package org.apache.camel.opentracing.propagation;
 
@@ -20,7 +22,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 public final class CamelHeadersExtractAdapter implements TextMap {
-  private final Map<String, String> map = new HashMap<String, String>();
+  private final Map<String, String> map = new HashMap<>();
 
   public CamelHeadersExtractAdapter(final Map<String, Object> map) {
     // Extract string valued map entries

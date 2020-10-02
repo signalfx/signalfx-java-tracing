@@ -11,6 +11,8 @@
  * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
  * express or implied. See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * <p>Modified by Splunk
  */
 package org.apache.camel.opentracing.propagation;
 
@@ -35,7 +37,7 @@ public final class CamelHeadersInjectAdapter implements TextMap {
   public void put(String key, String value) {
     // Assume any header property that begins with 'Camel' is for internal use
     if (!key.startsWith("Camel")) {
-      this.map.put(key, value);
+      map.put(key, value);
     }
   }
 }

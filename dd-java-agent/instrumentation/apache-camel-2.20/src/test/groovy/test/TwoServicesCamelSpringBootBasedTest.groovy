@@ -47,7 +47,6 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
           .log("RECEIVED Client response")
       }
     })
-    clientContext.start()
   }
 
   def cleanupSpec() {
@@ -59,10 +58,10 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
 
   def "two camel service spans"() {
     setup:
+    clientContext.start()
     ProducerTemplate template = clientContext.createProducerTemplate()
 
     when:
-
     template.sendBody("direct:input", "Example request")
 
     then:

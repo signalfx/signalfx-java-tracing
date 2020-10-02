@@ -58,7 +58,7 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
 
   def "two camel service spans"() {
     setup:
-    createAndStartClient();
+    createAndStartClient()
     ProducerTemplate template = clientContext.createProducerTemplate()
 
     when:

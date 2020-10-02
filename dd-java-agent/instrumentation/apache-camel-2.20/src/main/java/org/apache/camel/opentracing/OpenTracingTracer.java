@@ -194,7 +194,6 @@ public class OpenTracingTracer extends ServiceSupport
               LOG.trace("OpenTracing: finish client span=" + span);
             }
             sd.post(span, ese.getExchange(), ese.getEndpoint());
-            span.finish();
             ActiveSpanManager.deactivate(ese.getExchange());
           } else {
             LOG.warn("OpenTracing: could not find managed span for exchange=" + ese.getExchange());
@@ -251,7 +250,6 @@ public class OpenTracingTracer extends ServiceSupport
     public void onExchangeBegin(Route route, Exchange exchange) {
       try {
         SpanDecorator sd = getSpanDecorator(route.getEndpoint());
-
         Span span = spanOnExchangeBegin(route, exchange, sd);
         sd.pre(span, exchange, route.getEndpoint());
         ActiveSpanManager.activate(exchange, span, tracer);
@@ -276,7 +274,6 @@ public class OpenTracingTracer extends ServiceSupport
           }
           SpanDecorator sd = getSpanDecorator(route.getEndpoint());
           sd.post(span, exchange, route.getEndpoint());
-          span.finish();
           ActiveSpanManager.deactivate(exchange);
         } else {
           LOG.warn("OpenTracing: could not find managed span for exchange=" + exchange);

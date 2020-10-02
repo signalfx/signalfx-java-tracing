@@ -14,7 +14,9 @@
   </root>
 
   <logger name="datadog" level="info"/>
+  <logger name="datadog.opentracing" level="trace"/>
   <logger name="org.apache.camel" level="info"/>
+  <logger name="org.apache.camel.opentracing" level="trace"/>
   <logger name="camelService" level="debug"/>
 
 </configuration>

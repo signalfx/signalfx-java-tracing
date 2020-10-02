@@ -89,7 +89,7 @@ public class CamelContextInstrumentation extends Instrumenter.Default {
       "org.apache.camel.opentracing.decorators.VmSpanDecorator",
       "org.apache.camel.opentracing.decorators.DecoratorRegistry",
       "org.apache.camel.opentracing.ActiveSpanManager",
-      "org.apache.camel.opentracing.ActiveSpanManager$Holder",
+      "org.apache.camel.opentracing.ActiveSpanManager$SpanWithScope",
       "org.apache.camel.opentracing.OpenTracingTracer",
       "org.apache.camel.opentracing.OpenTracingTracer$OpenTracingEventNotifier",
       "org.apache.camel.opentracing.OpenTracingTracer$OpenTracingRoutePolicy"

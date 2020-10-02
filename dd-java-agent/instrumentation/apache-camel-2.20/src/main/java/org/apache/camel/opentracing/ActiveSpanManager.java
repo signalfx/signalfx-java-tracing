@@ -14,14 +14,19 @@
  */
 package org.apache.camel.opentracing;
 
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import org.apache.camel.Exchange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Utility class for managing active spans as a stack associated with an exchange. */
 public final class ActiveSpanManager {
 
   private static final String ACTIVE_SPAN_PROPERTY = "OpenTracing.activeSpan";
+
+  private static final Logger LOG = LoggerFactory.getLogger(ActiveSpanManager.class);
 
   private ActiveSpanManager() {}
 
@@ -32,9 +37,9 @@ public final class ActiveSpanManager {
    * @return The current active span, or null if none exists
    */
   public static Span getSpan(Exchange exchange) {
-    Holder holder = (Holder) exchange.getProperty(ACTIVE_SPAN_PROPERTY);
-    if (holder != null) {
-      return holder.getSpan();
+    SpanWithScope spanWithScope = (SpanWithScope) exchange.getProperty(ACTIVE_SPAN_PROPERTY);
+    if (spanWithScope != null) {
+      return spanWithScope.getSpan();
     }
     return null;
   }
@@ -48,10 +53,12 @@ public final class ActiveSpanManager {
    */
   public static void activate(Exchange exchange, Span span, Tracer tracer) {
 
-    tracer.activateSpan(span);
-    exchange.setProperty(
-        ACTIVE_SPAN_PROPERTY,
-        new Holder((Holder) exchange.getProperty(ACTIVE_SPAN_PROPERTY), span));
+    SpanWithScope parent = (SpanWithScope) exchange.getProperty(ACTIVE_SPAN_PROPERTY);
+    SpanWithScope spanWithScope = SpanWithScope.activate(span, parent, tracer);
+    exchange.setProperty(ACTIVE_SPAN_PROPERTY, spanWithScope);
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("Activated span: " + spanWithScope);
+    }
   }
 
   /**
@@ -62,9 +69,14 @@ public final class ActiveSpanManager {
    * @param exchange The exchange
    */
   public static void deactivate(Exchange exchange) {
-    Holder holder = (Holder) exchange.getProperty(ACTIVE_SPAN_PROPERTY);
-    if (holder != null) {
-      exchange.setProperty(ACTIVE_SPAN_PROPERTY, holder.getParent());
+
+    SpanWithScope spanWithScope = (SpanWithScope) exchange.getProperty(ACTIVE_SPAN_PROPERTY);
+    if (spanWithScope != null) {
+      spanWithScope.deactivate();
+      exchange.setProperty(ACTIVE_SPAN_PROPERTY, spanWithScope.getParent());
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Deactivated span: " + spanWithScope);
+      }
     }
   }
 
@@ -73,21 +85,38 @@ public final class ActiveSpanManager {
    * This will be used to maintain a stack for spans, built up during the execution of a series of
    * chained camel exchanges, and then unwound when the responses are processed.
    */
-  public static class Holder {
-    private Holder parent;
+  public static class SpanWithScope {
+    private SpanWithScope parent;
     private Span span;
+    private Scope scope;
 
-    public Holder(Holder parent, Span span) {
+    public SpanWithScope(SpanWithScope parent, Span span, Scope scope) {
       this.parent = parent;
       this.span = span;
+      this.scope = scope;
     }
 
-    public Holder getParent() {
+    public static SpanWithScope activate(Span span, SpanWithScope parent, Tracer tracer) {
+      Scope scope = tracer.activateSpan(span);
+      return new SpanWithScope(parent, span, scope);
+    }
+
+    public SpanWithScope getParent() {
       return parent;
     }
 
     public Span getSpan() {
       return span;
+    }
+
+    public void deactivate() {
+      span.finish();
+      scope.close();
+    }
+
+    @Override
+    public String toString() {
+      return "SpanWithScope [span=" + span + ", scope=" + scope + "]";
     }
   }
 }

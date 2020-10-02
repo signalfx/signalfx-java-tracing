@@ -28,7 +28,6 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
 
   def setupSpec() {
     createServer()
-    createClient()
   }
 
   def createServer() {
@@ -37,7 +36,7 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
     server = app.run()
   }
 
-  def createClient() {
+  def createAndStartClient() {
     clientContext = new DefaultCamelContext()
     clientContext.addRoutes(new RouteBuilder() {
       void configure() {
@@ -47,6 +46,7 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
           .log("RECEIVED Client response")
       }
     })
+    clientContext.start()
   }
 
   def cleanupSpec() {
@@ -58,7 +58,7 @@ class TwoServicesCamelSpringBootBasedTest extends AgentTestRunner {
 
   def "two camel service spans"() {
     setup:
-    clientContext.start()
+    createAndStartClient();
     ProducerTemplate template = clientContext.createProducerTemplate()
 
     when:

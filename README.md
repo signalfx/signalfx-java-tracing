@@ -1,3 +1,12 @@
+# Deprecation Notice
+
+:warning: **Please be advised this project is deprecated. Only critical security
+fixes and bugs will be provided.** :warning:
+
+We recommend using our [Splunk Distribution of OpenTelemetry
+Java](https://github.com/signalfx/splunk-otel-java) going forward, which offers
+the same capabilities and fully supports the OpenTelemetry standard.
+
 # SignalFx Java Agent
 
 The SignalFx Java Agent is a

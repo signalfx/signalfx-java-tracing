@@ -19,7 +19,7 @@ import org.datadog.jmxfetch.reporter.ReporterFactory;
 public class JMXFetch {
 
   public static final List<String> DEFAULT_CONFIGS =
-      Collections.unmodifiableList(Arrays.asList("jmxfetch-config.yaml"));
+      Collections.singletonList("jmxfetch-config.yaml");
 
   private static final int SLEEP_AFTER_JMXFETCH_EXITS = 5000;
 
@@ -64,7 +64,7 @@ public class JMXFetch {
 
     final AppConfig.AppConfigBuilder configBuilder =
         AppConfig.builder()
-            .action(Collections.unmodifiableList(Arrays.asList(ACTION_COLLECT)))
+            .action(Collections.singletonList(ACTION_COLLECT))
             // App should be run as daemon otherwise CLI apps would not exit once main method exits.
             .daemon(true)
             .confdDirectory(jmxFetchConfigDir)

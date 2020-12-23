@@ -2,18 +2,13 @@ package datadog.trace.agent.jmxfetch;
 
 import static org.datadog.jmxfetch.AppConfig.ACTION_COLLECT;
 
-import com.google.common.collect.ImmutableList;
 import datadog.trace.api.Config;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.datadog.jmxfetch.App;
@@ -23,8 +18,8 @@ import org.datadog.jmxfetch.reporter.ReporterFactory;
 @Slf4j
 public class JMXFetch {
 
-  public static final ImmutableList<String> DEFAULT_CONFIGS =
-      ImmutableList.of("jmxfetch-config.yaml");
+  public static final List<String> DEFAULT_CONFIGS =
+      Collections.singletonList("jmxfetch-config.yaml");
 
   private static final int SLEEP_AFTER_JMXFETCH_EXITS = 5000;
 
@@ -69,7 +64,7 @@ public class JMXFetch {
 
     final AppConfig.AppConfigBuilder configBuilder =
         AppConfig.builder()
-            .action(ImmutableList.of(ACTION_COLLECT))
+            .action(Collections.singletonList(ACTION_COLLECT))
             // App should be run as daemon otherwise CLI apps would not exit once main method exits.
             .daemon(true)
             .confdDirectory(jmxFetchConfigDir)

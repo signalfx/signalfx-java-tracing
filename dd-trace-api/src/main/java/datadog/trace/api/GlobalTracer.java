@@ -24,6 +24,12 @@ public class GlobalTracer {
         }
 
         @Override
+        public String getServiceName() { return ""; }
+
+        @Override
+        public String getEnvironmentName() { return ""; }
+
+        @Override
         public boolean addTraceInterceptor(TraceInterceptor traceInterceptor) {
           return false;
         }

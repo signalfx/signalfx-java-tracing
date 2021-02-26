@@ -61,6 +61,7 @@ public class Config {
   public static final String API_KEY_FILE = "api-key-file";
   public static final String SITE = "site";
   public static final String SERVICE_NAME = "service.name";
+  public static final String ENVIRONMENT_NAME = "environment.name";
   public static final String TRACE_ENABLED = "tracing.enabled";
   public static final String INTEGRATIONS_ENABLED = "integrations.enabled";
   public static final String WRITER_TYPE = "writer.type";
@@ -165,6 +166,7 @@ public class Config {
   public static final String RUNTIME_ID_TAG = "runtime-id";
   public static final String SERVICE = "service";
   public static final String SERVICE_TAG = SERVICE;
+  public static final String ENVIRONMENT_TAG = "environment";
   public static final String HOST_TAG = "host";
   public static final String LANGUAGE_TAG_KEY = "language";
   public static final String LANGUAGE_TAG_VALUE = "jvm";
@@ -292,6 +294,7 @@ public class Config {
   @Getter private final String site;
 
   @Getter private final String serviceName;
+  @Getter private final String environmentName;
   @Getter private final boolean traceEnabled;
   @Getter private final boolean integrationsEnabled;
   @Getter private final String writerType;
@@ -415,6 +418,8 @@ public class Config {
     serviceName =
         getSettingFromEnvironment(
             SERVICE_NAME, getSettingFromEnvironment(SERVICE, DEFAULT_SERVICE_NAME));
+
+    environmentName = getSettingFromEnvironment(ENVIRONMENT_NAME, "");
 
     traceEnabled = getBooleanSettingFromEnvironment(TRACE_ENABLED, DEFAULT_TRACE_ENABLED);
     integrationsEnabled =
@@ -633,6 +638,7 @@ public class Config {
     apiKey = properties.getProperty(API_KEY, parent.apiKey);
     site = properties.getProperty(SITE, parent.site);
     serviceName = properties.getProperty(SERVICE_NAME, parent.serviceName);
+    environmentName = properties.getProperty(ENVIRONMENT_NAME, parent.environmentName);
 
     traceEnabled = getPropertyBooleanValue(properties, TRACE_ENABLED, parent.traceEnabled);
     integrationsEnabled =
@@ -830,6 +836,11 @@ public class Config {
     final Map<String, String> result = new HashMap<>(runtimeTags);
     result.put(TRACING_LIBRARY_KEY, TRACING_LIBRARY_VALUE);
     result.put(TRACING_VERSION_KEY, TRACING_VERSION_VALUE);
+
+    String environment = getEnvironmentName();
+    if (!environment.isEmpty()) {
+      result.put(ENVIRONMENT_TAG, environment);
+    }
 
     if (reportHostName) {
       final String hostName = getHostName();

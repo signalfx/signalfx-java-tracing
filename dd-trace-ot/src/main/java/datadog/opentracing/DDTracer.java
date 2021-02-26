@@ -63,6 +63,8 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
 
   /** Default service name if none provided on the trace or span */
   final String serviceName;
+  /** Value of the environment name configuration option */
+  final String environmentName;
   /** Writer is an charge of reporting traces and spans to the desired endpoint */
   final Writer writer;
   /** Sampler defines the sampling policy in order to reduce the number of traces for instance */
@@ -305,6 +307,7 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
     assert taggedHeaders != null;
 
     this.serviceName = serviceName;
+    this.environmentName = config.getEnvironmentName();
     if (writer == null) {
       this.writer = Writer.Builder.forConfig(config);
     } else {
@@ -529,6 +532,16 @@ public class DDTracer implements io.opentracing.Tracer, Closeable, datadog.trace
       return ((DDSpan) activeSpan).getSpanId().toString();
     }
     return "0";
+  }
+
+  @Override
+  public String getServiceName() {
+    return serviceName;
+  }
+
+  @Override
+  public String getEnvironmentName() {
+    return environmentName;
   }
 
   @Override

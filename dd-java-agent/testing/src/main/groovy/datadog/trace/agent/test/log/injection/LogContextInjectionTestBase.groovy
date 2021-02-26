@@ -33,7 +33,7 @@ abstract class LogContextInjectionTestBase extends AgentTestRunner {
     }
   }
 
-  def "Log context shows trace and span ids for active scope"() {
+  def "Log context shows trace info for active scope"() {
     when:
     put("foo", "bar")
     AgentSpan rootSpan = startSpan("root")
@@ -42,6 +42,8 @@ abstract class LogContextInjectionTestBase extends AgentTestRunner {
     then:
     get(CorrelationIdentifier.getTraceIdKey()) == CorrelationIdentifier.getTraceId()
     get(CorrelationIdentifier.getSpanIdKey()) == CorrelationIdentifier.getSpanId()
+    get(CorrelationIdentifier.getServiceNameKey()) == CorrelationIdentifier.getServiceName()
+    get(CorrelationIdentifier.getEnvironmentNameKey()) == CorrelationIdentifier.getEnvironmentName()
     get("foo") == "bar"
 
     when:
@@ -51,6 +53,8 @@ abstract class LogContextInjectionTestBase extends AgentTestRunner {
     then:
     get(CorrelationIdentifier.getTraceIdKey()) == CorrelationIdentifier.getTraceId()
     get(CorrelationIdentifier.getSpanIdKey()) == CorrelationIdentifier.getSpanId()
+    get(CorrelationIdentifier.getServiceNameKey()) == CorrelationIdentifier.getServiceName()
+    get(CorrelationIdentifier.getEnvironmentNameKey()) == CorrelationIdentifier.getEnvironmentName()
     get("foo") == "bar"
 
     when:
@@ -59,6 +63,8 @@ abstract class LogContextInjectionTestBase extends AgentTestRunner {
     then:
     get(CorrelationIdentifier.getTraceIdKey()) == CorrelationIdentifier.getTraceId()
     get(CorrelationIdentifier.getSpanIdKey()) == CorrelationIdentifier.getSpanId()
+    get(CorrelationIdentifier.getServiceNameKey()) == CorrelationIdentifier.getServiceName()
+    get(CorrelationIdentifier.getEnvironmentNameKey()) == CorrelationIdentifier.getEnvironmentName()
     get("foo") == "bar"
 
     when:
@@ -67,6 +73,8 @@ abstract class LogContextInjectionTestBase extends AgentTestRunner {
     then:
     get(CorrelationIdentifier.getTraceIdKey()) == null
     get(CorrelationIdentifier.getSpanIdKey()) == null
+    get(CorrelationIdentifier.getServiceNameKey()) == null
+    get(CorrelationIdentifier.getEnvironmentNameKey()) == null
     get("foo") == "bar"
   }
 

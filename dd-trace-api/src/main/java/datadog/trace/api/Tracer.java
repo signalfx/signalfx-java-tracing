@@ -14,6 +14,10 @@ public interface Tracer {
    */
   String getSpanId();
 
+  String getServiceName();
+
+  String getEnvironmentName();
+
   /**
    * Add a new interceptor to the tracer. Interceptors with duplicate priority to existing ones are
    * ignored.

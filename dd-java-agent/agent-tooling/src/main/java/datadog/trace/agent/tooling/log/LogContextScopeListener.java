@@ -30,6 +30,10 @@ public class LogContextScopeListener implements ScopeListener {
           null, CorrelationIdentifier.getTraceIdKey(), CorrelationIdentifier.getTraceId());
       putMethod.invoke(
           null, CorrelationIdentifier.getSpanIdKey(), CorrelationIdentifier.getSpanId());
+      putMethod.invoke(
+          null, CorrelationIdentifier.getServiceNameKey(), CorrelationIdentifier.getServiceName());
+      putMethod.invoke(
+            null, CorrelationIdentifier.getEnvironmentNameKey(), CorrelationIdentifier.getEnvironmentName());
     } catch (final Exception e) {
       log.debug("Exception setting log context context", e);
     }
@@ -40,6 +44,8 @@ public class LogContextScopeListener implements ScopeListener {
     try {
       removeMethod.invoke(null, CorrelationIdentifier.getTraceIdKey());
       removeMethod.invoke(null, CorrelationIdentifier.getSpanIdKey());
+      removeMethod.invoke(null, CorrelationIdentifier.getServiceNameKey());
+      removeMethod.invoke(null, CorrelationIdentifier.getEnvironmentNameKey());
     } catch (final Exception e) {
       log.debug("Exception removing log context context", e);
     }

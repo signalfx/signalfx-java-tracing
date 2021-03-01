@@ -61,7 +61,6 @@ public class Config {
   public static final String API_KEY_FILE = "api-key-file";
   public static final String SITE = "site";
   public static final String SERVICE_NAME = "service.name";
-  public static final String ENVIRONMENT_NAME = "environment.name";
   public static final String TRACE_ENABLED = "tracing.enabled";
   public static final String INTEGRATIONS_ENABLED = "integrations.enabled";
   public static final String WRITER_TYPE = "writer.type";
@@ -77,8 +76,8 @@ public class Config {
   public static final String PRIORITY_SAMPLING = "priority.sampling";
   public static final String TRACE_RESOLVER_ENABLED = "trace.resolver.enabled";
   public static final String SERVICE_MAPPING = "service.mapping";
+  public static final String ENV = "env";
 
-  private static final String ENV = "env";
   private static final String VERSION = "version";
   public static final String TAGS = "tags";
   @Deprecated // Use dd.tags instead
@@ -419,7 +418,7 @@ public class Config {
         getSettingFromEnvironment(
             SERVICE_NAME, getSettingFromEnvironment(SERVICE, DEFAULT_SERVICE_NAME));
 
-    environmentName = getSettingFromEnvironment(ENVIRONMENT_NAME, "");
+    environmentName = getSettingFromEnvironment(ENV, "");
 
     traceEnabled = getBooleanSettingFromEnvironment(TRACE_ENABLED, DEFAULT_TRACE_ENABLED);
     integrationsEnabled =
@@ -442,10 +441,7 @@ public class Config {
         getBooleanSettingFromEnvironment(TRACE_RESOLVER_ENABLED, DEFAULT_TRACE_RESOLVER_ENABLED);
     serviceMapping = getMapSettingFromEnvironment(SERVICE_MAPPING, null);
 
-    final Map<String, String> tagsPreMap = new HashMap<>(getMapSettingFromEnvironment(TAGS, null));
-    addPropToMapIfDefinedByEnvironment(tagsPreMap, ENV);
-    addPropToMapIfDefinedByEnvironment(tagsPreMap, VERSION);
-    tags = Collections.unmodifiableMap(tagsPreMap);
+    tags = getMapSettingFromEnvironment(TAGS, null);
     globalTags = getMapSettingFromEnvironment(GLOBAL_TAGS, null);
     spanTags = getMapSettingFromEnvironment(SPAN_TAGS, null);
     jmxTags = getMapSettingFromEnvironment(JMX_TAGS, null);
@@ -638,7 +634,7 @@ public class Config {
     apiKey = properties.getProperty(API_KEY, parent.apiKey);
     site = properties.getProperty(SITE, parent.site);
     serviceName = properties.getProperty(SERVICE_NAME, parent.serviceName);
-    environmentName = properties.getProperty(ENVIRONMENT_NAME, parent.environmentName);
+    environmentName = properties.getProperty(ENV, parent.environmentName);
 
     traceEnabled = getPropertyBooleanValue(properties, TRACE_ENABLED, parent.traceEnabled);
     integrationsEnabled =
@@ -837,11 +833,6 @@ public class Config {
     result.put(TRACING_LIBRARY_KEY, TRACING_LIBRARY_VALUE);
     result.put(TRACING_VERSION_KEY, TRACING_VERSION_VALUE);
 
-    String environment = getEnvironmentName();
-    if (!environment.isEmpty()) {
-      result.put(ENVIRONMENT_TAG, environment);
-    }
-
     if (reportHostName) {
       final String hostName = getHostName();
       if (null != hostName && !hostName.isEmpty()) {
@@ -885,6 +876,13 @@ public class Config {
     final Map<String, String> result = newHashMap(getGlobalTags().size() + spanTags.size());
     result.putAll(getGlobalTags());
     result.putAll(spanTags);
+
+    if (!environmentName.isEmpty()) {
+      result.put("environment", environmentName);
+    }
+
+    addPropToMapIfDefinedByEnvironment(result, VERSION);
+
     return Collections.unmodifiableMap(result);
   }
 

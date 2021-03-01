@@ -109,7 +109,7 @@ over corresponding environment variables.
 | System property | Environment variable | Default value | Notes |
 | ---             | ---                  | ---           | ---   |
 | `signalfx.service.name` | `SIGNALFX_SERVICE_NAME` | `"unnamed-java-service"` | The name of the service. |
-| `signalfx.environment.name` | `SIGNALFX_ENVIRONMENT_NAME` | `""` | Service environment. If set will be part of the span tag as `environment`. |
+| `signalfx.env` | `SIGNALFX_ENV` | `""` | Service environment. If set will be part of the span tag as `environment`. |
 | `signalfx.agent.host` | `SIGNALFX_AGENT_HOST` | `"localhost"` | The endpoint for a SignalFx Smart Agent or OpenTelemetry Collector. |
 | `signalfx.endpoint.url` | `SIGNALFX_ENDPOINT_URL` | `"http://localhost:9080/v1/trace"` | Takes priority over constituent Agent properties. |
 | `signalfx.tracing.enabled` | `SIGNALFX_TRACING_ENABLED` | `"true"` | Globally enables tracer creation and auto-instrumentation.  Any value not matching `"true"` is treated as false (`Boolean.valueOf()`). |
@@ -156,7 +156,7 @@ The MDC add following fields to log events:
 - `signalfx.trace_id`
 - `signalfx.span_id`
 - `signalfx.service` - Value of `signalfx.service.name` property.
-- `signalfx.environment` - Value of `signalfx.environment.name` property.
+- `signalfx.environment` - Value of `signalfx.env` property.
 
 Injection uses `java.util.logging` with a `logback`, `log4j`, or `slf4j` logging framework. 
 

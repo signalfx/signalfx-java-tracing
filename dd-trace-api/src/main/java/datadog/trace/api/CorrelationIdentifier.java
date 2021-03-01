@@ -22,9 +22,13 @@ public class CorrelationIdentifier {
     return SPAN_ID_KEY;
   }
 
-  public static String getServiceNameKey() { return SERVICE_NAME_KEY; }
+  public static String getServiceNameKey() {
+    return SERVICE_NAME_KEY;
+  }
 
-  public static String getEnvironmentNameKey() { return ENVIRONMENT_NAME_KEY; }
+  public static String getEnvironmentNameKey() {
+    return ENVIRONMENT_NAME_KEY;
+  }
 
   public static String getTraceId() {
     return Ids.idToHex(GlobalTracer.get().getTraceId());
@@ -34,7 +38,11 @@ public class CorrelationIdentifier {
     return Ids.idToHex(GlobalTracer.get().getSpanId());
   }
 
-  public static String getServiceName() { return GlobalTracer.get().getServiceName(); }
+  public static String getServiceName() {
+    return GlobalTracer.get().getServiceName();
+  }
 
-  public static String getEnvironmentName() { return GlobalTracer.get().getEnvironmentName(); }
+  public static String getEnvironmentName() {
+    return GlobalTracer.get().getEnvironmentName();
+  }
 }

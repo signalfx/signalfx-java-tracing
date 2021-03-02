@@ -77,7 +77,7 @@ the table.
 | Kafka Client | 0.11.0.0+ | `kafka` | Disable trace propagation for unsupported environments with `-Dsignalfx.instrumentation.kafka.attempt-propagation=false`. |
 | khttp | 0.1.0+ | `khttp` | |
 | Lettuce (Redis Client) | 5.0.0+ | `lettuce` | Prevent command arguments from being sourced in `db.statement` tag with `-Dsignalfx.instrumentation.redis.capture-command-arguments=false`. |
-| _Java MDC_ | * | `-Dsignalfx.logs.injection=true` on Java invocation | Injects `signalfx.trace_id` and `signalfx.span_id` to MDC contexts. |
+| _Java MDC_ | * | `-Dsignalfx.logs.injection=true` on Java invocation | Injects `signalfx.trace_id`, `signalfx.span_id`, `signalfx.service`, `signalfx.environment` to MDC contexts. |
 | Memcached (SpyMemcached) | 2.10.0+ | `spymemcached` | |
 | Mongo Client | 3.1+ | `mongo` | |
 | Mongo Async Client | 3.3+ | `mongo` | |
@@ -109,6 +109,7 @@ over corresponding environment variables.
 | System property | Environment variable | Default value | Notes |
 | ---             | ---                  | ---           | ---   |
 | `signalfx.service.name` | `SIGNALFX_SERVICE_NAME` | `"unnamed-java-service"` | The name of the service. |
+| `signalfx.env` | `SIGNALFX_ENV` | `""` | Service environment. If set will be part of the span tag as `environment`. |
 | `signalfx.agent.host` | `SIGNALFX_AGENT_HOST` | `"localhost"` | The endpoint for a SignalFx Smart Agent or OpenTelemetry Collector. |
 | `signalfx.endpoint.url` | `SIGNALFX_ENDPOINT_URL` | `"http://localhost:9080/v1/trace"` | Takes priority over constituent Agent properties. |
 | `signalfx.tracing.enabled` | `SIGNALFX_TRACING_ENABLED` | `"true"` | Globally enables tracer creation and auto-instrumentation.  Any value not matching `"true"` is treated as false (`Boolean.valueOf()`). |
@@ -143,7 +144,7 @@ Set this environment variable from the command line:
     $ java -javaagent:path/to/signalfx-tracing.jar -jar app.jar
     ```
 
-## Inject trace IDs in logs
+## Inject trace context into logs
 
 Link individual log entries with trace IDs and span IDs associated with
 corresponding events. The SignalFx Java Agent uses a
@@ -151,10 +152,13 @@ corresponding events. The SignalFx Java Agent uses a
 (MDC), an open standard for identifying interleaved log outputs from multiple
 sources.
 
-The MDC adds the `signalfx.trace_id` and `signalfx.span_id` fields to log events.
+The MDC add following fields to log events:
+- `signalfx.trace_id`
+- `signalfx.span_id`
+- `signalfx.service` - Value of `signalfx.service.name` property.
+- `signalfx.environment` - Value of `signalfx.env` property.
 
-Trace ID injection uses `java.util.logging` with a `logback`, `log4j`, or
-`slf4j` logging framework. 
+Injection uses `java.util.logging` with a `logback`, `log4j`, or `slf4j` logging framework. 
 
 `java.util.logging` doesn't support MDC on its own. If you aren't using one of
 these frameworks, use a [jul-to-slf4j bridge](http://www.slf4j.org/legacy.html#jul-to-slf4j).
@@ -179,8 +183,8 @@ Follow these steps to inject trace IDs in logs with a `logback`, `log4j`, or
    ```
    logging.pattern.console= %d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg %X %n
    ```
-   The MDC replaces `%X` with the `signalfx.trace_id` and `signalfx.span_id`
-   associated with the log event.
+   The MDC replaces `%X` with the `signalfx.trace_id`, `signalfx.span_id`,
+   `signalfx.service`, `signalfx.environment` associated with the log event.
 4. Update any other services that use the logging pattern to be aware of the
    new logging pattern format as necessary.
 

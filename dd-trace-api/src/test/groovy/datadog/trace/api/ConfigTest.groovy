@@ -20,6 +20,7 @@ import static datadog.trace.api.Config.CONFIGURATION_FILE
 import static datadog.trace.api.Config.DB_CLIENT_HOST_SPLIT_BY_INSTANCE
 import static datadog.trace.api.Config.DEFAULT_JMX_FETCH_STATSD_PORT
 import static datadog.trace.api.Config.DEFAULT_KAFKA_ATTEMPT_PROPAGATION
+import static datadog.trace.api.Config.ENV
 import static datadog.trace.api.Config.GLOBAL_TAGS
 import static datadog.trace.api.Config.HEADER_TAGS
 import static datadog.trace.api.Config.HOST_TAG
@@ -129,6 +130,7 @@ class ConfigTest extends DDSpecification {
     config.apiKey == null
     config.site == Config.DEFAULT_SITE
     config.serviceName == "unnamed-java-service"
+    config.environmentName == ""
     config.traceEnabled == true
     config.writerType == "DDAgentWriter"
     config.apiType == "ZipkinV2"
@@ -200,6 +202,7 @@ class ConfigTest extends DDSpecification {
     prop.setProperty(API_KEY, "new api key")
     prop.setProperty(SITE, "new site")
     prop.setProperty(SERVICE_NAME, "something else")
+    prop.setProperty(ENV, "test-env")
     prop.setProperty(TRACE_ENABLED, "false")
     prop.setProperty(WRITER_TYPE, "LoggingWriter")
     prop.setProperty(AGENT_HOST, "somehost")
@@ -262,6 +265,7 @@ class ConfigTest extends DDSpecification {
     config.apiKey == "new api key" // we can still override via internal properties object
     config.site == "new site"
     config.serviceName == "something else"
+    config.environmentName == "test-env"
     config.traceEnabled == false
     config.writerType == "LoggingWriter"
     config.agentHost == "somehost"
@@ -270,7 +274,7 @@ class ConfigTest extends DDSpecification {
     config.prioritySamplingEnabled == false
     config.traceResolverEnabled == false
     config.serviceMapping == [a: "1"]
-    config.mergedSpanTags == [b: "2", c: "3"]
+    config.mergedSpanTags == [environment: "test-env", b: "2", c: "3"]
     config.mergedJmxTags == [b: "2", d: "4", (SERVICE): config.serviceName]
     config.headerTags == [e: "5"]
     config.httpServerErrorStatuses == (122..457).toSet()
@@ -322,6 +326,7 @@ class ConfigTest extends DDSpecification {
     System.setProperty(prefix + API_KEY, "new api key")
     System.setProperty(prefix + SITE, "new site")
     System.setProperty(prefix + SERVICE_NAME, "something else") // SFX
+    System.setProperty(prefix + ENV, "test-env")
     System.setProperty(prefix + TRACE_ENABLED, "false")
     System.setProperty(prefix + WRITER_TYPE, "LoggingWriter") // SFX
     System.setProperty(prefix + USE_B3_PROPAGATION, "false") // SFX
@@ -393,6 +398,7 @@ class ConfigTest extends DDSpecification {
     config.apiKey == null // system properties cannot be used to provide a key
     config.site == "new site"
     config.serviceName == "something else"
+    config.environmentName == "test-env"
     config.traceEnabled == false
     config.writerType == "LoggingWriter"
     config.useB3Propagation == false
@@ -404,7 +410,7 @@ class ConfigTest extends DDSpecification {
     config.prioritySamplingEnabled == false
     config.traceResolverEnabled == false
     config.serviceMapping == [a: "1"]
-    config.mergedSpanTags == [b: "2", c: "3"]
+    config.mergedSpanTags == [environment: "test-env", b: "2", c: "3"]
     config.mergedJmxTags == [b: "2", d: "4", (SERVICE): config.serviceName]
     config.headerTags == [e: "5"]
     config.httpServerErrorStatuses == (122..457).toSet()
@@ -460,6 +466,7 @@ class ConfigTest extends DDSpecification {
     setup:
     environmentVariables.set(DD_API_KEY_ENV, "test-api-key")
     environmentVariables.set(DD_SERVICE_NAME_ENV, "still something else")
+    environmentVariables.set(DD_ENV_ENV, "different")
     environmentVariables.set(DD_TRACE_ENABLED_ENV, "false")
     environmentVariables.set(DD_WRITER_TYPE_ENV, "LoggingWriter")
     environmentVariables.set(DD_PROPAGATION_STYLE_EXTRACT, "B3 Datadog")
@@ -478,6 +485,7 @@ class ConfigTest extends DDSpecification {
     then:
     config.apiKey == "test-api-key"
     config.serviceName == "still something else"
+    config.environmentName == "different"
     config.traceEnabled == false
     config.writerType == "LoggingWriter"
     config.propagationStylesToExtract.toList() == [Config.PropagationStyle.B3, Config.PropagationStyle.DATADOG]
@@ -1352,13 +1360,13 @@ class ConfigTest extends DDSpecification {
     setup:
     environmentVariables.set(DD_ENV_ENV, "test_env")
     environmentVariables.set(DD_VERSION_ENV, "1.2.3")
-    environmentVariables.set(DD_TAGS_ENV, "signalfx.env:production   ,    signalfx.version:3.2.1")
+    environmentVariables.set(DD_TAGS_ENV, "environment:production,signalfx.version:3.2.1")
 
     when:
     Config config = new Config()
 
     then:
-    config.mergedSpanTags == ["signalfx.env": "test_env", "signalfx.version": "1.2.3"]
+    config.mergedSpanTags == ["environment": "test_env", "signalfx.version": "1.2.3"]
   }
 
   def "propertyNameToEnvironmentVariableName unit test"() {

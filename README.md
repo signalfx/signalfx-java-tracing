@@ -121,6 +121,7 @@ over corresponding environment variables.
 | `signalfx.trace.methods` | `SIGNALFX_TRACE_METHODS` | `null` | Same as adding `@Trace` annotation functionality for the target method string of format `package.OuterClass[methodOne,methodTwo];other.package.OuterClass$InnerClass[*];`. (; is required and * for all public methods in class). |
 | `signalfx.max.spans.per.trace` | `SIGNALFX_MAX_SPANS_PER_TRACE` | `0 (no limit)` | Drops traces with more spans than this. Intended to prevent runaway traces from flooding upstream systems. |
 | `signalfx.max.continuation.depth` | `SIGNALFX_MAX_CONTINUATION_DEPTH` | `100` | Stops propagating asynchronous context at this recursive depth. Intended to prevent runaway traces from leaking memory. |
+| `signalfx.server.timing.context` | `SIGNALFX_SERVER_TIMING_CONTEXT` | `false` | Enables adding `Server-Timing` header to HTTP responses. |
 
 ### Steps
 

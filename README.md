@@ -1,11 +1,10 @@
-# Deprecation Notice
+> # :warning: Deprecation Notice
+> **The SignalFx Java Agent is deprecated and will reach End of Support on October 21st, 2022. After that date, this repository will be archived. Until then, only critical security fixes and bugs will be provided.**
+>
+>For applications running on Java 8 or higher, use the [Splunk Distribution of OpenTelemetry
+>Java](https://github.com/signalfx/splunk-otel-java), which offers the same capabilities and fully supports the OpenTelemetry standard.
 
-:warning: **Please be advised this project is deprecated. Only critical security
-fixes and bugs will be provided.** :warning:
-
-We recommend using our [Splunk Distribution of OpenTelemetry
-Java](https://github.com/signalfx/splunk-otel-java) going forward, which offers
-the same capabilities and fully supports the OpenTelemetry standard.
+---
 
 # SignalFx Java Agent
 

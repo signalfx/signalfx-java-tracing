@@ -1,7 +1,7 @@
 apply from: "${rootDir}/gradle/java.gradle"
 
 ext {
-  log4jVersion = '2.11.2'
+  log4jVersion = '2.15.0'
 }
 
 configurations {

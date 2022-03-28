@@ -47,7 +47,7 @@ dependencies {
 
   compile group: 'com.datadoghq', name: 'java-dogstatsd-client', version: '2.1.1'
 
-  compile deps.jackson
+  compile deps.jackson_databind
   compile deps.slf4j
   compile deps.okhttp
   compile group: 'org.msgpack', name: 'msgpack-core', version: '0.8.20'

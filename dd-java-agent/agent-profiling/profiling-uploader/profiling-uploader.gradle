@@ -1,6 +1,7 @@
 // Set properties before any plugins get loaded
 ext {
-  jmcVersion = '8.0.0-SNAPSHOT'
+//  jmcVersion = '8.0.0-SNAPSHOT'
+  jmcVersion = '8.0.1'
 }
 
 apply from: "${rootDir}/gradle/java.gradle"

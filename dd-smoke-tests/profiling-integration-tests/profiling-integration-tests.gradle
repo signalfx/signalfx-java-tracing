@@ -6,7 +6,8 @@ ext {
   minJavaVersionForTests = JavaVersion.VERSION_11
   // Zulu has backported profiling support
   forceJdk = ['ZULU8']
-  jmcVersion = '8.0.0-SNAPSHOT'
+//  jmcVersion = '8.0.0-SNAPSHOT'
+  jmcVersion = '8.0.1'
 }
 
 apply from: "${rootDir}/gradle/java.gradle"

@@ -185,7 +185,7 @@ public class Config {
   public static final String TRACING_LIBRARY_KEY = "signalfx.tracing.library";
   public static final String TRACING_LIBRARY_VALUE = "java-tracing";
   public static final String TRACING_VERSION_KEY = "signalfx.tracing.version";
-  public static final String TRACING_VERSION_VALUE = "0.48.0-sfx6";
+  public static final String TRACING_VERSION_VALUE = "0.48.0-sfx7";
 
   private static final boolean DEFAULT_TRACE_ENABLED = true;
   public static final boolean DEFAULT_INTEGRATIONS_ENABLED = true;

@@ -33,7 +33,9 @@ public class LogContextScopeListener implements ScopeListener {
       putMethod.invoke(
           null, CorrelationIdentifier.getServiceNameKey(), CorrelationIdentifier.getServiceName());
       putMethod.invoke(
-            null, CorrelationIdentifier.getEnvironmentNameKey(), CorrelationIdentifier.getEnvironmentName());
+          null,
+          CorrelationIdentifier.getEnvironmentNameKey(),
+          CorrelationIdentifier.getEnvironmentName());
     } catch (final Exception e) {
       log.debug("Exception setting log context context", e);
     }

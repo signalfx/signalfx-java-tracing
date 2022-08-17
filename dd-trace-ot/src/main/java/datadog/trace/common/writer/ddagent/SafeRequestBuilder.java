@@ -50,10 +50,10 @@ public final class SafeRequestBuilder {
       return this;
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
-        new StringBuilder()
-          .append("InvalidArgumentException at header() for header: ")
-          .append(name)
-          .toString());
+          new StringBuilder()
+              .append("InvalidArgumentException at header() for header: ")
+              .append(name)
+              .toString());
     }
   }
 
@@ -65,10 +65,10 @@ public final class SafeRequestBuilder {
       return this;
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
-        new StringBuilder()
-          .append("InvalidArgumentException at addHeader() for header: ")
-          .append(name)
-          .toString());
+          new StringBuilder()
+              .append("InvalidArgumentException at addHeader() for header: ")
+              .append(name)
+              .toString());
     }
   }
 
@@ -77,10 +77,10 @@ public final class SafeRequestBuilder {
       return builder.addHeader(name, value);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(
-        new StringBuilder()
-          .append("InvalidArgumentException at addHeader() for header: ")
-          .append(name)
-          .toString());
+          new StringBuilder()
+              .append("InvalidArgumentException at addHeader() for header: ")
+              .append(name)
+              .toString());
     }
   }
 

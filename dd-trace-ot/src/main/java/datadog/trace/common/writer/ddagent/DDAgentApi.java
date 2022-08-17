@@ -280,9 +280,10 @@ public class DDAgentApi implements Api {
         .build();
   }
 
-  private static Request.Builder prepareRequest(final HttpUrl url) {
-    final Request.Builder builder =
-        new Request.Builder()
+  private static SafeRequestBuilder prepareRequest(final HttpUrl url) {
+
+    final SafeRequestBuilder builder =
+        new SafeRequestBuilder()
             .url(url)
             .addHeader(DATADOG_META_LANG, "java")
             .addHeader(DATADOG_META_LANG_VERSION, DDTraceOTInfo.JAVA_VERSION)

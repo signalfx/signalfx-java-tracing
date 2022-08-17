@@ -1,4 +1,4 @@
-package datadog.trace.common.writer.ddagent;
+package datadog.trace.common.writer.ddagent
 
 
 import okhttp3.Headers

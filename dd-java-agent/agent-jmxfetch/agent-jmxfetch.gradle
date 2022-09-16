@@ -12,8 +12,8 @@ dependencies {
   }
   compile deps.slf4j
   compile project(':dd-trace-api')
-  compile group: 'commons-io', name: 'commons-io', version: '2.4'
-  compile group: 'org.yaml', name: 'snakeyaml', version: '1.27'
+  compile group: 'commons-io', name: 'commons-io', version: '2.11.0'
+  compile group: 'org.yaml', name: 'snakeyaml', version: '1.30'
 }
 
 shadowJar {

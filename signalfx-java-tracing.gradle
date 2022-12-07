@@ -34,7 +34,7 @@ scmVersion {
 allprojects {
   group = 'com.signalfx.public'
   // Don't forget to update TRACING_VERSION_VALUE in dd-trace-api/src/main/java/datadog/trace/api/Config.java
-  version = '0.48.0-sfx10'
+  version = '0.48.0-sfx11'
 
   if (isCI) {
     buildDir = "${rootDir}/workspace/${projectDir.path.replace(rootDir.path, '')}/build/"

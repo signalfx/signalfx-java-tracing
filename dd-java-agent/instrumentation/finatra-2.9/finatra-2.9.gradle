@@ -37,7 +37,7 @@ dependencies {
   testCompile project(':dd-java-agent:instrumentation:netty-4.1')
 
   testCompile group: 'com.twitter', name: 'finatra-http_2.11', version: '19.12.0'
-  testCompile(group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.2.1') {
+  testCompile(group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.4.2') {
     force = true
   }
   // Required for older versions of finatra on JDKs >= 11
@@ -45,7 +45,7 @@ dependencies {
 
   // temporarily locked version as "newest" breaks the build
   latestDepTestCompile group: 'com.twitter', name: 'finatra-http_2.11', version: '20.6.+'
-  latestDepTestCompile(group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.2.1') {
+  latestDepTestCompile(group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.4.2') {
     force = true
   }
 }
